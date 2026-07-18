@@ -3,13 +3,14 @@ import Link from "next/link";
 const NAV_ITEMS = [
   { href: "/", label: "구술 목록" },
   { href: "/timeline", label: "연표" },
+  { href: "/search", label: "검색" },
 ] as const;
 
 export function SiteHeader({
   active,
   title,
 }: {
-  active: "/" | "/timeline";
+  active: "/" | "/timeline" | "/search";
   title: string;
 }) {
   return (

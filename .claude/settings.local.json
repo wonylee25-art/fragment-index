@@ -26,7 +26,11 @@
       "Bash(node --env-file=.env.local scripts/match-museum-relics.mjs 라디오)",
       "Bash(node -e 'console.log\\(encodeURIComponent\\(\"라디오\"\\)\\)')",
       "Bash(git check-ignore *)",
-      "Bash(python3 -c \"import json; json.load\\(open\\('.claude/settings.local.json'\\)\\); print\\('valid json'\\)\")"
+      "Bash(python3 -c \"import json; json.load\\(open\\('.claude/settings.local.json'\\)\\); print\\('valid json'\\)\")",
+      "Bash(sort -t'|' -k2 -n -r)",
+      "Bash(git commit -m ' *)",
+      "Bash(node --env-file=.env.local scripts/match-museum-relics.mjs 수신기)",
+      "mcp__37e87a1f-02df-4f19-bccc-64ac077bb327__list_projects"
     ]
   }
 }

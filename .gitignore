@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# 구글 서비스 계정 키 (Sheets API) — 절대 커밋 금지
+google-service-account.json
+
 # vercel
 .vercel
 

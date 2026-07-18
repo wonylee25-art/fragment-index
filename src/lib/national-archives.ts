@@ -7,6 +7,7 @@ import { XMLParser } from "fast-xml-parser";
 const BASE_URL = "https://apis.data.go.kr/1741050/openapi/searcharc";
 
 export interface ArchiveRecord {
+  id: string; // rc_code+rc_rfile_no+rc_ritem_no 조합 — archive_items 저장 시 안정적인 키로 쓴다
   title: string;
   producer: string; // prod_name — 생산기관
   productionYear: string; // prod_year
@@ -30,6 +31,7 @@ export async function searchArchiveRecords(query: string, display = 5): Promise<
   const items = Array.isArray(rawItems) ? rawItems : [rawItems];
 
   return items.map((item) => ({
+    id: `arch-${item.rc_code ?? ""}-${item.rc_rfile_no ?? ""}-${item.rc_ritem_no ?? ""}`,
     title: String(item.title ?? ""),
     producer: String(item.prod_name ?? ""),
     productionYear: String(item.prod_year ?? ""),

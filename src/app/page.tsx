@@ -1,13 +1,13 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SegmentListClient } from "@/components/SegmentListClient";
-import { oralSegments } from "@/lib/real-data";
+import { getOralSegments } from "@/lib/db";
 
 export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<{ focus?: string }>;
 }) {
-  const { focus } = await searchParams;
+  const [{ focus }, oralSegments] = await Promise.all([searchParams, getOralSegments()]);
 
   return (
     <div className="min-h-full bg-white">
