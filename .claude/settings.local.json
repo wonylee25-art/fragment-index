@@ -1,7 +1,32 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)"
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npx tsc *)",
+      "Bash(mkdir -p \"/Users/wonylee/fragment-index/.claude\")",
+      "Bash(npx eslint *)",
+      "Bash(git add *)",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget",
+      "Bash(node -e ' *)",
+      "Bash(npm install *)",
+      "Bash(node --env-file=.env.local scripts/match-archives.mjs)",
+      "Bash(node --env-file=.env.local -e ' *)",
+      "Bash(cat /tmp/radio_history.json)",
+      "Bash(python3)",
+      "WebSearch",
+      "Bash(mkdir -p /Users/wonylee/.claude/projects/-Users-wonylee-fragment-index/memory)",
+      "Bash(python3 -c ' *)",
+      "Bash(node /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/parse-csv.mjs 'data/fragments_index - oral segments.csv' /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/oral-segments.json)",
+      "Bash(node /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/parse-csv.mjs 'data/fragments_index - persons_authority.csv' /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/persons.json)",
+      "Bash(node /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/parse-csv.mjs 'data/fragments_index - sources_authority.csv' /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/sources.json)",
+      "Bash(node /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/parse-csv.mjs 'data/fragments_index - chronicle.csv' /private/tmp/claude-502/-Users-wonylee-fragment-index/b9530c10-5637-471a-85df-99672ffc6d0a/scratchpad/chronicle.json)",
+      "WebFetch(domain:www.data.go.kr)",
+      "WebFetch(domain:www.museum.go.kr)",
+      "Bash(node --env-file=.env.local scripts/match-museum-relics.mjs 라디오)",
+      "Bash(node -e 'console.log\\(encodeURIComponent\\(\"라디오\"\\)\\)')",
+      "Bash(git check-ignore *)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('.claude/settings.local.json'\\)\\); print\\('valid json'\\)\")"
     ]
   }
 }
