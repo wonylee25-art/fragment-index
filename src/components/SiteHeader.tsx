@@ -1,16 +1,17 @@
 import Link from "next/link";
 
 const NAV_ITEMS = [
-  { href: "/", label: "구술 목록" },
+  { href: "/search", label: "자료 찾기" },
   { href: "/timeline", label: "연표" },
-  { href: "/search", label: "검색" },
+  { href: "/", label: "구술 목록" },
+  { href: "/research", label: "연구 동향" },
 ] as const;
 
 export function SiteHeader({
   active,
   title,
 }: {
-  active: "/" | "/timeline" | "/search";
+  active: "/" | "/timeline" | "/search" | "/research";
   title: string;
 }) {
   return (

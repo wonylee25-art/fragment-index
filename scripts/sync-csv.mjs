@@ -12,7 +12,7 @@
 // - 5-2-1의 "CSV 오류 처리" 미결정 사항에 대한 답: 행 단위로 검증해서, 문제 있는 행만
 //   건너뛰고 사유를 출력한 뒤 나머지는 계속 진행한다(전체 차단 아님).
 
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -212,11 +212,48 @@ async function syncSegments(personsById) {
   }
 }
 
+// ---------- papers (data/riss-papers.csv, scripts/fetch-riss-papers.mjs가 생성) ----------
+async function syncPapers() {
+  if (!existsSync("data/riss-papers.csv")) {
+    console.warn("[papers] data/riss-papers.csv 없음 — npm run fetch:riss 먼저 실행하세요. 건너뜀.");
+    return;
+  }
+  const rows = readCsv("data/riss-papers.csv");
+  const upserts = [];
+  for (const r of rows) {
+    if (!r.paper_id || !r.title) { log("papers", "skipped"); continue; }
+    upserts.push({
+      id: r.paper_id,
+      paper_type: r.type,
+      title: r.title,
+      author: r.author || null,
+      year: r.year ? parseInt(r.year, 10) : null,
+      institution: r.institution || null,
+      journal_name: r.journal || null,
+      degree_level: r.degree_level || null,
+      keywords: splitMulti(r.keywords),
+      riss_url: r.riss_url || null,
+    });
+    log("papers", "new");
+  }
+  if (upserts.length) {
+    const { error } = await supabase.from("papers").upsert(upserts, { onConflict: "id" });
+    if (error) throw error;
+  }
+
+  // "연구 동향" 화면에 "이 목록은 언제 기준인지" 보여주기 위한 타임스탬프.
+  const { error: statusError } = await supabase
+    .from("sync_status")
+    .upsert({ id: "papers", last_synced_at: new Date().toISOString() }, { onConflict: "id" });
+  if (statusError) throw statusError;
+}
+
 async function main() {
   const personsById = await syncPersons();
   await syncSources();
   await syncChronicle();
   await syncSegments(personsById);
+  await syncPapers();
 
   console.log("\n동기화 결과:");
   for (const [table, r] of Object.entries(report)) {

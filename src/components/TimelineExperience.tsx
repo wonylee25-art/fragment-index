@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Tag } from "./Tag";
+import { MemoField } from "./MemoField";
 import { TimelineRuler, TickRelation } from "./TimelineRuler";
+import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
 import { edtfSortKey, edtfYear, edtfYearFloat, formatEdtfToKorean } from "@/lib/edtf";
 import { narratorPullQuote } from "@/lib/quotes";
@@ -99,6 +101,8 @@ export function TimelineExperience({
 }) {
   const [query, setQuery] = useState("");
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
+  const [relationFilter, setRelationFilter] = useState<TickRelation | "all">("all");
+  const [savedOnly, setSavedOnly] = useState(false);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [detailLevel, setDetailLevel] = useState<DetailLevel>("full");
   const [collection, setCollection] = useState<Set<string>>(new Set());
@@ -123,10 +127,14 @@ export function TimelineExperience({
   const visible = useMemo(() => {
     const q = query.trim();
     const base = sortedAll.filter(
-      (e) => (!activeKeyword || e.keywordTags.includes(activeKeyword)) && matchesQuery(e, q),
+      (e) =>
+        (!activeKeyword || e.keywordTags.includes(activeKeyword)) &&
+        matchesQuery(e, q) &&
+        (relationFilter === "all" || relevanceOf(e, query, segmentTags) === relationFilter) &&
+        (!savedOnly || e.savedByUser),
     );
     return sortDirection === "asc" ? base : [...base].reverse();
-  }, [sortedAll, activeKeyword, sortDirection, query]);
+  }, [sortedAll, activeKeyword, sortDirection, query, relationFilter, segmentTags, savedOnly]);
 
   const keywords = useMemo(() => {
     const set = new Set<string>();
@@ -177,32 +185,64 @@ export function TimelineExperience({
     <div className="bg-white">
       <TimelineRuler ticks={ticks} decades={decades} />
 
-      {/* 표제부 — 한 줄로 최소화 */}
+      {/* 표제부 — 페이지 제목(SiteHeader의 "연표")과 중복되지 않게 기간·통계만 한 줄로 */}
       <div className="border-b border-zinc-200">
         <div className="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-5 gap-y-1 px-4 py-3">
-          <h2 className="font-serif text-lg font-bold text-zinc-900">
-            연표{" "}
-            <span className="ml-1 font-mono text-xs font-normal text-zinc-400">
-              {TIMELINE_START}–{TIMELINE_END}
-            </span>
-          </h2>
-          <p className="font-mono text-[11px] text-zinc-400">
-            사건 {sortedAll.length} · 교차점{" "}
+          <p className="font-mono text-xs text-zinc-400">
+            {TIMELINE_START}–{TIMELINE_END} · 사건 {sortedAll.length} · 교차점{" "}
             {sortedAll.filter((e) => e.linkedSegmentIds.length > 0).length}
           </p>
-          <p className="ml-auto flex items-center gap-3 font-mono text-[10px] text-zinc-400">
-            <span className="flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-2 font-mono text-[10px]">
+            <button
+              type="button"
+              onClick={() => setSavedOnly((v) => !v)}
+              title="자료 찾기에서 저장한 사건만 보기"
+              className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
+                savedOnly ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+              }`}
+            >
+              <span aria-hidden>✓</span>
+              저장한 자료만 ({sortedAll.filter((e) => e.savedByUser).length})
+            </button>
+            <span className="h-3 w-px bg-zinc-200" />
+            <button
+              type="button"
+              onClick={() => setRelationFilter(relationFilter === "high" ? "all" : "high")}
+              title="이 항목만 보기"
+              className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
+                relationFilter === "high" ? "bg-orange-100 text-orange-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+              }`}
+            >
               <span className="inline-block h-2.5 w-[3px] bg-orange-500" />
               {query.trim() ? "검색어와 관련도 높음" : "구술과 직접 교차"}
-            </span>
-            <span className="flex items-center gap-1">
+            </button>
+            <button
+              type="button"
+              onClick={() => setRelationFilter(relationFilter === "low" ? "all" : "low")}
+              title="이 항목만 보기"
+              className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
+                relationFilter === "low" ? "bg-blue-100 text-blue-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+              }`}
+            >
               <span className="inline-block h-2.5 w-[2px] bg-blue-400" />
               {query.trim() ? "관련도 낮음" : "간접 연관"}
-            </span>
-            <span className="flex items-center gap-1">
+            </button>
+            <span className="flex items-center gap-1 px-1.5 py-0.5 text-zinc-300">
               <span className="inline-block h-2.5 w-[1px] bg-zinc-300" /> 무관
             </span>
-          </p>
+            {(relationFilter !== "all" || savedOnly) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setRelationFilter("all");
+                  setSavedOnly(false);
+                }}
+                className="ml-1 text-zinc-400 underline decoration-dotted underline-offset-2 hover:text-zinc-800"
+              >
+                필터 해제
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -210,17 +250,17 @@ export function TimelineExperience({
         {/* 검색 + 키워드 필터 + 표시 단위 */}
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">검색</span>
+            <label className="flex flex-1 items-center gap-2">
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-400">검색</span>
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="사건명, 내용, 장소, 키워드, 출처"
-                className="w-full max-w-md rounded-sm border border-zinc-300 bg-white px-3 py-1.5 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-orange-400 focus:outline-none"
+                className="w-full rounded-sm border border-zinc-300 bg-white px-3 py-1.5 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-orange-400 focus:outline-none"
               />
             </label>
-            <div className="ml-auto flex items-center gap-1 font-mono text-[11px]">
+            <div className="flex items-center gap-1 font-mono text-[11px]">
               <span className="mr-1 text-zinc-400">SCALE —</span>
               {DETAIL_LEVELS.map((level) => (
                 <button
@@ -335,6 +375,19 @@ export function TimelineExperience({
   );
 }
 
+// "자료 찾기"에서 외부 검색 결과 중 사람이 직접 저장한 사건 표시 — 그냥 나열되지 않고
+// 눈에 띄게(초록 배지 + 왼쪽 테두리, EventEntry에서 함께 적용) 구분한다.
+function SavedBadge() {
+  return (
+    <span
+      title="자료 찾기에서 저장한 사건"
+      className="ml-2 inline-flex items-center gap-0.5 rounded-sm bg-emerald-100 px-1.5 py-0.5 align-middle font-mono text-[10px] font-normal text-emerald-700"
+    >
+      ✓ 저장됨
+    </span>
+  );
+}
+
 function EventEntry({
   event,
   detailLevel,
@@ -352,13 +405,21 @@ function EventEntry({
 
   if (detailLevel === "title") {
     return (
-      <div className="grid grid-cols-[88px_1fr] gap-x-5 border-b border-zinc-200 py-2.5">
+      <div
+        className={`grid grid-cols-[88px_1fr] gap-x-5 border-b border-zinc-200 py-2.5 ${
+          event.savedByUser ? "border-l-2 border-l-emerald-400 pl-2" : ""
+        }`}
+      >
         <div className="font-mono text-[11px] leading-5 text-zinc-500">
           {formatEdtfToKorean(event.dateValue)}
         </div>
-        <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">
-          {event.eventName}
-        </h3>
+        <div className="min-w-0">
+          <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">
+            {event.eventName}
+            {event.savedByUser && <SavedBadge />}
+          </h3>
+          <MemoField initialValue={event.userMemo} onSave={(memo) => saveTimelineMemo(event.id, memo)} />
+        </div>
       </div>
     );
   }
@@ -369,7 +430,9 @@ function EventEntry({
         detailLevel === "full"
           ? "sm:grid-cols-[220px_84px_1fr_1fr_280px]"
           : "sm:grid-cols-[84px_1fr_1fr]"
-      } ${hasCrossing ? "border-b border-orange-200 bg-orange-50/40" : "border-b border-zinc-200"}`}
+      } ${hasCrossing ? "border-b border-orange-200 bg-orange-50/40" : "border-b border-zinc-200"} ${
+        event.savedByUser ? "border-l-2 border-l-emerald-400 pl-3" : ""
+      }`}
     >
       {/* 사료 — 다른 아카이브에서 가져온 자료. 다른 컬럼보다 넓게 잡아 이미지가 잘 보이게 한다 */}
       {detailLevel === "full" && (
@@ -399,7 +462,10 @@ function EventEntry({
 
       {/* 사건명 + 하단 키워드 */}
       <div className="min-w-0">
-        <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">{event.eventName}</h3>
+        <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">
+          {event.eventName}
+          {event.savedByUser && <SavedBadge />}
+        </h3>
         <div className="mt-1.5 flex flex-wrap gap-1">
           {event.places.map((p) => (
             <Tag key={p.name} label={p.name} variant="personPlace" href={osmUrl(p)} />
@@ -440,6 +506,11 @@ function EventEntry({
           )}
         </div>
       )}
+
+      {/* 메모 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간 너비에만 맞춘다 */}
+      <div className={detailLevel === "full" ? "sm:col-start-2 sm:col-end-5" : "sm:col-span-full"}>
+        <MemoField initialValue={event.userMemo} onSave={(memo) => saveTimelineMemo(event.id, memo)} />
+      </div>
     </div>
   );
 }

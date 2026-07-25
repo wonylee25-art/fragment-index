@@ -20,6 +20,7 @@ export async function saveThEvent(entry: ThTimelineEntry) {
     source_reference: "오늘의역사(국사편찬위원회)",
     has_discrepancy: false,
     keywords: [],
+    user_saved: true, // "자료 찾기"에서 사람이 직접 골라 저장한 사건 — 연표에서 별도 표시
   });
   if (error && error.code !== "23505") throw error; // 23505 = 중복(이미 저장됨) — 조용히 무시
   revalidatePath("/search");

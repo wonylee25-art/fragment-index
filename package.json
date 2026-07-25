@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sync": "node --env-file=.env.local scripts/sync-csv.mjs"
+    "sync": "node --env-file=.env.local scripts/sync-csv.mjs",
+    "fetch:riss": "node scripts/fetch-riss-papers.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

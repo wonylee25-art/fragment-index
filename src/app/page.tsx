@@ -13,7 +13,7 @@ export default async function Home({
     <div className="min-h-full bg-white">
       <SiteHeader active="/" title="구술 목록" />
 
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <main className="mx-auto max-w-6xl px-4 py-6">
         <SegmentListClient segments={oralSegments} focusId={focus} />
       </main>
     </div>

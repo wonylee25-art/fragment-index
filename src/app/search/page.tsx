@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/SiteHeader";
-import { getSavedIds, searchLocal } from "@/lib/db";
+import { getSavedIds, getSuggestedKeywords, searchLocal } from "@/lib/db";
+import { TAG_CLASSNAME } from "@/lib/design-tokens";
 import { searchArchiveRecords } from "@/lib/national-archives";
 import { searchMuseumRelics } from "@/lib/museum-relics";
 import { searchThTimeline } from "@/lib/th-timeline";
@@ -57,13 +58,16 @@ export default async function SearchPage({
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
 
-  const [local, external, saved] = query
-    ? await Promise.all([searchLocal(query), externalSearch(query), getSavedIds()])
-    : [{ events: [], segments: [] }, null, { eventIds: new Set<string>(), archiveItemIds: new Set<string>() }];
+  const [local, external, saved, suggestedKeywords] = await Promise.all([
+    query ? searchLocal(query) : Promise.resolve({ events: [], segments: [] }),
+    query ? externalSearch(query) : Promise.resolve(null),
+    query ? getSavedIds() : Promise.resolve({ eventIds: new Set<string>(), archiveItemIds: new Set<string>() }),
+    query ? Promise.resolve<string[]>([]) : getSuggestedKeywords(),
+  ]);
 
   return (
     <div className="min-h-full bg-white">
-      <SiteHeader active="/search" title="검색" />
+      <SiteHeader active="/search" title="자료 찾기" />
 
       <main className="mx-auto max-w-3xl px-4 py-6">
         <form action="/search" method="GET" className="mb-8">
@@ -77,7 +81,26 @@ export default async function SearchPage({
           />
         </form>
 
-        {!query && <p className="font-mono text-xs text-zinc-400">검색어를 입력하세요.</p>}
+        {!query && (
+          <div>
+            <p className="mb-3 font-mono text-xs text-zinc-400">검색어를 입력하거나, 아래 키워드로 둘러보세요.</p>
+            {suggestedKeywords.length === 0 ? (
+              <p className="font-mono text-xs text-zinc-400">아직 등록된 키워드가 없습니다.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {suggestedKeywords.map((kw) => (
+                  <a
+                    key={kw}
+                    href={`/search?q=${encodeURIComponent(kw)}`}
+                    className={`rounded-sm px-1.5 py-0.5 font-mono text-xs ${TAG_CLASSNAME.keyword} hover:brightness-95`}
+                  >
+                    {kw}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {query && (
           <div className="space-y-10">

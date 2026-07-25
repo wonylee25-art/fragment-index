@@ -36,34 +36,35 @@
 - **확인일**: 2026-07-19
 - **판정**: ✅
 - 검색: `GET https://museum.seoul.go.kr/archive/search/NR_search.do?query=<검색어>&collection=cultureData&...` — 로그인 불필요, 서버 렌더링 HTML.
-- "동대문 신발상가" 검색 → 서울생활문화자료조사 컬렉션에서 8건 실제 히트(사진 포함, 아카이브번호 H-TRNS-XXXX).
-- 결과는 **사료**(`archive_items`) 성격 — 국가기록원/박물관 저장 로직 그대로 재사용 가능.
+- 상세 페이지 URL은 `NR_archiveView.do?ctgryId=...&type=A&upperNodeId=...&fileSn=300&fileId=<아카이브번호>` 패턴 — 검색결과 페이지의 `a[href*="NR_archiveView"]`에서 그대로 추출 가능(JS 리버스엔지니어링 불필요, 진짜 href).
+- 자료는 서울역사박물관이 상권/동네별로 낸 "서울생활문화자료조사" 단행본에서 발췌된 것들 — 공공누리 제1유형(출처표시)이라 원문 그대로 인용·저장 가능. 결과는 **사료**(`archive_items`) 성격.
+- "동대문 신발상가" 검색 실적·구체적 자료 내용은 `pilot1.md` 참고.
 - 다음 단계: `national-archives.ts`처럼 `seoul-museum-archive.ts` 클라이언트 작성 후 `/search`에 연결.
 
 ### 서울역사편찬원 (history.seoul.go.kr)
 - **확인일**: 2026-07-19
-- **판정**: ✅
-- 검색: `GET https://history.seoul.go.kr/search/view.do?key=2211140001&sw=<검색어>` — 로그인 불필요, 서버 렌더링 HTML.
-- "동대문 신발상가"(정확한 문구)는 0건이었지만, "동대문"만으로는 1,159건(도서 1 · 교육 9 · 학술 1 · **서울史 DB 1,146** · 편찬원소개 2) — 데이터량이 커서 검색 자체는 잘 작동함을 확인.
-- "서울史 DB"라는 대용량 카테고리가 별도로 있음 — 성격 파악 필요(신문/고문서 등일 가능성, 다음에 확인).
+- **판정**: ✅ (검색 자체는 잘 작동함, 결과 유무는 주제에 따라 다름)
+- 검색: `GET https://history.seoul.go.kr/search/view.do?key=2211140001&sw=<검색어>` — 로그인 불필요, 서버 렌더링 HTML(단, 결과는 JS로 늦게 채워짐 — `get_page_text` 대신 결과 컨테이너 `innerText`로 읽어야 함).
+- "서울史 DB"라는 대용량 카테고리가 있는데, 신문·고문서가 아니라 **지명사전(행정동명 연혁) 중심**임을 확인함.
+- "동대문 신발상가"/"창신동" 검색 실적은 `pilot1.md` 참고.
 
 ### 현대한국구술자료관 (mkoha.aks.ac.kr)
-- **확인일**: progress.md 3-2에 최초 기록(라디오 키워드), 2026-07-19에 "동대문 신발상가"로 재확인 + 요청 패턴 특정
-- **판정**: ◐ (검색 자체는 쉬움, 저장 로직이 복잡함)
-- 검색: `POST https://mkoha.aks.ac.kr/search/AksOralSearchList.do` (body: `searchValue`, `searchType=0`) — 로그인 불필요, 서버 렌더링 HTML.
-- 결과는 **구술**(`segments`) 성격인데, `segments.narrator_id`/`source_id`가 `persons`/`sources` 테이블 FK라서 단순 저장이 아니라 구술자·출처 레코드를 같이 만들거나 매칭하는 로직이 별도로 필요함 — 사료 저장보다 한 단계 더 복잡.
+- **확인일**: progress.md 3-2에 최초 기록(라디오 키워드), 2026-07-19에 요청 패턴 재확인
+- **판정**: ◐ (검색 자체는 쉬움, 저장 로직이 복잡함 — `segments.narrator_id`/`source_id`가 `persons`/`sources` 테이블 FK라서 구술자·출처 레코드를 같이 만들거나 매칭하는 로직이 별도로 필요함)
+- 검색: 홈페이지 검색창은 `goTotalSearch('<검색어>')` JS 함수 호출(POST 프록시) — 인기검색어 태그로도 노출됨.
+- **전문검색이라 오탐(false positive)에 주의**: 검색어에 포함된 단어들이 완전히 다른 문맥에서 각각 등장해도 히트로 잡힘 — 결과를 실제로 열람해서 주제 일치 여부를 확인해야 함. "동대문 신발상가" 검색 사례는 `pilot1.md` 참고.
 
 ---
 
 ## 확인함 — 부분적/막힘
 
 ### 대한민국역사박물관 근현대사아카이브 (archive.much.go.kr)
-- **확인일**: 2026-07-19
-- **판정**: ◐
+- **확인일**: 2026-07-19 (같은 날 전수조사 완료)
+- **판정**: ◐ (기술적으로는 자동화 가능, 다만 구술영상 컬렉션 자체가 작아서 실익은 낮음)
 - **공식 Open API 있음** (`/cnts/cont01/page03.do`에 명세서 게시, "구술영상" 탭 별도 존재).
   - 예: `GET http://archive.much.go.kr/openapi/09/folderListXml.do?pageNo=...` → XML(resultCode/numOfRows/totalCount/jobdirSeq/infoName 등)
-  - **단, 키워드 검색 파라미터가 없음** — `pageNo`로 전체를 페이지네이션할 뿐. 자동화하려면 전체 목록을 받아와 `infoName`(제목)에서 직접 필터링해야 함.
-- 사이트 자체 검색창(`POST /search.do`, body: `searchQuery`)은 있지만 결과가 빈 "상세검색" 셸 페이지로만 리다이렉트되고 실제 결과가 안 실림 — 추가 파라미터가 필요한 것으로 보이나 미해결.
+  - **키워드 검색 파라미터가 없음** — `pageNo`로 전체를 페이지네이션할 뿐. `totalCount`가 82건(4~5페이지)뿐이라 전수조사가 실제로 가능함을 확인 — infoName 82건 전부 열람 완료.
+- 사이트 자체 검색창(`POST /search.do`, body: `searchQuery`)은 있지만 결과가 빈 "상세검색" 셸 페이지로만 리다이렉트되고 실제 결과가 안 실림 — 추가 파라미터가 필요한 것으로 보이나 미해결. (전체 목록 API로 전수조사가 되므로 우선순위 낮음)
 
 ### 국사편찬위원회 구술사료선집 총서 (db.history.go.kr)
 - **확인일**: 2026-07-19
@@ -85,6 +86,39 @@
 - 구술자 목록·개요는 공개돼 있지만 **녹취문 전문은 이메일 인증 + 관리자 승인(1~2일)** 후 14일간만 열람 가능 — 완전 자동화 불가.
 - 사이트가 SPA라 검색 버튼 자동 클릭이 잘 안 먹힘(추가 확인 필요).
 
+### KCI Open API (kci.go.kr)
+- **확인일**: 2026-07-19
+- **판정**: ◐ (엔드포인트는 진짜 REST API, 다만 인증키 발급이 로그인+KRI 회원가입 필요 — 계정 생성은 대신 해줄 수 없는 영역)
+- 안내 페이지: `/kciportal/po/openapi/openApiConnSamp.kci`. 호출 예시: `GET https://open.kci.go.kr/po/openapi/openApiSearch.kci?apiCode=articleSearch&key=<인증키>&title=...&author=...&pubiYr=...` → XML. `apiCode=referenceSearch`로 인용정보 검색도 가능.
+- **인증키 신청**(`/kciportal/po/openapi/openApiKeyRequest.kci`)이 로그인 필수. KCI 개인회원 가입은 KCI 자체가 아니라 **KRI(한국연구자정보)를 통해서만** 가능 — 연구자 실명인증이 걸린 가입 절차라 자동화·대리 진행 불가.
+- **API가 주는 정보 자체가 빈약함** — 안내 문서에 "검색 간략결과(논문명, 출판사, 저자 등)"만 제공한다고 명시됨. `literature_review.md` 작성 때 브라우저로 직접 검색해서 얻은 **초록, KCI 피인용 횟수, 등재 구분** 등은 이 API로는 안 나올 가능성이 높음 — 즉 인증키를 받아 연동해도 지금 브라우저 수동 검색보다 얻는 정보가 더 적을 수 있음.
+- **결론**: 지금 시점엔 연동 실익이 낮음. ①정리노트 §6 스키마에 "2차 학술자료"를 담을 테이블 자체가 없고(로드맵 B3 "웹검색 기반 2차 자료 제안/참고 포스트잇 UI"가 아직 미착수), ②로드맵 A4가 이미 "KCI는 실연동 착수 시점에 확인" 수준으로 낮은 우선순위를 매겨둠. 나중에 실제 착수할 때 위 엔드포인트·인증 절차를 그대로 재사용하면 됨.
+
+---
+
+## 확인함 — 자동화 가능 (신규, 아직 미연동)
+
+### 서울기록원 (archives.seoul.go.kr)
+- **확인일**: 2026-07-19
+- **판정**: ✅
+- 서울역사아카이브(museum.seoul.go.kr)와는 **다른 기관** — 서울시 행정 생산 기록물(공문서·사업서류·사진) 중심.
+- 검색: `GET https://archives.seoul.go.kr/catalog/result?query=<검색어>` — 로그인 불필요, 서버 렌더링 HTML. 홈페이지의 `?q=` 파라미터는 안 먹히고 반드시 `/catalog/result?query=`로 직접 가야 함(홈 검색창은 JS로 이 URL을 조립해서 이동).
+- 자료 성격은 **행정/공문서**(지출결의서, 사업실행서, 진정서 등) 위주 — 서울역사아카이브의 서술형 사료와는 다름. 결과가 수백~수천 건 단위로 나올 수 있어(예: "창신동" 2,023건) 전문검색보다 상세검색(조직/공간/주제 패싯) 활용이 나을 수 있음.
+- 실적은 `pilot1.md` 참고.
+
+---
+
+### RISS (riss.kr) · KCI (kci.go.kr)
+- **확인일**: 2026-07-19 (UI 수동 검색), 2026-07-25 (목록·상세페이지 자동 스크래핑)
+- **판정**: ✅ (2026-07-25 기준 갱신 — 로그인 없이 목록·상세 모두 스크래핑 가능함을 실제로 확인·구현함)
+- RISS: `GET https://www.riss.kr/search/Search.do?isDetailSearch=N&searchGubun=true&viewYn=OP&query=<검색어>&colName=<bib_t|re_a_kor>&pageScale=100&iStartCount=<offset>` — 서버 렌더링 HTML, 로그인 불필요. `colName=bib_t`는 학위논문, `re_a_kor`은 국내학술논문. 페이지네이션은 `iStartCount`(0, 100, 200…)로 넘김. 따옴표로 감싼 정확검색(`query=%22구술사%22`)을 쓰면 형태소 분해 매칭이 꺼져 건수가 확 줄어듦(비교: 비정확검색 "구술사" 9,781건 vs 정확검색 565건, 국내학술논문 기준).
+- **목록 HTML에는 제목·저자·발행기관(수여기관/학회)·연도·학위유형(학위논문) 또는 학술지명(학술논문)까지 다 나옴** — `<div class="cont ml60">` 블록 단위로 파싱 가능. **주제어(키워드)는 목록에 없고 상세페이지(`/search/detail/DetailView.do?p_mat_type=<>&control_no=<>`)에만 있음** — `<span class="strong">주제어</span>` 다음 `<div>` 안의 `<a>` 태그들. 상세페이지에는 `https://www.riss.kr/link?id=<ID>` 형태의 깔끔한 영구링크도 있어 재호스팅 없이 이걸로 링크 가능.
+- **`robots.txt`에 `Crawl-delay: 10`이 명시돼 있음** (`Allow: /search`, `Allow: /link`, 그 외 `Disallow: /`) — 자동화할 때 요청 사이 10초 간격을 지켜야 함. 논문 1건당 상세페이지 1회 요청이 필요해서, 대상 건수 × 10초가 곧 소요 시간이 됨(예: 300건 ≈ 50분).
+- 이 판정을 근거로 `scripts/fetch-riss-papers.mjs`(신규)를 만들어 "구술사"/"구술생애사" 정확검색 학위논문·학술논문 메타데이터를 실제로 수집·`/research`(연구동향) 페이지에 연결함. 재사용 가능한 패턴이니 다른 주제어로 확장할 때도 이 스크립트 구조를 그대로 쓸 수 있음.
+- KCI: `https://www.kci.go.kr/kciportal/po/search/poArtiSearList.kci` — 검색창이 JS로 채워지는 SPA라 `get_page_text`로는 결과가 안 잡히고, 결과 리스트 컨테이너 `innerText`(또는 `a[href*="ciSereArtiView"]` 앵커의 closest `li`)를 읽어야 함. 복합어 그대로 일치 검색이라 RISS보다 결과가 좁음. **논문별 피인용 횟수(KCI 피인용 횟수)를 제공** — 핵심 문헌 선별에 유용. (2026-07-25에도 KCI 쪽 자동화는 시도 안 함 — RISS만으로 충분했음.)
+- 정리노트 §3-5에 언급된 "KCI OpenAPI/OAI-PMH", "RISS API 센터"(신청 필요)는 여전히 시도 안 함 — 지금 구현은 공식 API가 아니라 검색결과 HTML 파싱.
+- "구술기록관리"·"구술기록활용" 키워드로 실제 찾은 논문 목록과 프로젝트 연결점은 [`literature_review.md`](literature_review.md) 참고. "구술사"·"구술생애사" 광범위 수집 결과(311건)는 `/research` 페이지와 `data/riss-papers.csv` 참고.
+
 ---
 
 ## 포기함 (progress.md 3-2에 이미 정리됨, 요약만)
@@ -92,3 +126,11 @@
 - **대한민국 신문 아카이브(nl.go.kr)** — API 없음, 검색 폼 자동 제출 여러 방법으로 시도했으나 실패
 - **네이버 뉴스라이브러리** — 도메인 자체가 브라우저 도구에서 차단됨
 - **조선 뉴스 라이브러리(chosun.com)** — 상업 언론사 사이트, 읽기 권한 자체가 막혀 있음
+
+---
+
+## 주제별 실제 조사 결과
+
+> 이 문서는 아카이브별 자동화 가능 여부(기술적으로 재사용 가능한 정보)만 다룬다. 특정 주제로 실제 찾은 사료·구술·2차 자료 내용은 주제별 파일럿 문서에 모은다.
+
+- **동대문 신발상가**: [`pilot1.md`](pilot1.md)

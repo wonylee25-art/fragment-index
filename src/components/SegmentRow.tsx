@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { Tag } from "./Tag";
+import { MemoField } from "./MemoField";
+import { FlagToggle } from "./FlagToggle";
 import { SegmentCardData, ArchiveItemType } from "@/lib/types";
+import { saveSegmentMemo } from "@/lib/memo-actions";
+import { toggleSegmentImportant } from "@/lib/flag-actions";
 import {
   SPEAKER_CLASSNAME,
   DISCREPANCY_ROW_CLASSNAME,
@@ -44,7 +48,7 @@ export function SegmentRow({
   return (
     <div
       id={`segment-${data.id}`}
-      className={`grid scroll-mt-6 grid-cols-[64px_1fr] gap-4 border-b border-zinc-200 px-1 py-4 transition-colors duration-500 sm:grid-cols-[88px_1fr_110px] ${
+      className={`grid scroll-mt-6 grid-cols-[64px_1fr] gap-4 border-b border-zinc-200 px-1 py-4 transition-colors duration-500 sm:grid-cols-[88px_2fr_1fr] ${
         highlighted
           ? FOCUS_HIGHLIGHT_CLASSNAME
           : data.hasDiscrepancy
@@ -60,6 +64,13 @@ export function SegmentRow({
 
       <div className="min-w-0">
         <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-zinc-400">
+          <FlagToggle
+            active={data.isImportant}
+            onToggle={(next) => toggleSegmentImportant(data.id, next)}
+            activeLabel="★ 중요"
+            inactiveLabel="☆ 중요"
+            activeClassName="bg-amber-100 text-amber-700"
+          />
           <span>{data.itemTitle}</span>
           {data.hasDiscrepancy && (
             <span className={`${DISCREPANCY_LABEL_CLASSNAME} font-medium`} title={data.discrepancyNote}>
@@ -121,6 +132,11 @@ export function SegmentRow({
           </button>
         </div>
 
+        {/* 메모(모바일) — 오른쪽 칸이 사라지는 좁은 화면에서는 본문 흐름 안에 그대로 둔다 */}
+        <div className="sm:hidden">
+          <MemoField initialValue={data.userMemo} onSave={(memo) => saveSegmentMemo(data.id, memo)} />
+        </div>
+
         {expanded && (
           <ul className="mt-3 flex flex-col gap-1 border-t border-zinc-200/70 pt-2">
             {data.relatedItems.map((item) => (
@@ -162,7 +178,12 @@ export function SegmentRow({
         )}
       </div>
 
-      <div className="hidden text-right sm:block">
+      {/* 오른쪽 칸(데스크톱) — 관련자료 버튼과 메모를 같은 행(row 1)에 위로 붙여 쌓는다.
+          메모를 별도 그리드 행으로 두면 본문(구술 인용)이 긴 만큼 아래로 밀려버려서, 같은 셀 안에 넣는다. */}
+      <div className="hidden text-right sm:flex sm:flex-col sm:items-end sm:gap-2">
+        <div className="w-full">
+          <MemoField initialValue={data.userMemo} onSave={(memo) => saveSegmentMemo(data.id, memo)} />
+        </div>
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}

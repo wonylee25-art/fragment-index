@@ -30,7 +30,12 @@
       "Bash(sort -t'|' -k2 -n -r)",
       "Bash(git commit -m ' *)",
       "Bash(node --env-file=.env.local scripts/match-museum-relics.mjs 수신기)",
-      "mcp__37e87a1f-02df-4f19-bccc-64ac077bb327__list_projects"
+      "mcp__37e87a1f-02df-4f19-bccc-64ac077bb327__list_projects",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://www.riss.kr/search/Search.do?isDetailSearch=N&searchGubun=true&viewYn=OP&query=%22%EA%B5%AC%EC%88%A0%EC%82%AC%22&colName=bib_t&pageScale=100\" -o riss_thesis_p1.html -w \"size %{size_download}\\\\n\")",
+      "Bash(python3 -)",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://www.riss.kr/search/Search.do?isDetailSearch=N&searchGubun=true&viewYn=OP&query=%22%EA%B5%AC%EC%88%A0%EC%82%AC%22&colName=bib_t&pageScale=100&iStartCount=100\" -o riss_thesis_p2.html -w \"size %{size_download}\\\\n\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://www.riss.kr/search/detail/DetailView.do?p_mat_type=1a0202e37d52c72d&control_no=4c9e26f8909a9dfcffe0bdc3ef48d419\" -o riss_detail.html -w \"size %{size_download}\\\\n\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://www.riss.kr/search/detail/DetailView.do?p_mat_type=be54d9b8bc7cdb09&control_no=37e0cae6bf4bef32ffe0bdc3ef48d419\" -o riss_thesis_detail.html -w \"size %{size_download}\\\\n\")"
     ]
   }
 }

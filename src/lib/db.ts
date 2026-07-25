@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
-import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "./types";
+import { ArchiveItemType, PaperData, RelatedItem, SegmentCardData, TimelineEventData } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -26,6 +26,8 @@ interface DbTimelineEvent {
   source_reference: string | null;
   has_discrepancy: boolean;
   keywords: string[];
+  user_saved: boolean;
+  user_memo: string | null;
 }
 
 interface DbArchiveItem {
@@ -51,6 +53,8 @@ interface DbSegment {
   discrepancy_note: string | null;
   notes: string | null;
   keywords: string[];
+  user_memo: string | null;
+  is_important: boolean;
 }
 
 interface DbSegmentPerson {
@@ -72,7 +76,7 @@ function toRelatedItem(item: DbArchiveItem): RelatedItem {
 export async function getChronicleEvents(): Promise<TimelineEventData[]> {
   const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: segments, error: segmentsError }] =
     await Promise.all([
-      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, has_discrepancy, keywords").order("id"),
+      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, has_discrepancy, keywords, user_saved, user_memo").order("id"),
       supabase.from("archive_items").select("id, event_id, item_type, title, source_org, source_url, description"),
       supabase.from("segments").select("id, event_id"),
     ]);
@@ -106,6 +110,8 @@ export async function getChronicleEvents(): Promise<TimelineEventData[]> {
     keywordTags: e.keywords ?? [],
     linkedSegmentIds: segmentIdsByEvent.get(e.id) ?? [],
     linkedMaterials: materialsByEvent.get(e.id) ?? [],
+    savedByUser: e.user_saved,
+    userMemo: e.user_memo ?? undefined,
   }));
 }
 
@@ -121,6 +127,21 @@ export async function getSavedIds(): Promise<{ eventIds: Set<string>; archiveIte
     eventIds: new Set(((events as { id: string }[]) ?? []).map((e) => e.id)),
     archiveItemIds: new Set(((items as { id: string }[]) ?? []).map((i) => i.id)),
   };
+}
+
+// "자료 찾기" 화면의 빈 상태(검색어 입력 전)에 보여줄 제안 키워드 — DB(사건·구술)에
+// 실제로 붙어 있는 키워드 태그 중 등장 빈도가 높은 순.
+export async function getSuggestedKeywords(limit = 24): Promise<string[]> {
+  const [events, segments] = await Promise.all([getChronicleEvents(), getOralSegments()]);
+
+  const frequency = new Map<string, number>();
+  for (const e of events) for (const k of e.keywordTags) frequency.set(k, (frequency.get(k) ?? 0) + 1);
+  for (const s of segments) for (const k of s.keywordTags) frequency.set(k, (frequency.get(k) ?? 0) + 1);
+
+  return Array.from(frequency.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([keyword]) => keyword);
 }
 
 export async function searchLocal(query: string): Promise<{ events: TimelineEventData[]; segments: SegmentCardData[] }> {
@@ -143,6 +164,57 @@ export async function searchLocal(query: string): Promise<{ events: TimelineEven
   };
 }
 
+interface DbPaper {
+  id: string;
+  paper_type: string;
+  title: string;
+  author: string | null;
+  year: number | null;
+  institution: string | null;
+  journal_name: string | null;
+  degree_level: string | null;
+  keywords: string[];
+  riss_url: string | null;
+  user_memo: string | null;
+  is_important: boolean;
+  is_read: boolean;
+}
+
+// "연구 동향" 화면 상단에 "이 목록은 언제 기준인지" 보여주는 값 — scripts/sync-csv.mjs가
+// papers 동기화를 마칠 때마다 갱신한다.
+export async function getResearchSyncedAt(): Promise<string | null> {
+  const { data, error } = await supabase.from("sync_status").select("last_synced_at").eq("id", "papers").maybeSingle();
+  if (error) throw error;
+  return data?.last_synced_at ?? null;
+}
+
+export async function getPapers(): Promise<PaperData[]> {
+  const { data, error } = await supabase
+    .from("papers")
+    .select(
+      "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read",
+    )
+    .order("year", { ascending: false })
+    .order("id", { ascending: true }); // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
+  if (error) throw error;
+
+  return ((data as DbPaper[]) ?? []).map((p) => ({
+    id: p.id,
+    paperType: p.paper_type as PaperData["paperType"],
+    title: p.title,
+    author: p.author ?? "",
+    year: p.year,
+    institution: p.institution ?? "",
+    journalName: p.journal_name ?? undefined,
+    degreeLevel: p.degree_level ?? undefined,
+    keywords: p.keywords ?? [],
+    rissUrl: p.riss_url ?? "",
+    userMemo: p.user_memo ?? undefined,
+    isImportant: p.is_important,
+    isRead: p.is_read,
+  }));
+}
+
 export async function getOralSegments(): Promise<SegmentCardData[]> {
   const [
     { data: segments, error: segmentsError },
@@ -153,7 +225,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     supabase
       .from("segments")
       .select(
-        "id, item_title, date_value, source_id, narrator_id, interviewer_id, event_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords",
+        "id, item_title, date_value, source_id, narrator_id, interviewer_id, event_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
       )
       .order("id"),
     supabase.from("persons").select("id, title"),
@@ -191,6 +263,8 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
       notes: s.notes ?? undefined,
       sourceRef: source ? { title: source.title, url: source.identifier ?? undefined } : undefined,
       relatedItems: [], // 발췌구간 단위 관련자료는 아직 없음 — 사건(linkedMaterials) 쪽에만 있음
+      userMemo: s.user_memo ?? undefined,
+      isImportant: s.is_important,
     };
   });
 }
