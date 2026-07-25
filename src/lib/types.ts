@@ -47,7 +47,16 @@ export interface PlaceRef {
   lng: number;
 }
 
-export type PaperType = "학위논문" | "학술논문";
+export type PaperType = "학위논문" | "학술논문" | "단행본";
+
+// 논문에서 발췌한 인용구 — userMemo(논문당 자유 메모 한 덩어리)와 달리
+// 논문 하나에 여러 개, 페이지 번호와 함께 개별 항목으로 쌓인다.
+export interface PaperQuote {
+  id: string;
+  quoteText: string;
+  page?: string;
+  createdAt: string;
+}
 
 // RISS에서 긁어온 국내 구술사/생애사 연구 메타데이터 — 연구동향 화면 전용.
 // 원문은 재호스팅하지 않고 rissUrl로만 링크한다(RelatedItem.sourceUrl과 같은 원칙).
@@ -57,14 +66,20 @@ export interface PaperData {
   title: string;
   author: string;
   year: number | null;
-  institution: string; // 학위수여기관 또는 발행 학회
+  institution: string; // 학위수여기관·발행 학회 또는 출판사(단행본)
   journalName?: string; // 학술논문일 때만
+  volumeIssue?: string; // 학술논문일 때만 — 권(호), 예: "25(1)"
   degreeLevel?: string; // 학위논문일 때만 (국내석사/국내박사)
+  // 단행본일 때만 — 한국문화인류학회 인용 형식(저자, 발행연도, 제목, 출판지: 출판사) 참고.
+  // https://koanth.org/?page_id=1048
+  publisherLocation?: string; // 출판지 (예: 서울)
+  translator?: string; // 역서일 때 역자
   keywords: string[];
   rissUrl: string;
   userMemo?: string; // 이용자가 이 논문에 대해 직접 적는 개인 메모
   isImportant: boolean; // 이용자가 "중요"로 표시했는지
   isRead: boolean; // 이용자가 "읽음"으로 표시했는지
+  quotes: PaperQuote[];
 }
 
 export interface TimelineEventData {

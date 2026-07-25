@@ -32,6 +32,18 @@ const INSTITUTION_BLOCKLIST = [
   "체육", "스포츠", "무용", "태권도", "골프", "무도",
 ];
 
+// INSTITUTION_BLOCKLIST는 발행기관명만 보므로 못 거르는, 개별 체육인의 생애사(유도·축구·탁구 등
+// 인물 중심 스포츠 전기) — 2026-07-25 사용자가 화면에서 직접 삭제해 확인한 값. 재실행 때마다
+// 다시 긁히지 않도록 control_no로 고정 제외한다.
+const MANUALLY_EXCLUDED_CONTROL_NOS = new Set([
+  "76da86f493d49ab0ffe0bdc3ef48d419", // 강원도 유도인의 구술생애사
+  "e8184fe5b8914777ffe0bdc3ef48d419", // 체육인 한상준의 생애사
+  "adfc3ca865676f16ffe0bdc3ef48d419", // 돈키호테, 체육선생의 삶
+  "54432d3847100587ffe0bdc3ef48d419", // 탁구인 윤길중의 생애사
+  "93989f0ea07cd072ffe0bdc3ef48d419", // 김왕주 축구감독의 생애사
+  "7173d42142b2fbe14884a65323211ff0", // 철원군유도 발전과정 : 개인생애사를 중심으로
+]);
+
 const ALLOWED_JOURNALS = new Set(["구술사연구", "한국구술사학회 학술대회"]);
 
 function sleep(ms) {
@@ -135,7 +147,25 @@ function isExcludedInstitution(institution) {
   return INSTITUTION_BLOCKLIST.some((word) => institution.includes(word));
 }
 
-// 상세페이지에서 주제어(한글만)와 riss.kr/link 영구링크를 추출한다.
+// 상세페이지의 "권호사항" 필드("Vol.25 No.1 [1988]" 형태)를 koanth.org 인용 형식의
+// 권(호) 표기("25(1)")로 변환한다. 호가 없으면("No.-") 권만 반환.
+function parseVolumeIssue(html) {
+  const idx = html.indexOf("권호사항");
+  if (idx === -1) return "";
+  const aStart = html.indexOf("<a", idx);
+  const aEnd = html.indexOf("</a>", aStart);
+  if (aStart === -1 || aEnd === -1) return "";
+  const text = stripTags(html.slice(aStart, aEnd));
+  const volMatch = text.match(/Vol\.(\S+)/);
+  const noMatch = text.match(/No\.(\S+)/);
+  const vol = volMatch ? volMatch[1] : "";
+  const no = noMatch ? noMatch[1] : "";
+  if (!vol) return "";
+  if (!no || no === "-") return vol;
+  return `${vol}(${no})`;
+}
+
+// 상세페이지에서 주제어(한글만)·권호사항(학술논문)·riss.kr/link 영구링크를 추출한다.
 async function fetchDetail(item) {
   const url = `https://www.riss.kr/search/detail/DetailView.do?p_mat_type=${item.matType}&control_no=${item.controlNo}`;
   const html = await politeFetch(url);
@@ -154,7 +184,9 @@ async function fetchDetail(item) {
       .filter((k) => k && /[가-힣]/.test(k));
   }
 
-  return { rissUrl, keywords };
+  const volumeIssue = item.kind === "학술논문" ? parseVolumeIssue(html) : "";
+
+  return { rissUrl, keywords, volumeIssue };
 }
 
 // ---------- CSV I/O (기존 scripts/sync-csv.mjs와 같은 RFC4180 파서 재사용) ----------
@@ -188,7 +220,7 @@ function csvCell(value) {
   return s;
 }
 
-const HEADER = ["paper_id", "type", "title", "author", "year", "institution", "journal", "degree_level", "keywords", "riss_url"];
+const HEADER = ["paper_id", "type", "title", "author", "year", "institution", "journal", "volume_issue", "degree_level", "keywords", "riss_url"];
 
 function loadExisting() {
   if (!existsSync(CSV_PATH)) return new Map();
@@ -215,6 +247,7 @@ async function main() {
   for (const q of QUERIES) {
     const items = await fetchAllListPages(q.colName, q.phrase, q.kind);
     for (const item of items) {
+      if (MANUALLY_EXCLUDED_CONTROL_NOS.has(item.controlNo)) continue;
       if (item.kind === "학위논문") {
         if (isExcludedInstitution(item.institution)) continue;
         theses.set(item.controlNo, item);
@@ -254,6 +287,7 @@ async function main() {
       year: item.year ?? "",
       institution: item.institution,
       journal: item.journalName,
+      volume_issue: detail.volumeIssue,
       degree_level: item.degreeLevel,
       keywords: detail.keywords.join(";"),
       riss_url: detail.rissUrl,

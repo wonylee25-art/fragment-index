@@ -41,8 +41,8 @@ export function MemoField({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="메모를 입력하세요"
-          rows={2}
-          className="w-full resize-none bg-transparent font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:outline-none"
+          rows={6}
+          className="w-full resize-y bg-transparent font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:outline-none"
         />
         <div className="mt-1 flex justify-end gap-2">
           <button

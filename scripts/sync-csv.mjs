@@ -230,6 +230,9 @@ async function syncPapers() {
       year: r.year ? parseInt(r.year, 10) : null,
       institution: r.institution || null,
       journal_name: r.journal || null,
+      // "-"는 backfill-volume-issue.mjs가 "권호사항 필드 자체가 없음을 확인함"을 표시하는
+      // 값이라 재시도 스킵용일 뿐, 실제 DB/화면에는 null로 들어가야 한다.
+      volume_issue: r.volume_issue && r.volume_issue !== "-" ? r.volume_issue : null,
       degree_level: r.degree_level || null,
       keywords: splitMulti(r.keywords),
       riss_url: r.riss_url || null,

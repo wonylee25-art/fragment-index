@@ -4,10 +4,16 @@ import { useMemo, useState } from "react";
 import { PaperData, PaperType } from "@/lib/types";
 import { TAG_CLASSNAME } from "@/lib/design-tokens";
 import { MemoField } from "./MemoField";
+import { QuoteList } from "./QuoteList";
+import { CopyForNotionButton } from "./CopyForNotionButton";
 import { FlagToggle } from "./FlagToggle";
+import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import { AddPaperForm } from "./AddPaperForm";
 import { savePaperMemo } from "@/lib/memo-actions";
 import { togglePaperImportant, togglePaperRead } from "@/lib/flag-actions";
 import { refreshResearchData } from "@/lib/research-sync-actions";
+import { deletePaper } from "@/lib/paper-actions";
+import { addQuote, deleteQuote, updateQuote } from "@/lib/quote-actions";
 
 const MIN_MENTIONS = 2; // 노이즈를 줄이기 위해 2회 이상 등장한 주제어만 클라우드에 노출
 const MIN_FONT_PX = 11;
@@ -16,6 +22,7 @@ const MAX_FONT_PX = 27;
 const PAPER_TYPE_CLASSNAME: Record<PaperType, string> = {
   학위논문: "bg-violet-100 text-violet-700",
   학술논문: "bg-blue-100 text-blue-800",
+  단행본: "bg-teal-100 text-teal-700",
 };
 
 function buildFrequency(papers: PaperData[]) {
@@ -57,6 +64,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+  const [addingPaper, setAddingPaper] = useState(false);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -167,7 +175,18 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           <h2 className="font-mono text-xs text-zinc-400">
             논문 목록 {activeKeyword ? `· "${activeKeyword}" ${filteredPapers.length}편` : `· 전체 ${filteredPapers.length}편`}
           </h2>
+          {!addingPaper && (
+            <button
+              type="button"
+              onClick={() => setAddingPaper(true)}
+              className="rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-xs text-white hover:bg-zinc-700"
+            >
+              + 논문 추가
+            </button>
+          )}
         </div>
+
+        {addingPaper && <AddPaperForm onClose={() => setAddingPaper(false)} />}
 
         {filteredPapers.length === 0 ? (
           <p className="py-8 text-center font-mono text-xs text-zinc-400">일치하는 논문이 없습니다.</p>
@@ -195,8 +214,15 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       active={paper.isRead}
                       onToggle={(next) => togglePaperRead(paper.id, next)}
                       activeLabel="✓ 읽음"
-                      inactiveLabel="읽음 표시"
+                      inactiveLabel="안 읽음"
                       activeClassName="bg-emerald-100 text-emerald-700"
+                    />
+                    <ConfirmDeleteButton
+                      onDelete={() => deletePaper(paper.id)}
+                      confirmMessage={`"${paper.title}"을(를) 삭제할까요? 되돌릴 수 없습니다.`}
+                      label="삭제"
+                      pendingLabel="삭제 중…"
+                      className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
                     />
                   </div>
 
@@ -211,8 +237,11 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
 
                   <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
                     {paper.author}
+                    {paper.translator && ` (${paper.translator} 역)`}
                     {paper.author && " · "}
-                    {paper.journalName ?? paper.institution}
+                    {paper.paperType === "단행본"
+                      ? [paper.publisherLocation, paper.institution].filter(Boolean).join(": ")
+                      : [paper.journalName ?? paper.institution, paper.volumeIssue].filter(Boolean).join(" ")}
                     {paper.degreeLevel ? ` · ${paper.degreeLevel}` : ""}
                   </p>
 
@@ -236,6 +265,13 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
 
                 <div>
                   <MemoField initialValue={paper.userMemo} onSave={(memo) => savePaperMemo(paper.id, memo)} />
+                  <QuoteList
+                    quotes={paper.quotes}
+                    onAdd={(quoteText, page) => addQuote(paper.id, quoteText, page)}
+                    onEdit={(id, quoteText, page) => updateQuote(id, quoteText, page)}
+                    onDelete={(id) => deleteQuote(id)}
+                  />
+                  <CopyForNotionButton paper={paper} />
                 </div>
               </li>
             ))}

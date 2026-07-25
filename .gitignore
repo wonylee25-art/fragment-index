@@ -39,6 +39,9 @@ google-service-account.json
 # vercel
 .vercel
 
+# 읽은 논문 PDF 로컬 보관용 — 저작권·용량 문제로 커밋 금지
+/downloads
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
-import { ArchiveItemType, PaperData, RelatedItem, SegmentCardData, TimelineEventData } from "./types";
+import { ArchiveItemType, PaperData, PaperQuote, RelatedItem, SegmentCardData, TimelineEventData } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -178,6 +178,17 @@ interface DbPaper {
   user_memo: string | null;
   is_important: boolean;
   is_read: boolean;
+  publisher_location: string | null;
+  translator: string | null;
+  volume_issue: string | null;
+}
+
+interface DbPaperQuote {
+  id: string;
+  paper_id: string;
+  quote_text: string;
+  page: string | null;
+  created_at: string;
 }
 
 // "연구 동향" 화면 상단에 "이 목록은 언제 기준인지" 보여주는 값 — scripts/sync-csv.mjs가
@@ -189,14 +200,28 @@ export async function getResearchSyncedAt(): Promise<string | null> {
 }
 
 export async function getPapers(): Promise<PaperData[]> {
-  const { data, error } = await supabase
-    .from("papers")
-    .select(
-      "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read",
-    )
-    .order("year", { ascending: false })
-    .order("id", { ascending: true }); // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
+  const [
+    { data, error },
+    { data: quotes, error: quotesError },
+  ] = await Promise.all([
+    supabase
+      .from("papers")
+      .select(
+        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read, publisher_location, translator, volume_issue",
+      )
+      .order("year", { ascending: false })
+      .order("id", { ascending: true }), // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
+    supabase.from("paper_quotes").select("id, paper_id, quote_text, page, created_at").order("created_at", { ascending: true }),
+  ]);
   if (error) throw error;
+  if (quotesError) throw quotesError;
+
+  const quotesByPaper = new Map<string, PaperQuote[]>();
+  for (const q of (quotes as DbPaperQuote[]) ?? []) {
+    const list = quotesByPaper.get(q.paper_id) ?? [];
+    list.push({ id: q.id, quoteText: q.quote_text, page: q.page ?? undefined, createdAt: q.created_at });
+    quotesByPaper.set(q.paper_id, list);
+  }
 
   return ((data as DbPaper[]) ?? []).map((p) => ({
     id: p.id,
@@ -212,6 +237,10 @@ export async function getPapers(): Promise<PaperData[]> {
     userMemo: p.user_memo ?? undefined,
     isImportant: p.is_important,
     isRead: p.is_read,
+    publisherLocation: p.publisher_location ?? undefined,
+    translator: p.translator ?? undefined,
+    volumeIssue: p.volume_issue ?? undefined,
+    quotes: quotesByPaper.get(p.id) ?? [],
   }));
 }
 

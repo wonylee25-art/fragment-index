@@ -118,6 +118,7 @@
 - KCI: `https://www.kci.go.kr/kciportal/po/search/poArtiSearList.kci` — 검색창이 JS로 채워지는 SPA라 `get_page_text`로는 결과가 안 잡히고, 결과 리스트 컨테이너 `innerText`(또는 `a[href*="ciSereArtiView"]` 앵커의 closest `li`)를 읽어야 함. 복합어 그대로 일치 검색이라 RISS보다 결과가 좁음. **논문별 피인용 횟수(KCI 피인용 횟수)를 제공** — 핵심 문헌 선별에 유용. (2026-07-25에도 KCI 쪽 자동화는 시도 안 함 — RISS만으로 충분했음.)
 - 정리노트 §3-5에 언급된 "KCI OpenAPI/OAI-PMH", "RISS API 센터"(신청 필요)는 여전히 시도 안 함 — 지금 구현은 공식 API가 아니라 검색결과 HTML 파싱.
 - "구술기록관리"·"구술기록활용" 키워드로 실제 찾은 논문 목록과 프로젝트 연결점은 [`literature_review.md`](literature_review.md) 참고. "구술사"·"구술생애사" 광범위 수집 결과(311건)는 `/research` 페이지와 `data/riss-papers.csv` 참고.
+- **2026-07-25 추가 확인**: 학술논문 상세페이지의 "권호사항" 필드(`<span class="strong">권호사항</span>` 다음 `<a>` 안에 "Vol.25 No.1 [1988]" 형태)에서 권(호) 정보를 추출 가능함을 확인. `fetchDetail()`에 파싱 로직 추가(`scripts/fetch-riss-papers.mjs`, 이후 신규 수집분은 자동 포함)하고, 이미 수집된 기존 145건은 `scripts/backfill-volume-issue.mjs`(신규, 상세페이지만 재요청)로 보충 — 크롤 지연(10초/건) 그대로 적용해 약 25분 소요.
 
 ---
 
