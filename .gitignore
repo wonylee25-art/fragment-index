@@ -42,6 +42,10 @@ google-service-account.json
 # 읽은 논문 PDF 로컬 보관용 — 저작권·용량 문제로 커밋 금지
 /downloads
 
+# 실제 아카이브 데이터 — 로컬/Supabase에만 두고 저장소엔 코드 구조만 남긴다
+/data/*.csv
+/data/raw/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
