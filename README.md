@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# fragment-index (구술 아카이브 웹 서비스)
 
-## Getting Started
+주제를 중심에 두고, 여러 기관이 공개한 **구술채록사업 결과물**(발췌 구간)과 그 시대적 맥락을 보여주는 **사료**(문서·사진·유물·신문 등)를 인물·장소·사건 기준으로 그물망처럼 연결해 두는 **개인용 시멘틱 아카이브**입니다.
 
-First, run the development server:
+## 왜 만들었나
+
+구술만 보면 개인의 기억이라 파편적이고, 신문·기록물만 보면 개인의 경험이 빠져 있습니다 — 여러 자료를 겹쳐봐야만 그 시절의 맥락이 온전히 보인다는 문제의식에서 출발했습니다(구술사 방법론의 교차 대조(triangulation)와 콘텐츠/의미 매핑 이론 등 학술적 배경 참고).
+
+주제로 직접 논문을 쓰기 위해서는 국내에서 구술기록을 어떻게 관리·활용하고 있는지 선행연구 동향을 계속 파악할 필요가 있었고, 그 필요에서 나온 것이 [연구 동향(`/research`)](#연구-동향-research-상세) 화면입니다.
+
+## 핵심 설계 원칙
+
+- **그물망형 연결** — 발췌 구간·사료·연표 항목 등 어떤 노드든 위계 없이 인물/장소/사건 태그로 서로 연결됩니다. 구술이 화면상 대표 진입점이긴 하지만, 연결 자체가 구술을 반드시 거쳐야 하는 구조는 아닙니다.
+- **확인되지 않은 정보는 확인되지 않은 대로 표시** — 추정 연도, 자료 간 사실 충돌(이견) 등을 시스템이 대신 판단하지 않고 있는 그대로 노출합니다.
+- **자동화는 가능한 데까지, 확정은 사람이** — 기관 API나 오픈데이터가 있으면 적극 연동하되, 최종 확정은 항상 사람이 검토합니다.
+- **유연한 날짜 체계(EDTF)** — 구술은 화자 기억으로 추정 연도만 아는 경우가 많고, 신문기사는 정확한 발행일이 있습니다. 이렇게 정밀도가 제각각인 날짜를 EDTF 형식(`1960s`, `1950~`, `1945~1948` 등)으로 통일 저장해 연표에서 함께 정렬·비교합니다.
+
+## 화면 구성
+
+| 경로 | 화면 | 설명 |
+|---|---|---|
+| `/` | 구술 목록 | 메인 피드. 발췌 구간을 날짜순 리스트로 보여주고, 검색/키워드 필터/정렬, 이견·원문 각주 표시, 관련자료 미리보기를 지원 |
+| `/timeline` | 연표 | 사료·날짜·사건명·내용·구술 5컬럼 표. 1900–2026 고정 타임라인, 관련도 색상 강조, 표시 밀도 3단계(전체/내용만/제목만), 개인 컬렉션 담기 + CSV 내보내기 |
+| `/search` | 자료 찾기 | 이미 DB에 저장된 사료뿐 아니라 국가기록원·국립중앙박물관·국사편찬위 "오늘의역사" 외부 소스를 동시 검색해 후보를 저장할 수 있음 |
+| `/research` | 연구 동향 | RISS에서 수집한 국내 구술사/생애사 관련 학위논문·학술논문·단행본 메타데이터, 인용구·개인 메모 관리 |
+
+### 연구 동향 (`/research`) 상세
+
+기획(구술+사료 아카이브)과는 별도 축으로, **국내 구술사/구술생애사 연구 동향을 계속 따라가기 위한 개인용 문헌 관리 화면**입니다.
+
+- **주제어 클라우드** — 전체 논문의 키워드를 빈도순으로 크기 차등 표시(2회 이상 등장한 것만, 노이즈 억제). 하나를 클릭하면 같은 논문에서 함께 등장한 연관 주제어가 호박색으로 강조되고, 아래 목록이 해당 주제어로 좁혀집니다.
+- **논문 목록** — 유형(학위논문/학술논문/단행본)·연도·저자·학술지(권호)/학위수여기관/출판사 표시, RISS 원문 링크로 연결. 목록에서 바로 ★ 중요, ✓ 읽음 토글과 삭제가 가능하고, `+ 논문 추가`로 수기 등록도 지원합니다.
+- **개인 메모 & 인용구** — 논문마다 자유 메모 하나, 그리고 페이지 번호를 붙인 인용구를 여러 개 쌓을 수 있습니다(`quotes`, 논문당 자유 메모와는 별개 개념).
+- **인용 형식 자동 생성** — [src/lib/citation.ts](src/lib/citation.ts)가 한국문화인류학회 인용 형식(저자, 연도, "제목," 출처)으로 서지사항을 만들고, `📋 노션으로 복사` 버튼([CopyForNotionButton](src/components/CopyForNotionButton.tsx))으로 서지+메모+인용구를 마크다운 블록쿼트째로 클립보드에 복사할 수 있습니다.
+- **원클릭 새로고침** — `🔄 새로고침` 버튼을 누르면 서버에서 `npm run fetch:riss && npm run sync`를 백그라운드로 실행합니다([research-sync-actions.ts](src/lib/research-sync-actions.ts)). `fetch-riss-papers.mjs`는 이미 처리한 논문(`paper_id`)은 건너뛰므로, 보통은 새 논문 유무 확인(수 분)만으로 끝나고 새 논문이 있을 때만 건당 10초(robots.txt `Crawl-delay`)가 더 걸립니다. 화면 상단의 "최신화: ~ 기준" 시각으로 완료 여부를 확인합니다.
+- **수집 범위**([scripts/fetch-riss-papers.mjs](scripts/fetch-riss-papers.mjs) 참고) — 학위논문은 "구술사"+"구술생애사" 정확검색 합집합(교육/종교/스포츠 계열 기관 제외), 학술논문은 "구술사"+"구술생애사"+"생애사" 정확검색 합집합 중 『구술사연구』(한국구술사학회지)·한국구술사학회 학술대회 발행물만 포함합니다.
+
+## 데이터 구조
+
+실데이터는 **Supabase**(Postgres)에 저장되어 있고, 원본 소스는 두 갈래입니다.
+
+1. **구글 시트(fragments_index)** — 사용자가 직접 채록·정리 중인 구술 아카이브 원본(연표 `chronicle`, 구술 발췌 `oral segments`, 인물 전거 `persons_authority`, 출처 전거 `sources_authority`). `data/*.csv`로 내보낸 뒤 `npm run sync`로 Supabase에 반영합니다. **이 CSV들은 저장소에 커밋되지 않고(`.gitignore`) 로컬/Supabase에만 존재**합니다.
+2. **외부 오픈데이터/API** — 국가기록원, 국립중앙박물관 유물정보, 국사편찬위원회 "오늘의역사" 원문(XML), RISS 논문 메타데이터 등. 어떤 아카이브에 접근을 시도했고 자동화가 가능한지는 [archives.md](archives.md)에 전부 기록해 둡니다(성공/실패 무관하게).
+
+원본 자료는 재호스팅하지 않고 항상 원본 링크로 연결하는 것이 원칙입니다.
+
+## 기술 스택
+
+- **Next.js 16**(App Router) + **React 19** + TypeScript
+- **Tailwind CSS v4**
+- **Supabase**(`@supabase/supabase-js`) — DB
+- `fast-xml-parser` — 국가기록원 등 XML 응답 파싱
+- 폰트: Noto Sans KR(본문) · Noto Serif KR(제목·인용구) · IBM Plex Mono(날짜·태그)
+
+> **주의**: 이 저장소의 Next.js는 학습 데이터 기준 버전과 다른 최신 버전(16)입니다. 코드를 작성하기 전에 `node_modules/next/dist/docs/`의 관련 가이드를 확인하세요 ([AGENTS.md](AGENTS.md) 참고).
+
+## 시작하기
+
+### 1. 설치
+
+```bash
+npm install
+```
+
+### 2. 환경 변수 설정
+
+`.env.local.example`을 `.env.local`로 복사한 뒤 값을 채웁니다.
+
+```bash
+cp .env.local.example .env.local
+```
+
+- `NATIONAL_ARCHIVES_API_KEY` — 국가기록원 나라기록물정보 서비스(data.go.kr) 인증키
+- `NATIONAL_MUSEUM_API_KEY` — 국립중앙박물관 전국 박물관 유물정보 서비스(data.go.kr) 인증키
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase 프로젝트 접속 정보
+- `SUPABASE_SERVICE_ROLE_KEY` — `npm run sync` 등 서버 스크립트에서 쓰는 서비스 롤 키(별도 발급 필요, `.env.local`에만 보관)
+
+### 3. 개발 서버 실행
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000)에서 확인합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 주요 스크립트
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 명령 | 설명 |
+|---|---|
+| `npm run dev` | 개발 서버 실행 |
+| `npm run build` / `npm run start` | 프로덕션 빌드 / 실행 |
+| `npm run lint` | ESLint 검사 |
+| `npm run sync` | `data/*.csv`(구글 시트 export본)를 Supabase에 반영. 새 행은 insert, 기존 행은 CSV의 빈 칸을 덮어쓰지 않고 채워진 필드만 갱신 |
+| `npm run fetch:riss` | RISS에서 구술사/구술생애사 관련 논문 메타데이터를 긁어 `data/riss-papers.csv` 생성(요청 간 10초 대기, 수십 분 소요 — 백그라운드 실행 권장). 손으로 수정하지 말고 재실행으로 갱신할 것 |
+| `npm run tunnel` | localtunnel로 외부에서 개발 서버 접근 |
 
-## Learn More
+## 프로젝트 문서
 
-To learn more about Next.js, take a look at the following resources:
+- [progress.md](progress.md) — 실제로 만든 화면·코드와 그 이유를 정리한 진행 기록
+- [archives.md](archives.md) — 외부 아카이브별 접근 방식·자동화 가능 여부 조사 기록
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+기획 정리노트(`plan.md`)·로드맵(`roadmap.md`)·선행연구 조사(`literature_review.md`)·파일럿 조사(`pilot1.md`)는 개인 작업 메모라 저장소에는 커밋하지 않고 로컬에만 둡니다(`.gitignore` 참고).

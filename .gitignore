@@ -46,6 +46,12 @@ google-service-account.json
 /data/*.csv
 /data/raw/
 
+# 개인 기획/조사 메모 — 코드 저장소엔 프로젝트 설명(README)만 남기고 로컬 전용으로 전환
+/plan.md
+/roadmap.md
+/literature_review.md
+/pilot1.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
