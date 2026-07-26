@@ -14,6 +14,8 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { parseCsv } from "./lib/csv.mjs";
+import { RISS_PAPERS_CSV_PATH } from "./lib/riss-papers-csv.mjs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -22,31 +24,6 @@ if (!url || !key) {
   process.exit(1);
 }
 const supabase = createClient(url, key);
-
-// ---------- CSV 파서 (RFC4180, 따옴표 안 줄바꿈 지원) ----------
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
-      } else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ",") { row.push(field); field = ""; }
-    else if (c === "\r") continue;
-    else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
-    else field += c;
-  }
-  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
-  const header = rows[0];
-  return rows.slice(1)
-    .filter((r) => r.some((c) => c.trim() !== ""))
-    .map((r) => Object.fromEntries(header.map((h, idx) => [h, (r[idx] ?? "").trim()])));
-}
 
 function readCsv(path) {
   return parseCsv(readFileSync(path, "utf-8"));
@@ -214,11 +191,11 @@ async function syncSegments(personsById) {
 
 // ---------- papers (data/riss-papers.csv, scripts/fetch-riss-papers.mjs가 생성) ----------
 async function syncPapers() {
-  if (!existsSync("data/riss-papers.csv")) {
-    console.warn("[papers] data/riss-papers.csv 없음 — npm run fetch:riss 먼저 실행하세요. 건너뜀.");
+  if (!existsSync(RISS_PAPERS_CSV_PATH)) {
+    console.warn(`[papers] ${RISS_PAPERS_CSV_PATH} 없음 — npm run fetch:riss 먼저 실행하세요. 건너뜀.`);
     return;
   }
-  const rows = readCsv("data/riss-papers.csv");
+  const rows = readCsv(RISS_PAPERS_CSV_PATH);
   const upserts = [];
   for (const r of rows) {
     if (!r.paper_id || !r.title) { log("papers", "skipped"); continue; }

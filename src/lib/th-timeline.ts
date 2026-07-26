@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { XMLParser } from "fast-xml-parser";
+import { asArray } from "./xml";
 
 // 국사편찬위원회 "오늘의역사(연표)" 원문파일(data/raw/th.xml, 15,579건) 검색.
 // DB엔 이 중 라디오·방송 키워드로 걸러낸 95건(E026~E120)만 들어있다 — 나머지는
@@ -13,11 +14,6 @@ export interface ThTimelineEntry {
   id: string;
   dateValue: string; // EDTF (YYYY-MM-DD)
   title: string;
-}
-
-function asArray<T>(value: T | T[] | undefined): T[] {
-  if (!value) return [];
-  return Array.isArray(value) ? value : [value];
 }
 
 let cachedEntries: ThTimelineEntry[] | null = null;

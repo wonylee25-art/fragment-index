@@ -11,6 +11,7 @@ import { edtfSortKey, edtfYear, edtfYearFloat, formatEdtfToKorean } from "@/lib/
 import { narratorPullQuote } from "@/lib/quotes";
 import { osmUrl } from "@/lib/geo";
 import { downloadCsv, eventsToCsv } from "@/lib/csv";
+import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
 
 type SortDirection = "asc" | "desc";
 type DetailLevel = "full" | "content" | "title";
@@ -31,15 +32,6 @@ const TIMELINE_END = 2026;
 const HISTORY_TIMELINE_SOURCE = {
   title: "교육부 국사편찬위원회_우리역사넷 정보_오늘의역사(연표)_20211028",
   url: "https://www.data.go.kr/data/15053642/fileData.do",
-};
-
-const MATERIAL_ICON: Record<ArchiveItemType, string> = {
-  구술: "🎙️",
-  신문: "📰",
-  문서: "🗂️",
-  사진: "🖼️",
-  논문: "📄",
-  지도: "🗺️",
 };
 
 // 실제 썸네일(오픈그래프 수집)이 붙기 전까지 사료의 물성을 흉내 내는 placeholder.
@@ -522,7 +514,7 @@ function MaterialThumb({ material }: { material: RelatedItem }) {
       <span
         className={`flex w-full items-center justify-center text-3xl shadow-sm ${MATERIAL_HEIGHT[material.type]} ${MATERIAL_SURFACE[material.type]}`}
       >
-        {MATERIAL_ICON[material.type]}
+        {ARCHIVE_ITEM_ICON[material.type]}
       </span>
       <p className="mt-1.5 font-mono text-[11px] font-semibold leading-4 text-zinc-700 group-hover:text-orange-600">
         {material.title}

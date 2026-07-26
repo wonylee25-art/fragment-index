@@ -13,11 +13,9 @@
 //   "한국구술사학회 학술대회" 발행물만 — "생애사" 단독은 학위논문 쪽엔 안 붙임(사회복지·평생교육 등
 //   다른 분야로 너무 넓게 퍼져 노이즈가 큼, 2026-07-25 사용자와 합의)
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-
-const CRAWL_DELAY_MS = 10_000;
-const CSV_PATH = "data/riss-papers.csv";
-const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+import { existsSync } from "node:fs";
+import { politeFetch, stripTags, parseVolumeIssue } from "./lib/riss-http.mjs";
+import { RISS_PAPERS_CSV_PATH, readRissPapersCsv, writeRissPapersCsv } from "./lib/riss-papers-csv.mjs";
 
 const QUERIES = [
   { colName: "bib_t", phrase: "구술사", kind: "학위논문" },
@@ -45,35 +43,6 @@ const MANUALLY_EXCLUDED_CONTROL_NOS = new Set([
 ]);
 
 const ALLOWED_JOURNALS = new Set(["구술사연구", "한국구술사학회 학술대회"]);
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-let lastRequestAt = 0;
-async function politeFetch(url) {
-  const wait = CRAWL_DELAY_MS - (Date.now() - lastRequestAt);
-  if (wait > 0) await sleep(wait);
-  lastRequestAt = Date.now();
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  return res.text();
-}
-
-function decodeEntities(text) {
-  return text
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;|&#0*34;/g, '"')
-    .replace(/&apos;|&#0*39;/g, "'")
-    .replace(/&#0*46;/g, ".")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&");
-}
-
-function stripTags(html) {
-  return decodeEntities(html.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
-}
 
 // 검색결과 목록 HTML에서 <li>...</li> 항목들을 파싱한다.
 function parseListItems(html, kind) {
@@ -147,24 +116,6 @@ function isExcludedInstitution(institution) {
   return INSTITUTION_BLOCKLIST.some((word) => institution.includes(word));
 }
 
-// 상세페이지의 "권호사항" 필드("Vol.25 No.1 [1988]" 형태)를 koanth.org 인용 형식의
-// 권(호) 표기("25(1)")로 변환한다. 호가 없으면("No.-") 권만 반환.
-function parseVolumeIssue(html) {
-  const idx = html.indexOf("권호사항");
-  if (idx === -1) return "";
-  const aStart = html.indexOf("<a", idx);
-  const aEnd = html.indexOf("</a>", aStart);
-  if (aStart === -1 || aEnd === -1) return "";
-  const text = stripTags(html.slice(aStart, aEnd));
-  const volMatch = text.match(/Vol\.(\S+)/);
-  const noMatch = text.match(/No\.(\S+)/);
-  const vol = volMatch ? volMatch[1] : "";
-  const no = noMatch ? noMatch[1] : "";
-  if (!vol) return "";
-  if (!no || no === "-") return vol;
-  return `${vol}(${no})`;
-}
-
 // 상세페이지에서 주제어(한글만)·권호사항(학술논문)·riss.kr/link 영구링크를 추출한다.
 async function fetchDetail(item) {
   const url = `https://www.riss.kr/search/detail/DetailView.do?p_mat_type=${item.matType}&control_no=${item.controlNo}`;
@@ -189,52 +140,10 @@ async function fetchDetail(item) {
   return { rissUrl, keywords, volumeIssue };
 }
 
-// ---------- CSV I/O (기존 scripts/sync-csv.mjs와 같은 RFC4180 파서 재사용) ----------
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
-      } else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ",") { row.push(field); field = ""; }
-    else if (c === "\r") continue;
-    else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
-    else field += c;
-  }
-  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
-  const header = rows[0];
-  return rows.slice(1)
-    .filter((r) => r.some((c) => c.trim() !== ""))
-    .map((r) => Object.fromEntries(header.map((h, idx) => [h, (r[idx] ?? "").trim()])));
-}
-
-function csvCell(value) {
-  const s = String(value ?? "");
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-const HEADER = ["paper_id", "type", "title", "author", "year", "institution", "journal", "volume_issue", "degree_level", "keywords", "riss_url"];
-
 function loadExisting() {
-  if (!existsSync(CSV_PATH)) return new Map();
-  const rows = parseCsv(readFileSync(CSV_PATH, "utf-8"));
+  if (!existsSync(RISS_PAPERS_CSV_PATH)) return new Map();
+  const rows = readRissPapersCsv();
   return new Map(rows.map((r) => [r.paper_id, r]));
-}
-
-function writeCsv(rowsByid) {
-  const rows = [...rowsByid.values()];
-  const lines = [HEADER.join(",")];
-  for (const r of rows) {
-    lines.push(HEADER.map((h) => csvCell(r[h])).join(","));
-  }
-  writeFileSync(CSV_PATH, lines.join("\n") + "\n", "utf-8");
 }
 
 async function main() {
@@ -293,10 +202,10 @@ async function main() {
       riss_url: detail.rissUrl,
     });
     // 중간 저장 — 중단돼도 이어서 진행 가능하게
-    writeCsv(existing);
+    writeRissPapersCsv(existing.values());
   }
 
-  writeCsv(existing);
+  writeRissPapersCsv(existing.values());
   console.log(`\n완료: data/riss-papers.csv에 총 ${existing.size}건 기록됨`);
 }
 

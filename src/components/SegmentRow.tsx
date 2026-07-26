@@ -8,21 +8,13 @@ import { SegmentCardData, ArchiveItemType } from "@/lib/types";
 import { saveSegmentMemo } from "@/lib/memo-actions";
 import { toggleSegmentImportant } from "@/lib/flag-actions";
 import {
+  ARCHIVE_ITEM_ICON,
   SPEAKER_CLASSNAME,
   DISCREPANCY_ROW_CLASSNAME,
   DISCREPANCY_LABEL_CLASSNAME,
   FOCUS_HIGHLIGHT_CLASSNAME,
 } from "@/lib/design-tokens";
 import { formatEdtfToKorean } from "@/lib/edtf";
-
-const ITEM_TYPE_ICON: Record<ArchiveItemType, string> = {
-  구술: "🎙️",
-  신문: "📰",
-  문서: "🗂️",
-  사진: "🖼️",
-  논문: "📄",
-  지도: "🗺️",
-};
 
 // 실제 썸네일(오픈그래프 등)이 붙기 전까지 자료 유형을 구분해 보여주는 placeholder 배경.
 const ITEM_TYPE_THUMBNAIL_BG: Record<ArchiveItemType, string> = {
@@ -147,7 +139,7 @@ export function SegmentRow({
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 py-1 font-mono text-xs"
                 >
-                  <span aria-hidden>{ITEM_TYPE_ICON[item.type]}</span>
+                  <span aria-hidden>{ARCHIVE_ITEM_ICON[item.type]}</span>
                   <span className="text-zinc-700 underline decoration-dotted underline-offset-4 group-hover:text-zinc-950">
                     {item.title}
                   </span>
@@ -162,7 +154,7 @@ export function SegmentRow({
                   <div
                     className={`mb-2 flex h-24 items-center justify-center rounded-sm text-3xl ${ITEM_TYPE_THUMBNAIL_BG[item.type]}`}
                   >
-                    {ITEM_TYPE_ICON[item.type]}
+                    {ARCHIVE_ITEM_ICON[item.type]}
                   </div>
                   <p className="mb-1 font-mono text-[11px] text-zinc-400">
                     {item.type} · {item.sourceOrg}

@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { XMLParser } from "fast-xml-parser";
+import { asArray } from "./xml";
 
 // 문화체육관광부 국립중앙박물관_전국 박물관 유물정보_GW (data.go.kr, 서비스 ID 15159017) 클라이언트.
 // 400여 개 협력 박물관·약 280만 건의 소장품 메타데이터. 서버 전용 —
@@ -23,11 +24,6 @@ export interface MuseumRelic {
 }
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
-
-function asArray<T>(value: T | T[] | undefined): T[] {
-  if (!value) return [];
-  return Array.isArray(value) ? value : [value];
-}
 
 // 응답의 <data><item key="k" value="v"/>...</data> 한 건을 평범한 {k: v} 객체로 바꾼다.
 function flattenDataEntry(entry: { item?: unknown }): Record<string, string> {

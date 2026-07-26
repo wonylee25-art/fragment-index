@@ -1,7 +1,17 @@
 // 기획 정리노트 7-2 "확정된 디자인 언어(색상 규칙)"를 코드로 고정한 것.
 // 이후 다른 화면(연표 목록, 발견 화면 등)에서도 이 규칙을 그대로 재사용한다.
 
-import { SpeakerRole } from "./types";
+import { ArchiveItemType, SpeakerRole } from "./types";
+
+// 자료 유형별 아이콘 — 구술 목록(SegmentRow)과 연표(TimelineExperience)가 함께 쓴다.
+export const ARCHIVE_ITEM_ICON: Record<ArchiveItemType, string> = {
+  구술: "🎙️",
+  신문: "📰",
+  문서: "🗂️",
+  사진: "🖼️",
+  논문: "📄",
+  지도: "🗺️",
+};
 
 export const SPEAKER_CLASSNAME: Record<SpeakerRole, string> = {
   interviewer: "text-emerald-600 italic", // 면담자: 형광초록 + 이탤릭
