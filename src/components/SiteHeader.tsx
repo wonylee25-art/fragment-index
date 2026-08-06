@@ -5,13 +5,14 @@ const NAV_ITEMS = [
   { href: "/timeline", label: "연표" },
   { href: "/", label: "구술 목록" },
   { href: "/research", label: "연구 동향" },
+  { href: "/oral-history-projects", label: "구술사업 지도" },
 ] as const;
 
 export function SiteHeader({
   active,
   title,
 }: {
-  active: "/" | "/timeline" | "/search" | "/research";
+  active: "/" | "/timeline" | "/search" | "/research" | "/oral-history-projects";
   title: string;
 }) {
   return (
