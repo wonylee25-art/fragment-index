@@ -4,8 +4,9 @@ import { TAG_CLASSNAME } from "@/lib/design-tokens";
 import { searchArchiveRecords } from "@/lib/national-archives";
 import { searchMuseumRelics } from "@/lib/museum-relics";
 import { searchThTimeline } from "@/lib/th-timeline";
+import { searchWomensOralArchive } from "@/lib/womens-oral-archive";
 import { formatEdtfToKorean } from "@/lib/edtf";
-import { saveArchiveRecord, saveMuseumRelic, saveThEvent } from "./actions";
+import { saveArchiveRecord, saveMuseumRelic, saveThEvent, saveWomensOralArchiveItem } from "./actions";
 
 function SaveButton({ saved }: { saved: boolean }) {
   if (saved) {
@@ -26,10 +27,11 @@ function SaveButton({ saved }: { saved: boolean }) {
 // 외부 소스는 검토 전 후보일 뿐이라 DB에 저장하지 않고 화면에만 보여준다 — "미저장" 배지로 구분.
 
 async function externalSearch(query: string) {
-  const [archives, relics, thEntries] = await Promise.allSettled([
+  const [archives, relics, thEntries, womensOral] = await Promise.allSettled([
     searchArchiveRecords(query, 6),
     searchMuseumRelics(query, 6),
     searchThTimeline(query, 6),
+    searchWomensOralArchive(query, 6),
   ]);
 
   return {
@@ -39,6 +41,8 @@ async function externalSearch(query: string) {
     relicsError: relics.status === "rejected" ? String(relics.reason) : null,
     thEntries: thEntries.status === "fulfilled" ? thEntries.value : [],
     thError: thEntries.status === "rejected" ? String(thEntries.reason) : null,
+    womensOral: womensOral.status === "fulfilled" ? womensOral.value : [],
+    womensOralError: womensOral.status === "rejected" ? String(womensOral.reason) : null,
   };
 }
 
@@ -202,6 +206,34 @@ export default async function SearchPage({
                           </span>
                           <form action={saveMuseumRelic.bind(null, r)}>
                             <SaveButton saved={saved.archiveItemIds.has(r.id)} />
+                          </form>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 font-mono text-[11px] text-zinc-400">
+                      여성사전시관 구술자료 — {external.womensOral.length}건
+                    </p>
+                    {external.womensOralError && <p className="text-xs text-red-600">오류: {external.womensOralError}</p>}
+                    <ul className="space-y-1">
+                      {external.womensOral.map((w) => (
+                        <li key={w.id} className="flex items-center justify-between gap-2 text-sm text-zinc-700">
+                          <span>
+                            {w.videoUrl ? (
+                              <a href={w.videoUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                {w.title}
+                              </a>
+                            ) : (
+                              w.title
+                            )}
+                            <span className="ml-2 font-mono text-xs text-zinc-400">
+                              {w.category} · {w.registeredDate}
+                            </span>
+                          </span>
+                          <form action={saveWomensOralArchiveItem.bind(null, w)}>
+                            <SaveButton saved={saved.archiveItemIds.has(w.id)} />
                           </form>
                         </li>
                       ))}

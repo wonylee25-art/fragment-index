@@ -20,6 +20,30 @@ export interface AddPaperInput {
   rissUrl: string;
 }
 
+// AddPaperForm은 유형(단행본/학술논문/학위논문)별로 입력칸을 다르게 보여줄 뿐 폼 상태 자체는 안 지워서,
+// 예를 들어 학술지명을 적어놨다가 유형을 학위논문으로 바꿔 제출하면 그 값이 그대로 journal_name에 남는다.
+// ResearchTrends 목록은 `paper.journalName ?? paper.institution`로 기관명을 표시하는데, 이 남은 값이
+// null이 아니라 실제 문자열이라 institution을 가려버려("석" 같은 엉뚱한 값이 기관명 자리에 뜸) —
+// 그래서 여기서 저장 직전에 paperType과 무관한 필드는 항상 비워 DB에 아예 안 남게 한다.
+function toPaperRow(input: AddPaperInput) {
+  const isJournal = input.paperType === "학술논문";
+  const isThesis = input.paperType === "학위논문";
+  const isBook = input.paperType === "단행본";
+  return {
+    paper_type: input.paperType,
+    author: input.author.trim() || null,
+    year: input.year,
+    institution: input.institution.trim() || null,
+    journal_name: isJournal ? input.journalName.trim() || null : null,
+    volume_issue: isJournal ? input.volumeIssue.trim() || null : null,
+    degree_level: isThesis ? input.degreeLevel.trim() || null : null,
+    publisher_location: isBook ? input.publisherLocation.trim() || null : null,
+    translator: isBook ? input.translator.trim() || null : null,
+    keywords: input.keywords,
+    riss_url: input.rissUrl.trim() || null,
+  };
+}
+
 // scripts/sync-csv.mjs가 RISS 동기화분에 쓰는 id는 "riss-<control_no>" 형식이라(scripts/fetch-riss-papers.mjs 참고),
 // "manual-" 접두사를 쓰면 이용자가 화면에서 직접 추가한 논문이 그 upsert와 절대 충돌하지 않는다.
 export async function addPaper(input: AddPaperInput) {
@@ -28,19 +52,23 @@ export async function addPaper(input: AddPaperInput) {
 
   const { error } = await supabaseAdmin.from("papers").insert({
     id: `manual-${randomUUID()}`,
-    paper_type: input.paperType,
     title,
-    author: input.author.trim() || null,
-    year: input.year,
-    institution: input.institution.trim() || null,
-    journal_name: input.journalName.trim() || null,
-    volume_issue: input.volumeIssue.trim() || null,
-    degree_level: input.degreeLevel.trim() || null,
-    publisher_location: input.publisherLocation.trim() || null,
-    translator: input.translator.trim() || null,
-    keywords: input.keywords,
-    riss_url: input.rissUrl.trim() || null,
+    ...toPaperRow(input),
   });
+  if (error) throw error;
+  revalidatePath("/research");
+}
+
+// AddPaperForm은 수기 입력이라 오탈자(예: "인류학과"를 "인류학화"로, 기관명을 한 글자만 입력)가
+// 나기 쉽다 — 삭제 후 재입력이 아니라 그 자리에서 고칠 수 있도록 하는 수정 경로.
+export async function updatePaper(id: string, input: AddPaperInput) {
+  const title = input.title.trim();
+  if (!title) throw new Error("제목을 입력하세요.");
+
+  const { error } = await supabaseAdmin
+    .from("papers")
+    .update({ title, ...toPaperRow(input) })
+    .eq("id", id);
   if (error) throw error;
   revalidatePath("/research");
 }

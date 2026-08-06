@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { PaperType } from "@/lib/types";
-import { addPaper } from "@/lib/paper-actions";
+import { PaperData, PaperType } from "@/lib/types";
+import { addPaper, updatePaper } from "@/lib/paper-actions";
 
 const PAPER_TYPES: PaperType[] = ["학술논문", "학위논문", "단행본"];
 
@@ -21,16 +21,35 @@ const EMPTY_FORM = {
   rissUrl: "",
 };
 
+function formFromPaper(paper: PaperData): typeof EMPTY_FORM {
+  return {
+    paperType: paper.paperType,
+    title: paper.title,
+    author: paper.author,
+    year: paper.year ? String(paper.year) : "",
+    institution: paper.institution,
+    journalName: paper.journalName ?? "",
+    volumeIssue: paper.volumeIssue ?? "",
+    degreeLevel: paper.degreeLevel ?? "",
+    publisherLocation: paper.publisherLocation ?? "",
+    translator: paper.translator ?? "",
+    keywords: paper.keywords.join(", "),
+    rissUrl: paper.rissUrl,
+  };
+}
+
 const INPUT_CLASSNAME =
   "w-full rounded-sm border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-500 focus:outline-none";
 
-// RISS 자동 수집(scripts/fetch-riss-papers.mjs) 범위 밖의 논문을 이용자가 직접 등록하는 폼.
-// 목록 화면 자체가 client component라 여기 결과는 addPaper 안의 revalidatePath("/research")로 반영된다.
+// RISS 자동 수집(scripts/fetch-riss-papers.mjs) 범위 밖의 논문을 이용자가 직접 등록·수정하는 폼.
+// paper가 주어지면 수정 모드(기존 값으로 채워서 updatePaper 호출), 없으면 신규 등록 모드(addPaper).
+// 목록 화면 자체가 client component라 여기 결과는 addPaper/updatePaper 안의 revalidatePath("/research")로 반영된다.
 // 열림/닫힘은 부모(ResearchTrends)가 갖는다 — 헤더의 토글 버튼과 이 폼(전체 너비 블록)의 레이아웃이 서로 달라서다.
-export function AddPaperForm({ onClose }: { onClose: () => void }) {
+export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: () => void }) {
+  const isEdit = paper !== undefined;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(paper ? formFromPaper(paper) : EMPTY_FORM);
 
   function update<K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -45,7 +64,7 @@ export function AddPaperForm({ onClose }: { onClose: () => void }) {
     setPending(true);
     setError(null);
     try {
-      await addPaper({
+      const input = {
         paperType: form.paperType,
         title: form.title,
         author: form.author,
@@ -61,11 +80,16 @@ export function AddPaperForm({ onClose }: { onClose: () => void }) {
           .map((k) => k.trim())
           .filter(Boolean),
         rissUrl: form.rissUrl,
-      });
-      setForm(EMPTY_FORM);
+      };
+      if (isEdit) {
+        await updatePaper(paper.id, input);
+      } else {
+        await addPaper(input);
+        setForm(EMPTY_FORM);
+      }
       onClose();
     } catch {
-      setError("추가에 실패했습니다.");
+      setError(isEdit ? "수정에 실패했습니다." : "추가에 실패했습니다.");
     } finally {
       setPending(false);
     }
@@ -195,7 +219,6 @@ export function AddPaperForm({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={() => {
-            setForm(EMPTY_FORM);
             setError(null);
             onClose();
           }}
@@ -209,7 +232,7 @@ export function AddPaperForm({ onClose }: { onClose: () => void }) {
           disabled={pending}
           className="rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-xs text-white hover:bg-zinc-700 disabled:opacity-50"
         >
-          {pending ? "추가 중…" : "추가"}
+          {pending ? (isEdit ? "저장 중…" : "추가 중…") : isEdit ? "저장" : "추가"}
         </button>
       </div>
     </form>

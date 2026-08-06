@@ -65,6 +65,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [addingPaper, setAddingPaper] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -192,89 +193,102 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           <p className="py-8 text-center font-mono text-xs text-zinc-400">일치하는 논문이 없습니다.</p>
         ) : (
           <ul className="flex flex-col">
-            {filteredPapers.map((paper) => (
-              <li
-                key={paper.id}
-                className="grid grid-cols-1 gap-3 border-b border-zinc-200 py-3 sm:grid-cols-[2fr_1fr]"
-              >
-                <div className="min-w-0">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <span className={`rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${PAPER_TYPE_CLASSNAME[paper.paperType]}`}>
-                      {paper.paperType}
-                    </span>
-                    <span className="font-mono text-[11px] text-zinc-400">{paper.year ?? "연도 미상"}</span>
-                    <FlagToggle
-                      active={paper.isImportant}
-                      onToggle={(next) => togglePaperImportant(paper.id, next)}
-                      activeLabel="★ 중요"
-                      inactiveLabel="☆ 중요"
-                      activeClassName="bg-amber-100 text-amber-700"
-                    />
-                    <FlagToggle
-                      active={paper.isRead}
-                      onToggle={(next) => togglePaperRead(paper.id, next)}
-                      activeLabel="✓ 읽음"
-                      inactiveLabel="안 읽음"
-                      activeClassName="bg-emerald-100 text-emerald-700"
-                    />
-                    <ConfirmDeleteButton
-                      onDelete={() => deletePaper(paper.id)}
-                      confirmMessage={`"${paper.title}"을(를) 삭제할까요? 되돌릴 수 없습니다.`}
-                      label="삭제"
-                      pendingLabel="삭제 중…"
-                      className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
-                    />
+            {filteredPapers.map((paper) =>
+              editingId === paper.id ? (
+                <li key={paper.id} className="border-b border-zinc-200 py-3">
+                  <AddPaperForm paper={paper} onClose={() => setEditingId(null)} />
+                </li>
+              ) : (
+                <li
+                  key={paper.id}
+                  className="grid grid-cols-1 gap-3 border-b border-zinc-200 py-3 sm:grid-cols-[2fr_1fr]"
+                >
+                  <div className="min-w-0">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className={`rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${PAPER_TYPE_CLASSNAME[paper.paperType]}`}>
+                        {paper.paperType}
+                      </span>
+                      <span className="font-mono text-[11px] text-zinc-400">{paper.year ?? "연도 미상"}</span>
+                      <FlagToggle
+                        active={paper.isImportant}
+                        onToggle={(next) => togglePaperImportant(paper.id, next)}
+                        activeLabel="★ 중요"
+                        inactiveLabel="☆ 중요"
+                        activeClassName="bg-amber-100 text-amber-700"
+                      />
+                      <FlagToggle
+                        active={paper.isRead}
+                        onToggle={(next) => togglePaperRead(paper.id, next)}
+                        activeLabel="✓ 읽음"
+                        inactiveLabel="안 읽음"
+                        activeClassName="bg-emerald-100 text-emerald-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(paper.id)}
+                        className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+                      >
+                        수정
+                      </button>
+                      <ConfirmDeleteButton
+                        onDelete={() => deletePaper(paper.id)}
+                        confirmMessage={`"${paper.title}"을(를) 삭제할까요? 되돌릴 수 없습니다.`}
+                        label="삭제"
+                        pendingLabel="삭제 중…"
+                        className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
+                      />
+                    </div>
+
+                    <a
+                      href={paper.rissUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[15px] leading-6 text-zinc-800 underline decoration-dotted underline-offset-4 hover:text-zinc-950"
+                    >
+                      {paper.title} <span className="text-zinc-300">↗</span>
+                    </a>
+
+                    <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
+                      {paper.author}
+                      {paper.translator && ` (${paper.translator} 역)`}
+                      {paper.author && " · "}
+                      {paper.paperType === "단행본"
+                        ? [paper.publisherLocation, paper.institution].filter(Boolean).join(": ")
+                        : [paper.journalName ?? paper.institution, paper.volumeIssue].filter(Boolean).join(" ")}
+                      {paper.degreeLevel ? ` · ${paper.degreeLevel}` : ""}
+                    </p>
+
+                    {paper.keywords.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {paper.keywords.map((k) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setActiveKeyword(k === activeKeyword ? null : k)}
+                            className={`inline-flex items-center rounded-sm px-1.5 py-0.5 font-mono text-[11px] ${
+                              k === activeKeyword ? "bg-zinc-900 text-white" : TAG_CLASSNAME.keyword
+                            } hover:brightness-95`}
+                          >
+                            {k}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  <a
-                    href={paper.rissUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[15px] leading-6 text-zinc-800 underline decoration-dotted underline-offset-4 hover:text-zinc-950"
-                  >
-                    {paper.title} <span className="text-zinc-300">↗</span>
-                  </a>
-
-                  <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
-                    {paper.author}
-                    {paper.translator && ` (${paper.translator} 역)`}
-                    {paper.author && " · "}
-                    {paper.paperType === "단행본"
-                      ? [paper.publisherLocation, paper.institution].filter(Boolean).join(": ")
-                      : [paper.journalName ?? paper.institution, paper.volumeIssue].filter(Boolean).join(" ")}
-                    {paper.degreeLevel ? ` · ${paper.degreeLevel}` : ""}
-                  </p>
-
-                  {paper.keywords.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {paper.keywords.map((k) => (
-                        <button
-                          key={k}
-                          type="button"
-                          onClick={() => setActiveKeyword(k === activeKeyword ? null : k)}
-                          className={`inline-flex items-center rounded-sm px-1.5 py-0.5 font-mono text-[11px] ${
-                            k === activeKeyword ? "bg-zinc-900 text-white" : TAG_CLASSNAME.keyword
-                          } hover:brightness-95`}
-                        >
-                          {k}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <MemoField initialValue={paper.userMemo} onSave={(memo) => savePaperMemo(paper.id, memo)} />
-                  <QuoteList
-                    quotes={paper.quotes}
-                    onAdd={(quoteText, page) => addQuote(paper.id, quoteText, page)}
-                    onEdit={(id, quoteText, page) => updateQuote(id, quoteText, page)}
-                    onDelete={(id) => deleteQuote(id)}
-                  />
-                  <CopyForNotionButton paper={paper} />
-                </div>
-              </li>
-            ))}
+                  <div>
+                    <MemoField initialValue={paper.userMemo} onSave={(memo) => savePaperMemo(paper.id, memo)} />
+                    <QuoteList
+                      quotes={paper.quotes}
+                      onAdd={(quoteText, page) => addQuote(paper.id, quoteText, page)}
+                      onEdit={(id, quoteText, page) => updateQuote(id, quoteText, page)}
+                      onDelete={(id) => deleteQuote(id)}
+                    />
+                    <CopyForNotionButton paper={paper} />
+                  </div>
+                </li>
+              ),
+            )}
           </ul>
         )}
       </section>

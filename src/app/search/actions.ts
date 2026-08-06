@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ThTimelineEntry } from "@/lib/th-timeline";
 import { ArchiveRecord } from "@/lib/national-archives";
 import { MuseumRelic } from "@/lib/museum-relics";
+import { WomensOralArchiveItem } from "@/lib/womens-oral-archive";
 
 // 검색 화면의 "저장" 버튼. 외부 검색 결과를 DB에 확정 반영한다.
 // - th.xml 사건 → timeline_events (사건 자체)
@@ -48,6 +49,20 @@ export async function saveMuseumRelic(relic: MuseumRelic) {
     title: relic.name,
     source_org: relic.museumName,
     source_url: relic.detailUrl,
+  });
+  if (error && error.code !== "23505") throw error;
+  revalidatePath("/search");
+}
+
+export async function saveWomensOralArchiveItem(item: WomensOralArchiveItem) {
+  const { error } = await supabaseAdmin.from("archive_items").insert({
+    id: item.id,
+    event_id: null,
+    item_type: "구술",
+    title: item.title,
+    source_org: `여성사전시관 (${item.category})`,
+    source_url: item.videoUrl,
+    description: item.excerpt.length > 150 ? `${item.excerpt.slice(0, 150)}…` : item.excerpt || null,
   });
   if (error && error.code !== "23505") throw error;
   revalidatePath("/search");
