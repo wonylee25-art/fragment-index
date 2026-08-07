@@ -19,6 +19,7 @@ export interface OralHistoryEntry {
   projectName: string;
   confirmationLevel: ConfirmationLevel;
   confirmationNote: string | null;
+  subgroup: string | null; // 카테고리 안의 하위 구분(예: "국가 단위 기관") — 있으면 패널을 더 잘게 쪼갠다
   year: number | null; // "언제" 서술에서 뽑아낸 대표 연도(다이어그램 배치용) — 근사치
   yearApprox: boolean;
   when: string | null;
@@ -203,7 +204,7 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
   }
 
   const notes: OralHistoryNote[] = fields
-    .filter((f) => f.key !== "확인 수준" && !CORE_FIELD_KEYS.has(f.key))
+    .filter((f) => f.key !== "확인 수준" && f.key !== "하위구분" && !CORE_FIELD_KEYS.has(f.key))
     .map((f) => ({ label: f.key, value: f.value }));
 
   const whenField = get("언제");
@@ -214,6 +215,7 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
     projectName,
     confirmationLevel,
     confirmationNote,
+    subgroup: get("하위구분")?.value || null,
     year,
     yearApprox,
     when: whenField?.value || null,

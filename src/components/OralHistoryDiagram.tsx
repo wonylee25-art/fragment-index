@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Inline } from "@/lib/inline-markdown";
 import {
   ConfirmationLevel,
@@ -9,41 +9,25 @@ import {
   OralHistoryEntry,
 } from "@/lib/oral-history-projects";
 
-// 발주기관·사업명·연도·구술 대상만 압축해서 보여주는 마인드맵형 다이어그램.
-// 카테고리(1~7)마다 캔버스 위에 고정된 "허브" 지점을 두고, 그 주변에 나선형으로
-// 노드를 흩뿌려 배치한다(연도축 정렬은 포기 — 자유로운 배치가 목적). 허브↔노드는
-// 곡선으로 이어 가지처럼 보이게 한다. 자세한 5W1H는 노드를 클릭하면 아래 상세
-// 패널에 펼쳐진다.
-
-const NODE_WIDTH = 146;
-const NODE_HEIGHT = 62;
-const NODE_PAD = 16; // 노드끼리 최소 여백
-const CANVAS_WIDTH = 1760;
-const CANVAS_HEIGHT = 1180;
-
-// 카테고리별 허브 좌표(캔버스 비율) — 손으로 흩어 놓은 배치. 카테고리가 늘어나면
-// (8번 이상) 여기에 좌표를 하나 추가해야 한다.
-const HUBS: Record<number, { x: number; y: number }> = {
-  1: { x: 0.3, y: 0.46 },
-  2: { x: 0.13, y: 0.16 },
-  3: { x: 0.62, y: 0.12 },
-  4: { x: 0.85, y: 0.4 },
-  5: { x: 0.1, y: 0.78 },
-  6: { x: 0.46, y: 0.88 },
-  7: { x: 0.83, y: 0.82 },
-};
+// 발주기관·사업명·연도·구술 대상만 압축해서 보여주는 클러스터 다이어그램.
+// 카테고리(1~7)마다 테두리 있는 패널을 만들고, 그 안에 카드를 채워 넣는다 —
+// 나선형으로 흩뿌리는 대신 이 방식을 쓴 이유는, 흩뿌리면 "큰 카테고리가 한눈에
+// 보이고 세부 항목이 분명히 구분된다"는 목표를 만족하지 못했기 때문(패널 경계 +
+// flex-wrap이면 겹침 걱정 없이 브라우저가 알아서 정렬해 준다). 패널은 CSS 다단
+// (columns)으로 캔버스 위에 벽돌쌓기처럼 배치돼, 항목이 많은 카테고리는 자연히
+// 더 큰 덩어리로 보인다. 자세한 5W1H는 카드를 클릭하면 아래 상세 패널에 펼쳐진다.
 
 const CATEGORY_STYLE: Record<
   number,
-  { bg: string; text: string; border: string; dot: string; stroke: string }
+  { panelBg: string; headerBg: string; text: string; border: string; dot: string }
 > = {
-  1: { bg: "bg-zinc-100", text: "text-zinc-600", border: "border-zinc-300", dot: "bg-zinc-400", stroke: "#a1a1aa" },
-  2: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200", dot: "bg-violet-400", stroke: "#c4b5fd" },
-  3: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200", dot: "bg-rose-400", stroke: "#fda4af" },
-  4: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", dot: "bg-amber-400", stroke: "#fcd34d" },
-  5: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", dot: "bg-blue-400", stroke: "#93c5fd" },
-  6: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", dot: "bg-orange-400", stroke: "#fdba74" },
-  7: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-400", stroke: "#6ee7b7" },
+  1: { panelBg: "bg-zinc-50/60", headerBg: "bg-zinc-200", text: "text-zinc-700", border: "border-zinc-300", dot: "bg-zinc-400" },
+  2: { panelBg: "bg-violet-50/50", headerBg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300", dot: "bg-violet-400" },
+  3: { panelBg: "bg-rose-50/50", headerBg: "bg-rose-100", text: "text-rose-800", border: "border-rose-300", dot: "bg-rose-400" },
+  4: { panelBg: "bg-amber-50/50", headerBg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300", dot: "bg-amber-400" },
+  5: { panelBg: "bg-blue-50/50", headerBg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300", dot: "bg-blue-400" },
+  6: { panelBg: "bg-orange-50/50", headerBg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300", dot: "bg-orange-400" },
+  7: { panelBg: "bg-emerald-50/50", headerBg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", dot: "bg-emerald-400" },
 };
 
 const LEVEL_DOT_CLASSNAME: Record<ConfirmationLevel, string> = {
@@ -52,23 +36,10 @@ const LEVEL_DOT_CLASSNAME: Record<ConfirmationLevel, string> = {
   "●○○": "text-zinc-400",
 };
 
-interface PlacedNode {
-  entry: OralHistoryEntry;
-  categoryNumber: number;
-  key: string;
-  x: number; // 중심 좌표
-  y: number;
-}
-
-interface Rect {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}
-
-function entryKey(categoryNumber: number, entry: OralHistoryEntry, index: number): string {
-  return `${categoryNumber}-${index}-${entry.institution}`;
+// 정렬 순서(연도순)에 기대지 않는 안정적인 키 — 카테고리 안에서 기관+사업명 조합은
+// 유일하다고 가정한다(현재 문서에 중복 사례 없음).
+function entryKey(categoryNumber: number, entry: OralHistoryEntry): string {
+  return `${categoryNumber}-${entry.institution}-${entry.projectName}`;
 }
 
 function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
@@ -77,93 +48,45 @@ function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   return [entry.institution, entry.projectName, entry.who ?? ""].some((s) => s.includes(q));
 }
 
-function overlaps(a: Rect, b: Rect): boolean {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-}
-
-function rectOf(x: number, y: number): Rect {
-  return {
-    left: x - NODE_WIDTH / 2 - NODE_PAD,
-    right: x + NODE_WIDTH / 2 + NODE_PAD,
-    top: y - NODE_HEIGHT / 2 - NODE_PAD,
-    bottom: y + NODE_HEIGHT / 2 + NODE_PAD,
-  };
-}
-
-// 허브를 중심으로 나선(스파이럴)을 그리며 겹치지 않는 첫 자리를 찾는다 — 워드클라우드에
-// 흔히 쓰이는 방식. seedAngle을 카테고리·순번마다 다르게 줘서 매번 같은 방향으로만
-// 뻗지 않게 한다. 결정론적이라(랜덤 없음) 검색·필터로 다시 렌더링돼도 자리가 안 흔들린다.
-function placeOnSpiral(hub: { x: number; y: number }, seedAngle: number, placed: Rect[]): { x: number; y: number } {
-  const angleStep = 0.62;
-  const radiusStep = 5.5;
-  let angle = seedAngle;
-  let radius = 0;
-
-  for (let attempt = 0; attempt < 600; attempt++) {
-    const x = hub.x + radius * Math.cos(angle);
-    const y = hub.y + radius * Math.sin(angle) * 0.72; // 캔버스가 가로로 넓으니 세로는 살짝 눌러서
-    const clampedX = Math.min(Math.max(x, NODE_WIDTH / 2 + 4), CANVAS_WIDTH - NODE_WIDTH / 2 - 4);
-    const clampedY = Math.min(Math.max(y, NODE_HEIGHT / 2 + 4), CANVAS_HEIGHT - NODE_HEIGHT / 2 - 4);
-    const rect = rectOf(clampedX, clampedY);
-    if (!placed.some((p) => overlaps(rect, p))) return { x: clampedX, y: clampedY };
-    angle += angleStep;
-    radius += radiusStep * (angleStep / (Math.PI * 2)) * 6;
+// CSS 다단(columns)은 내용 높이가 바뀌면(상세 패널이 펼쳐지면) 브라우저가 전체 단을
+// 다시 균형 잡으면서 카드들이 엉뚱한 위치로 튀는 문제가 있었다 — 그래서 컬럼 배정을
+// 직접 계산해 고정된 flex 컬럼에 나눠 담는다. selectedKey·query와 무관하게 카테고리
+// 목록에서만 계산하므로, 패널 하나가 펼쳐져도 다른 컬럼은 흔들리지 않고 같은 컬럼 안의
+// 아래쪽 패널만 자연스럽게 밀려난다("아코디언"처럼 동작).
+function distributeIntoColumns(categories: OralHistoryCategory[], columnCount: number): OralHistoryCategory[][] {
+  const columns: OralHistoryCategory[][] = Array.from({ length: columnCount }, () => []);
+  const weights = Array(columnCount).fill(0);
+  for (const category of categories) {
+    let minIdx = 0;
+    for (let i = 1; i < columnCount; i++) {
+      if (weights[i] < weights[minIdx]) minIdx = i;
+    }
+    columns[minIdx].push(category);
+    weights[minIdx] += category.entries.length + 1;
   }
-  return { x: hub.x, y: hub.y };
+  return columns;
 }
 
-function curvePath(x1: number, y1: number, x2: number, y2: number, flip: boolean): string {
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const len = Math.hypot(dx, dy) || 1;
-  const bend = Math.min(len * 0.22, 70) * (flip ? -1 : 1);
-  const nx = (-dy / len) * bend;
-  const ny = (dx / len) * bend;
-  return `M ${x1} ${y1} Q ${mx + nx} ${my + ny} ${x2} ${y2}`;
+// 화면 너비에 따라 컬럼 수를 정한다. 서버 렌더링은 항상 1컬럼으로 시작하고(SSR은
+// 창 너비를 모르니까), 마운트 후 실제 너비를 재서 조정한다 — 반응형을 CSS
+// hidden/md:flex로 두 벌 렌더링하는 방식은 카드 버튼이 DOM에 두 개씩 존재해
+// 클릭이 두 번 처리되는 버그(중복 상세 패널)로 이어져서 이 방식으로 바꿨다.
+function useColumnCount(): number {
+  const [count, setCount] = useState(1);
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 768px)");
+    const update = () => setCount(mql.matches ? 3 : 1);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+  return count;
 }
 
 export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
   const [query, setQuery] = useState("");
+  const columnCount = useColumnCount();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-
-  // 카테고리·연도 37건 규모의 가벼운 계산이라 React Compiler의 자동 메모이제이션에
-  // 맡긴다(수동 useMemo로 감싸면 컴파일러가 최적화를 건너뛰는 경우가 있어 여기선 뺐다).
-  const placedRects: Rect[] = [];
-  const nodes: PlacedNode[] = [];
-
-  doc.categories.forEach((category) => {
-    const hub = {
-      x: (HUBS[category.number]?.x ?? 0.5) * CANVAS_WIDTH,
-      y: (HUBS[category.number]?.y ?? 0.5) * CANVAS_HEIGHT,
-    };
-    placedRects.push(rectOf(hub.x, hub.y)); // 허브 자리 자체도 겹침 후보에서 비켜가게
-
-    const sorted = [...category.entries].sort((a, b) => (a.year ?? 9999) - (b.year ?? 9999));
-    sorted.forEach((entry, i) => {
-      const seedAngle = category.number * 0.9 + i * 2.4;
-      const { x, y } = placeOnSpiral(hub, seedAngle, placedRects);
-      const rect = rectOf(x, y);
-      placedRects.push(rect);
-      nodes.push({
-        entry,
-        categoryNumber: category.number,
-        key: entryKey(category.number, entry, i),
-        x,
-        y,
-      });
-    });
-  });
-
-  let selected: { category: OralHistoryCategory; entry: OralHistoryEntry } | null = null;
-  for (const node of nodes) {
-    if (node.key === selectedKey) {
-      const category = doc.categories.find((c) => c.number === node.categoryNumber)!;
-      selected = { category, entry: node.entry };
-      break;
-    }
-  }
 
   return (
     <div>
@@ -177,7 +100,7 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
       </section>
 
       {/* 범례 + 검색 */}
-      <section className="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <section className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[11px] text-zinc-500">
           <span className="text-zinc-400">확인 수준 —</span>
           {doc.levelLegend.map((l) => (
@@ -200,76 +123,23 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
         />
       </section>
 
-      {/* 카테고리 색 범례 */}
-      <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-zinc-500">
-        {doc.categories.map((c) => (
-          <span key={c.number} className="flex items-center gap-1">
-            <span className={`inline-block h-2 w-2 rounded-full ${CATEGORY_STYLE[c.number]?.dot ?? "bg-zinc-400"}`} />
-            {c.number}. {c.title} ({c.entries.length})
-          </span>
+      {/* 카테고리 패널 — 컬럼별로 고정 배정해 쌓는다(큰 카테고리일수록 자연히 큰 덩어리로 보인다).
+          화면 너비에 따라 컬럼 수만 바뀌고, DOM에는 항상 이 구조 하나만 존재한다. */}
+      <div className="flex gap-4">
+        {distributeIntoColumns(doc.categories, columnCount).map((column, i) => (
+          <div key={i} className="flex flex-1 flex-col gap-4">
+            {column.map((category) => (
+              <CategoryPanel
+                key={category.number}
+                category={category}
+                query={query}
+                selectedKey={selectedKey}
+                onSelect={setSelectedKey}
+              />
+            ))}
+          </div>
         ))}
       </div>
-
-      {/* 마인드맵 캔버스 */}
-      <div className="overflow-auto rounded-sm border border-zinc-200 bg-[radial-gradient(circle,_#f4f4f5_1px,_transparent_1px)] bg-[length:18px_18px]">
-        <div className="relative" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
-          <svg
-            className="absolute inset-0"
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
-            viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
-          >
-            {nodes.map((n, i) => {
-              const hub = {
-                x: (HUBS[n.categoryNumber]?.x ?? 0.5) * CANVAS_WIDTH,
-                y: (HUBS[n.categoryNumber]?.y ?? 0.5) * CANVAS_HEIGHT,
-              };
-              const dimmed = !matchesFilter(n.entry, query);
-              return (
-                <path
-                  key={n.key}
-                  d={curvePath(hub.x, hub.y, n.x, n.y, i % 2 === 0)}
-                  fill="none"
-                  stroke={CATEGORY_STYLE[n.categoryNumber]?.stroke ?? "#d4d4d8"}
-                  strokeWidth={selectedKey === n.key ? 2 : 1.3}
-                  opacity={dimmed ? 0.15 : selectedKey === n.key ? 0.9 : 0.55}
-                />
-              );
-            })}
-          </svg>
-
-          {doc.categories.map((c) => {
-            const hub = { x: (HUBS[c.number]?.x ?? 0.5) * CANVAS_WIDTH, y: (HUBS[c.number]?.y ?? 0.5) * CANVAS_HEIGHT };
-            const style = CATEGORY_STYLE[c.number] ?? CATEGORY_STYLE[1];
-            return (
-              <div
-                key={c.number}
-                className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border px-2.5 py-1 font-mono text-[10px] font-bold shadow-sm ${style.bg} ${style.text} ${style.border}`}
-                style={{ left: hub.x, top: hub.y }}
-              >
-                {c.number}. {c.title}
-              </div>
-            );
-          })}
-
-          {nodes.map((n) => (
-            <NodeCard
-              key={n.key}
-              entry={n.entry}
-              x={n.x}
-              y={n.y}
-              dimmed={!matchesFilter(n.entry, query)}
-              active={selectedKey === n.key}
-              onClick={() => setSelectedKey(n.key)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 상세 패널 */}
-      {selected && (
-        <DetailPanel category={selected.category} entry={selected.entry} onClose={() => setSelectedKey(null)} />
-      )}
 
       {/* 8. 확인 필요 목록 */}
       {doc.unresolvedSubsections.length > 0 && (
@@ -321,17 +191,91 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
   );
 }
 
-function NodeCard({
+function CategoryPanel({
+  category,
+  query,
+  selectedKey,
+  onSelect,
+}: {
+  category: OralHistoryCategory;
+  query: string;
+  selectedKey: string | null;
+  onSelect: (key: string | null) => void;
+}) {
+  const style = CATEGORY_STYLE[category.number] ?? CATEGORY_STYLE[1];
+  const matchCount = category.entries.filter((e) => matchesFilter(e, query)).length;
+  const selectedEntry = category.entries.find((e) => entryKey(category.number, e) === selectedKey) ?? null;
+
+  // 하위구분(문서의 "- **하위구분**:" 필드)이 있으면 문서에 처음 등장하는 순서대로
+  // 소그룹을 만들어 카드 벽을 잘게 쪼갠다 — 카테고리가 커서(예: 14건) 한 덩어리로는
+  // 안 읽힐 때를 위한 장치. 하위구분이 없는 카테고리는 그냥 통짜로 보여준다.
+  const groupOrder: (string | null)[] = [];
+  for (const entry of category.entries) {
+    if (!groupOrder.includes(entry.subgroup)) groupOrder.push(entry.subgroup);
+  }
+  const groups = groupOrder.map((subgroup) => ({
+    subgroup,
+    entries: category.entries
+      .filter((e) => e.subgroup === subgroup)
+      .sort((a, b) => (a.year ?? 9999) - (b.year ?? 9999)),
+  }));
+
+  return (
+    <div
+      className={`rounded-sm border-2 ${style.border} ${style.panelBg} p-2.5 ${
+        query.trim() && matchCount === 0 ? "opacity-30" : ""
+      }`}
+    >
+      <div className={`mb-2.5 flex items-center justify-between rounded-sm px-2 py-1.5 ${style.headerBg}`}>
+        <span className={`flex items-center gap-1.5 font-mono text-[12px] font-bold ${style.text}`}>
+          <span className={`inline-block h-2.5 w-2.5 rounded-full ${style.dot}`} />
+          {category.number}. {category.title}
+        </span>
+        <span className={`font-mono text-[10px] ${style.text} opacity-70`}>
+          {query.trim() ? `${matchCount}/${category.entries.length}건` : `${category.entries.length}건`}
+        </span>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        {groups.map((g) => (
+          <div key={g.subgroup ?? "_"}>
+            {g.subgroup && (
+              <p className={`mb-1 font-mono text-[10px] font-semibold ${style.text} opacity-80`}>
+                {g.subgroup} · {g.entries.length}건
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {g.entries.map((entry) => {
+                const key = entryKey(category.number, entry);
+                return (
+                  <EntryCard
+                    key={key}
+                    entry={entry}
+                    dimmed={!matchesFilter(entry, query)}
+                    active={selectedKey === key}
+                    onClick={() => onSelect(key)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 상세 패널 — 선택한 카드가 속한 카테고리 바로 아래에 뜨게, 페이지 하단이 아니라 여기에 둔다 */}
+      {selectedEntry && (
+        <DetailPanel category={category} entry={selectedEntry} onClose={() => onSelect(null)} />
+      )}
+    </div>
+  );
+}
+
+function EntryCard({
   entry,
-  x,
-  y,
   dimmed,
   active,
   onClick,
 }: {
   entry: OralHistoryEntry;
-  x: number;
-  y: number;
   dimmed: boolean;
   active: boolean;
   onClick: () => void;
@@ -341,10 +285,9 @@ function NodeCard({
       type="button"
       onClick={onClick}
       title={`${entry.institution} — ${entry.projectName}`}
-      className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-sm border bg-white px-2 py-1.5 text-left shadow-sm transition-all hover:z-20 hover:shadow-md ${
-        active ? "z-20 border-orange-400 ring-1 ring-orange-300" : "border-zinc-200"
-      } ${dimmed ? "opacity-20" : ""} ${entry.yearApprox ? "border-dashed" : ""}`}
-      style={{ left: x, top: y, width: NODE_WIDTH, height: NODE_HEIGHT }}
+      className={`w-[168px] rounded-sm border bg-white px-2 py-1.5 text-left shadow-sm transition-all hover:shadow-md ${
+        active ? "border-orange-400 ring-1 ring-orange-300" : "border-zinc-200"
+      } ${dimmed ? "opacity-25" : ""} ${entry.yearApprox ? "border-dashed" : ""}`}
     >
       <div className="flex items-center gap-1 font-mono text-[9px] text-zinc-400">
         <span className={LEVEL_DOT_CLASSNAME[entry.confirmationLevel]}>{entry.confirmationLevel}</span>
@@ -353,9 +296,11 @@ function NodeCard({
           {entry.yearApprox && entry.year !== null ? "경" : ""}
         </span>
       </div>
-      <p className="truncate text-[11px] font-semibold leading-4 text-zinc-900">{entry.institution}</p>
-      <p className="truncate text-[10px] leading-4 text-zinc-500">{entry.projectName || " "}</p>
-      <p className="truncate text-[9px] leading-4 text-zinc-400">{entry.who ?? " "}</p>
+      <p className="line-clamp-2 text-[11px] font-semibold leading-[13px] text-zinc-900">{entry.institution}</p>
+      {entry.projectName && (
+        <p className="line-clamp-2 mt-0.5 text-[10px] leading-[12px] text-zinc-500">{entry.projectName}</p>
+      )}
+      <p className="truncate mt-0.5 text-[9px] leading-4 text-zinc-400">{entry.who ?? " "}</p>
     </button>
   );
 }
@@ -387,7 +332,7 @@ function DetailPanel({
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <span
-            className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${style.bg} ${style.text}`}
+            className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${style.headerBg} ${style.text}`}
           >
             {category.number}. {category.title}
           </span>
