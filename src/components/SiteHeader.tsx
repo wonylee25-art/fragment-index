@@ -19,8 +19,7 @@ export function SiteHeader({
     <header className="border-b border-zinc-200">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-6">
         <div>
-          <p className="font-mono text-xs text-zinc-400">예시 화면 · {title}</p>
-          <h1 className="mt-1 text-xl font-bold text-zinc-900">{title}</h1>
+          <h1 className="text-xl font-bold text-zinc-900">{title}</h1>
         </div>
         <nav className="flex gap-1">
           {NAV_ITEMS.map((item) => (

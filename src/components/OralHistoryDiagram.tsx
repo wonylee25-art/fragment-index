@@ -286,7 +286,7 @@ function EntryCard({
       type="button"
       onClick={onClick}
       title={`${entry.institution} — ${entry.projectName}`}
-      className={`w-[168px] rounded-sm border bg-white px-2 py-1.5 text-left shadow-sm transition-all hover:shadow-md ${
+      className={`w-[280px] rounded-sm border bg-white px-2.5 py-2 text-left shadow-sm transition-all hover:shadow-md ${
         active ? "border-orange-400 ring-1 ring-orange-300" : "border-zinc-200"
       } ${dimmed ? "opacity-25" : ""} ${entry.yearApprox ? "border-dashed" : ""}`}
     >
@@ -297,11 +297,10 @@ function EntryCard({
           {entry.yearApprox && entry.year !== null ? "경" : ""}
         </span>
       </div>
-      <p className="line-clamp-2 text-[11px] font-semibold leading-[13px] text-zinc-900">{entry.institution}</p>
+      <p className="truncate mt-1 text-[12px] font-semibold leading-4 text-zinc-900">{entry.institution}</p>
       {entry.projectName && (
-        <p className="line-clamp-2 mt-0.5 text-[10px] leading-[12px] text-zinc-500">{entry.projectName}</p>
+        <p className="truncate mt-0.5 text-[11px] leading-4 text-zinc-500">{entry.projectName}</p>
       )}
-      <p className="truncate mt-0.5 text-[9px] leading-4 text-zinc-400">{entry.who ?? " "}</p>
     </button>
   );
 }
