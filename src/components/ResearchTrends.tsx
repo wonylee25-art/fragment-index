@@ -23,6 +23,7 @@ const PAPER_TYPE_CLASSNAME: Record<PaperType, string> = {
   학위논문: "bg-violet-100 text-violet-700",
   학술논문: "bg-blue-100 text-blue-800",
   단행본: "bg-teal-100 text-teal-700",
+  보고서: "bg-amber-100 text-amber-800",
 };
 
 function buildFrequency(papers: PaperData[]) {
@@ -66,6 +67,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [addingPaper, setAddingPaper] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [importantOnly, setImportantOnly] = useState(false);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -94,10 +96,19 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const maxCount = cloudKeywords[0]?.[1] ?? 1;
   const relatedCounts = activeKeyword ? cooccurrence.get(activeKeyword) : undefined;
 
+  const importantCount = useMemo(() => papers.filter((p) => p.isImportant).length, [papers]);
+
   const filteredPapers = useMemo(() => {
-    if (!activeKeyword) return papers;
-    return papers.filter((p) => p.keywords.includes(activeKeyword));
-  }, [papers, activeKeyword]);
+    return papers.filter((p) => {
+      if (activeKeyword && !p.keywords.includes(activeKeyword)) return false;
+      if (importantOnly && !p.isImportant) return false;
+      return true;
+    });
+  }, [papers, activeKeyword, importantOnly]);
+
+  const scopeLabel = [activeKeyword ? `"${activeKeyword}"` : null, importantOnly ? "★ 중요" : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div>
@@ -172,10 +183,21 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between border-b border-zinc-200 pb-2">
-          <h2 className="font-mono text-xs text-zinc-400">
-            논문 목록 {activeKeyword ? `· "${activeKeyword}" ${filteredPapers.length}편` : `· 전체 ${filteredPapers.length}편`}
-          </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-mono text-xs text-zinc-400">
+              논문 목록 · {scopeLabel ? `${scopeLabel} ${filteredPapers.length}편` : `전체 ${filteredPapers.length}편`}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setImportantOnly((v) => !v)}
+              className={`rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${
+                importantOnly ? "bg-amber-100 text-amber-700" : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200"
+              }`}
+            >
+              {importantOnly ? "★ 중요만" : "☆ 중요만"} ({importantCount})
+            </button>
+          </div>
           {!addingPaper && (
             <button
               type="button"
@@ -254,8 +276,11 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       {paper.author && " · "}
                       {paper.paperType === "단행본"
                         ? [paper.publisherLocation, paper.institution].filter(Boolean).join(": ")
-                        : [paper.journalName ?? paper.institution, paper.volumeIssue].filter(Boolean).join(" ")}
+                        : paper.paperType === "보고서"
+                          ? [paper.institution, paper.researchPeriod].filter(Boolean).join(" · ")
+                          : [paper.journalName ?? paper.institution, paper.volumeIssue].filter(Boolean).join(" ")}
                       {paper.degreeLevel ? ` · ${paper.degreeLevel}` : ""}
+                      {paper.paperType === "보고서" && paper.researchTeam ? ` · 연구진: ${paper.researchTeam}` : ""}
                     </p>
 
                     {paper.keywords.length > 0 && (
@@ -273,6 +298,10 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                           </button>
                         ))}
                       </div>
+                    )}
+
+                    {paper.paperType === "보고서" && paper.researchSummary && (
+                      <p className="mt-1.5 text-xs leading-5 text-zinc-500">{paper.researchSummary}</p>
                     )}
                   </div>
 

@@ -181,6 +181,9 @@ interface DbPaper {
   publisher_location: string | null;
   translator: string | null;
   volume_issue: string | null;
+  research_period: string | null;
+  research_team: string | null;
+  research_summary: string | null;
 }
 
 interface DbPaperQuote {
@@ -207,7 +210,7 @@ export async function getPapers(): Promise<PaperData[]> {
     supabase
       .from("papers")
       .select(
-        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read, publisher_location, translator, volume_issue",
+        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read, publisher_location, translator, volume_issue, research_period, research_team, research_summary",
       )
       .order("year", { ascending: false })
       .order("id", { ascending: true }), // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
@@ -240,6 +243,9 @@ export async function getPapers(): Promise<PaperData[]> {
     publisherLocation: p.publisher_location ?? undefined,
     translator: p.translator ?? undefined,
     volumeIssue: p.volume_issue ?? undefined,
+    researchPeriod: p.research_period ?? undefined,
+    researchTeam: p.research_team ?? undefined,
+    researchSummary: p.research_summary ?? undefined,
     quotes: quotesByPaper.get(p.id) ?? [],
   }));
 }

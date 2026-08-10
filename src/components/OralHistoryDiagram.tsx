@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Inline } from "@/lib/inline-markdown";
 import {
   ConfirmationLevel,
@@ -204,7 +204,6 @@ function CategoryPanel({
 }) {
   const style = CATEGORY_STYLE[category.number] ?? CATEGORY_STYLE[1];
   const matchCount = category.entries.filter((e) => matchesFilter(e, query)).length;
-  const selectedEntry = category.entries.find((e) => entryKey(category.number, e) === selectedKey) ?? null;
 
   // 하위구분(문서의 "- **하위구분**:" 필드)이 있으면 문서에 처음 등장하는 순서대로
   // 소그룹을 만들어 카드 벽을 잘게 쪼갠다 — 카테고리가 커서(예: 14건) 한 덩어리로는
@@ -243,28 +242,30 @@ function CategoryPanel({
                 {g.subgroup} · {g.entries.length}건
               </p>
             )}
+            {/* 상세 패널을 클릭한 카드 바로 뒤에 w-full로 끼워 넣는다 — flex-wrap 컨테이너 안에서
+                폭 100%짜리 요소는 그 지점에서 강제로 줄바꿈되므로, 클릭한 카드가 몇 번째 줄
+                몇 번째 칸에 있든 바로 그 밑에서 펼쳐지고 뒤이은 카드들만 아래로 밀린다. */}
             <div className="flex flex-wrap gap-2">
               {g.entries.map((entry) => {
                 const key = entryKey(category.number, entry);
                 return (
-                  <EntryCard
-                    key={key}
-                    entry={entry}
-                    dimmed={!matchesFilter(entry, query)}
-                    active={selectedKey === key}
-                    onClick={() => onSelect(key)}
-                  />
+                  <Fragment key={key}>
+                    <EntryCard
+                      entry={entry}
+                      dimmed={!matchesFilter(entry, query)}
+                      active={selectedKey === key}
+                      onClick={() => onSelect(key)}
+                    />
+                    {selectedKey === key && (
+                      <DetailPanel category={category} entry={entry} onClose={() => onSelect(null)} />
+                    )}
+                  </Fragment>
                 );
               })}
             </div>
           </div>
         ))}
       </div>
-
-      {/* 상세 패널 — 선택한 카드가 속한 카테고리 바로 아래에 뜨게, 페이지 하단이 아니라 여기에 둔다 */}
-      {selectedEntry && (
-        <DetailPanel category={category} entry={selectedEntry} onClose={() => onSelect(null)} />
-      )}
     </div>
   );
 }
@@ -328,7 +329,7 @@ function DetailPanel({
 }) {
   const style = CATEGORY_STYLE[category.number] ?? CATEGORY_STYLE[1];
   return (
-    <div className="mt-3 rounded-sm border border-zinc-200 bg-zinc-50/60 p-4">
+    <div className="mt-1 w-full rounded-sm border border-zinc-200 bg-zinc-50/60 p-4">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <span
@@ -374,7 +375,21 @@ function DetailPanel({
 
       {entry.notes.map((note, i) => (
         <div key={i} className="mt-2 rounded-sm bg-amber-50 p-2 text-[12px] leading-5 text-amber-900">
-          <strong className="font-semibold">{note.label}</strong>: <Inline text={note.value} />
+          <strong className="font-semibold">{note.label}</strong>
+          {note.value && (
+            <>
+              : <Inline text={note.value} />
+            </>
+          )}
+          {note.subItems.length > 0 && (
+            <ul className="mt-1 list-disc space-y-0.5 pl-4">
+              {note.subItems.map((s, j) => (
+                <li key={j}>
+                  <Inline text={s} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       ))}
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PaperData, PaperType } from "@/lib/types";
 import { addPaper, updatePaper } from "@/lib/paper-actions";
 
-const PAPER_TYPES: PaperType[] = ["학술논문", "학위논문", "단행본"];
+const PAPER_TYPES: PaperType[] = ["학술논문", "학위논문", "단행본", "보고서"];
 
 const EMPTY_FORM = {
   paperType: "학술논문" as PaperType,
@@ -17,6 +17,9 @@ const EMPTY_FORM = {
   degreeLevel: "",
   publisherLocation: "",
   translator: "",
+  researchPeriod: "",
+  researchTeam: "",
+  researchSummary: "",
   keywords: "",
   rissUrl: "",
 };
@@ -33,6 +36,9 @@ function formFromPaper(paper: PaperData): typeof EMPTY_FORM {
     degreeLevel: paper.degreeLevel ?? "",
     publisherLocation: paper.publisherLocation ?? "",
     translator: paper.translator ?? "",
+    researchPeriod: paper.researchPeriod ?? "",
+    researchTeam: paper.researchTeam ?? "",
+    researchSummary: paper.researchSummary ?? "",
     keywords: paper.keywords.join(", "),
     rissUrl: paper.rissUrl,
   };
@@ -75,6 +81,9 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
         degreeLevel: form.degreeLevel,
         publisherLocation: form.publisherLocation,
         translator: form.translator,
+        researchPeriod: form.researchPeriod,
+        researchTeam: form.researchTeam,
+        researchSummary: form.researchSummary,
         keywords: form.keywords
           .split(",")
           .map((k) => k.trim())
@@ -112,21 +121,31 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
             </option>
           ))}
         </select>
-        <input
-          type="text"
-          value={form.year}
-          onChange={(e) => update("year", e.target.value.replace(/[^0-9]/g, ""))}
-          placeholder="연도 (예: 2023)"
-          inputMode="numeric"
-          className={INPUT_CLASSNAME}
-        />
+        {form.paperType === "보고서" ? (
+          <input
+            type="text"
+            value={form.researchPeriod}
+            onChange={(e) => update("researchPeriod", e.target.value)}
+            placeholder="연구기간 (예: 2023.03~2023.12)"
+            className={INPUT_CLASSNAME}
+          />
+        ) : (
+          <input
+            type="text"
+            value={form.year}
+            onChange={(e) => update("year", e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="연도 (예: 2023)"
+            inputMode="numeric"
+            className={INPUT_CLASSNAME}
+          />
+        )}
       </div>
 
       <input
         type="text"
         value={form.title}
         onChange={(e) => update("title", e.target.value)}
-        placeholder="제목 *"
+        placeholder={form.paperType === "보고서" ? "연구 과제명 *" : "제목 *"}
         autoFocus
         className={INPUT_CLASSNAME}
       />
@@ -136,14 +155,20 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
           type="text"
           value={form.author}
           onChange={(e) => update("author", e.target.value)}
-          placeholder="저자"
+          placeholder={form.paperType === "보고서" ? "연구책임자" : "저자"}
           className={INPUT_CLASSNAME}
         />
         <input
           type="text"
           value={form.institution}
           onChange={(e) => update("institution", e.target.value)}
-          placeholder={form.paperType === "단행본" ? "출판사" : "학위수여기관 / 발행 학회"}
+          placeholder={
+            form.paperType === "단행본"
+              ? "출판사"
+              : form.paperType === "보고서"
+                ? "수행기관 / 발주처"
+                : "학위수여기관 / 발행 학회"
+          }
           className={INPUT_CLASSNAME}
         />
       </div>
@@ -195,6 +220,25 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
             className={INPUT_CLASSNAME}
           />
         </div>
+      )}
+
+      {form.paperType === "보고서" && (
+        <>
+          <input
+            type="text"
+            value={form.researchTeam}
+            onChange={(e) => update("researchTeam", e.target.value)}
+            placeholder="연구진 (쉼표로 구분, 연구책임자 제외)"
+            className={INPUT_CLASSNAME}
+          />
+          <textarea
+            value={form.researchSummary}
+            onChange={(e) => update("researchSummary", e.target.value)}
+            placeholder="연구요약"
+            rows={3}
+            className={INPUT_CLASSNAME}
+          />
+        </>
       )}
 
       <input

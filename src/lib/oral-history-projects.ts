@@ -12,6 +12,7 @@ export type ConfirmationLevel = "●●●" | "●●○" | "●○○";
 export interface OralHistoryNote {
   label: string;
   value: string;
+  subItems: string[];
 }
 
 export interface OralHistoryEntry {
@@ -205,7 +206,7 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
 
   const notes: OralHistoryNote[] = fields
     .filter((f) => f.key !== "확인 수준" && f.key !== "하위구분" && !CORE_FIELD_KEYS.has(f.key))
-    .map((f) => ({ label: f.key, value: f.value }));
+    .map((f) => ({ label: f.key, value: f.value, subItems: f.subItems }));
 
   const whenField = get("언제");
   const { year, yearApprox } = extractRepresentativeYear(whenField?.value ?? null);
@@ -301,11 +302,7 @@ function parsePlanSection(body: string[]): OralHistoryPlanGroup[] {
   return groups;
 }
 
-let cached: OralHistoryDoc | null = null;
-
 export async function getOralHistoryProjectsDoc(): Promise<OralHistoryDoc> {
-  if (cached) return cached;
-
   const md = await readFile(MD_PATH, "utf-8");
   const { title, paragraphs } = parseIntro(md);
   const sections = splitTopSections(md);
@@ -337,7 +334,7 @@ export async function getOralHistoryProjectsDoc(): Promise<OralHistoryDoc> {
 
   const totalEntries = categories.reduce((sum, c) => sum + c.entries.length, 0);
 
-  cached = {
+  return {
     title,
     introParagraphs: paragraphs,
     levelLegend,
@@ -348,5 +345,4 @@ export async function getOralHistoryProjectsDoc(): Promise<OralHistoryDoc> {
     planGroups,
     totalEntries,
   };
-  return cached;
 }

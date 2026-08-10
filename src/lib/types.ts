@@ -47,7 +47,7 @@ export interface PlaceRef {
   lng: number;
 }
 
-export type PaperType = "학위논문" | "학술논문" | "단행본";
+export type PaperType = "학위논문" | "학술논문" | "단행본" | "보고서";
 
 // 논문에서 발췌한 인용구 — userMemo(논문당 자유 메모 한 덩어리)와 달리
 // 논문 하나에 여러 개, 페이지 번호와 함께 개별 항목으로 쌓인다.
@@ -63,10 +63,10 @@ export interface PaperQuote {
 export interface PaperData {
   id: string;
   paperType: PaperType;
-  title: string;
-  author: string;
-  year: number | null;
-  institution: string; // 학위수여기관·발행 학회 또는 출판사(단행본)
+  title: string; // 보고서일 때는 연구 과제명
+  author: string; // 보고서일 때는 연구책임자
+  year: number | null; // 보고서일 때는 폼에서 직접 받지 않고 researchPeriod에서 파생(paper-actions.ts 참고)
+  institution: string; // 학위수여기관·발행 학회, 출판사(단행본), 또는 수행기관(보고서)
   journalName?: string; // 학술논문일 때만
   volumeIssue?: string; // 학술논문일 때만 — 권(호), 예: "25(1)"
   degreeLevel?: string; // 학위논문일 때만 (국내석사/국내박사)
@@ -74,6 +74,9 @@ export interface PaperData {
   // https://koanth.org/?page_id=1048
   publisherLocation?: string; // 출판지 (예: 서울)
   translator?: string; // 역서일 때 역자
+  researchPeriod?: string; // 보고서일 때만 — 연구기간, 예: "2023.03~2023.12"
+  researchTeam?: string; // 보고서일 때만 — 연구진 (연구책임자 제외 공동연구원), 쉼표로 구분
+  researchSummary?: string; // 보고서일 때만 — 연구 요약(초록에 해당)
   keywords: string[];
   rissUrl: string;
   userMemo?: string; // 이용자가 이 논문에 대해 직접 적는 개인 메모

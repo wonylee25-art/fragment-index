@@ -16,6 +16,9 @@ export interface AddPaperInput {
   degreeLevel: string;
   publisherLocation: string;
   translator: string;
+  researchPeriod: string;
+  researchTeam: string;
+  researchSummary: string;
   keywords: string[];
   rissUrl: string;
 }
@@ -25,20 +28,32 @@ export interface AddPaperInput {
 // ResearchTrends 목록은 `paper.journalName ?? paper.institution`로 기관명을 표시하는데, 이 남은 값이
 // null이 아니라 실제 문자열이라 institution을 가려버려("석" 같은 엉뚱한 값이 기관명 자리에 뜸) —
 // 그래서 여기서 저장 직전에 paperType과 무관한 필드는 항상 비워 DB에 아예 안 남게 한다.
+// 보고서는 연도를 따로 입력받지 않고 연구기간에서 파생한다 — 정렬(getPapers)과 인용 형식이 모두
+// year 컬럼에 기대기 때문에, 기간 문자열에서 마지막에 등장하는 4자리 연도(보통 종료 시점)를 취한다.
+function extractYearFromPeriod(period: string): number | null {
+  const matches = period.match(/(19|20)\d{2}/g);
+  if (!matches) return null;
+  return parseInt(matches[matches.length - 1], 10);
+}
+
 function toPaperRow(input: AddPaperInput) {
   const isJournal = input.paperType === "학술논문";
   const isThesis = input.paperType === "학위논문";
   const isBook = input.paperType === "단행본";
+  const isReport = input.paperType === "보고서";
   return {
     paper_type: input.paperType,
     author: input.author.trim() || null,
-    year: input.year,
+    year: isReport ? extractYearFromPeriod(input.researchPeriod) : input.year,
     institution: input.institution.trim() || null,
     journal_name: isJournal ? input.journalName.trim() || null : null,
     volume_issue: isJournal ? input.volumeIssue.trim() || null : null,
     degree_level: isThesis ? input.degreeLevel.trim() || null : null,
     publisher_location: isBook ? input.publisherLocation.trim() || null : null,
     translator: isBook ? input.translator.trim() || null : null,
+    research_period: isReport ? input.researchPeriod.trim() || null : null,
+    research_team: isReport ? input.researchTeam.trim() || null : null,
+    research_summary: isReport ? input.researchSummary.trim() || null : null,
     keywords: input.keywords,
     riss_url: input.rissUrl.trim() || null,
   };

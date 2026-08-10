@@ -4,6 +4,7 @@ import { PaperData } from "./types";
 // 학위논문: 저자, 연도, "제목," 학위수여기관 학위종류.
 // 학술논문: 저자, 연도, "제목," 『학술지명』권(호).
 // 단행본:   저자(역자), 연도, 『제목』, 출판지: 출판사.
+// 보고서:   연구책임자, 연도, "연구 과제명," 수행기관 연구보고서.
 export function formatCitation(p: PaperData): string {
   const year = p.year ?? "연도 미상";
   const author = p.translator ? `${p.author} (${p.translator} 역)` : p.author;
@@ -17,6 +18,8 @@ export function formatCitation(p: PaperData): string {
       return `${author}, ${year}, "${p.title}," ${[p.institution, p.degreeLevel].filter(Boolean).join(" ")}.`;
     case "학술논문":
       return `${author}, ${year}, "${p.title}," 『${p.journalName ?? p.institution}』${p.volumeIssue ?? ""}.`;
+    case "보고서":
+      return `${author}, ${year}, "${p.title}," ${p.institution} 연구보고서.`;
   }
 }
 
