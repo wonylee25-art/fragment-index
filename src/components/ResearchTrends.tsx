@@ -19,6 +19,32 @@ const MIN_MENTIONS = 2; // 노이즈를 줄이기 위해 2회 이상 등장한 �
 const MIN_FONT_PX = 11;
 const MAX_FONT_PX = 27;
 
+type SortMode = "year" | "recent" | "read";
+
+const SORT_LABELS: Record<SortMode, string> = {
+  year: "연도순",
+  recent: "최근순",
+  read: "읽은 순",
+};
+
+function sortPapers(papers: PaperData[], mode: SortMode): PaperData[] {
+  const sorted = [...papers];
+  switch (mode) {
+    case "recent":
+      sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      break;
+    case "read":
+      // 읽은 논문을 먼저, 동일 조건 내에서는 최신 연도순.
+      sorted.sort((a, b) => Number(b.isRead) - Number(a.isRead) || (b.year ?? -Infinity) - (a.year ?? -Infinity));
+      break;
+    case "year":
+    default:
+      sorted.sort((a, b) => (b.year ?? -Infinity) - (a.year ?? -Infinity));
+      break;
+  }
+  return sorted;
+}
+
 const PAPER_TYPE_CLASSNAME: Record<PaperType, string> = {
   학위논문: "bg-violet-100 text-violet-700",
   학술논문: "bg-blue-100 text-blue-800",
@@ -68,6 +94,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const [addingPaper, setAddingPaper] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [importantOnly, setImportantOnly] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("year");
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -105,6 +132,8 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
       return true;
     });
   }, [papers, activeKeyword, importantOnly]);
+
+  const sortedPapers = useMemo(() => sortPapers(filteredPapers, sortMode), [filteredPapers, sortMode]);
 
   const scopeLabel = [activeKeyword ? `"${activeKeyword}"` : null, importantOnly ? "★ 중요" : null]
     .filter(Boolean)
@@ -186,7 +215,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-mono text-xs text-zinc-400">
-              논문 목록 · {scopeLabel ? `${scopeLabel} ${filteredPapers.length}편` : `전체 ${filteredPapers.length}편`}
+              논문 목록 · {scopeLabel ? `${scopeLabel} ${sortedPapers.length}편` : `전체 ${sortedPapers.length}편`}
             </h2>
             <button
               type="button"
@@ -197,6 +226,17 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
             >
               {importantOnly ? "★ 중요만" : "☆ 중요만"} ({importantCount})
             </button>
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 hover:bg-zinc-200"
+            >
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
+                <option key={mode} value={mode}>
+                  {SORT_LABELS[mode]}
+                </option>
+              ))}
+            </select>
           </div>
           {!addingPaper && (
             <button
@@ -211,11 +251,11 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
 
         {addingPaper && <AddPaperForm onClose={() => setAddingPaper(false)} />}
 
-        {filteredPapers.length === 0 ? (
+        {sortedPapers.length === 0 ? (
           <p className="py-8 text-center font-mono text-xs text-zinc-400">일치하는 논문이 없습니다.</p>
         ) : (
           <ul className="flex flex-col">
-            {filteredPapers.map((paper) =>
+            {sortedPapers.map((paper) =>
               editingId === paper.id ? (
                 <li key={paper.id} className="border-b border-zinc-200 py-3">
                   <AddPaperForm paper={paper} onClose={() => setEditingId(null)} />

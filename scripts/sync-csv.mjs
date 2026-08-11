@@ -196,6 +196,7 @@ async function syncPapers() {
     return;
   }
   const rows = readCsv(RISS_PAPERS_CSV_PATH);
+  const existing = await fetchExisting("papers", "id");
   const upserts = [];
   for (const r of rows) {
     if (!r.paper_id || !r.title) { log("papers", "skipped"); continue; }
@@ -214,7 +215,7 @@ async function syncPapers() {
       keywords: splitMulti(r.keywords),
       riss_url: r.riss_url || null,
     });
-    log("papers", "new");
+    log("papers", existing.has(r.paper_id) ? "updated" : "new");
   }
   if (upserts.length) {
     const { error } = await supabase.from("papers").upsert(upserts, { onConflict: "id" });

@@ -82,6 +82,7 @@ export interface PaperData {
   userMemo?: string; // 이용자가 이 논문에 대해 직접 적는 개인 메모
   isImportant: boolean; // 이용자가 "중요"로 표시했는지
   isRead: boolean; // 이용자가 "읽음"으로 표시했는지
+  createdAt: string; // 이 DB에 처음 들어온 시각 — "최근순" 정렬용
   quotes: PaperQuote[];
 }
 
