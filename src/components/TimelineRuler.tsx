@@ -27,11 +27,26 @@ const TICK_STYLE: Record<TickRelation, { className: string; width: number }> = {
   none: { className: "bg-zinc-200", width: 1 },
 };
 
+// 연도 범위 필터가 걸렸을 때 눈금 위에 덮는 음영의 좌우 경계(%).
+// 눈금 색은 관련도라는 다른 뜻을 이미 갖고 있어서 건드리지 않고, 범위 밖 구간에 음영만 깐다.
+export interface RulerRange {
+  fromPct: number;
+  toPct: number;
+}
+
 // 레이아웃 높이는 항상 FULL_HEIGHT로 고정하고 sticky top을 음수로 줘서,
 // 위쪽은 자연스럽게 스크롤아웃되고 아래 BAR_HEIGHT(축+눈금 하단+10년 라벨)만 남는다.
 // 높이를 실제로 줄이면 브라우저 스크롤 앵커링과 충돌해 스크롤이 튄다.
 // 사건명 라벨은 없다 — 100년 스케일에서는 읽을 수 없으므로 10년 눈금 + 호버 툴팁으로 대체.
-export function TimelineRuler({ ticks, decades }: { ticks: RulerTick[]; decades: RulerDecade[] }) {
+export function TimelineRuler({
+  ticks,
+  decades,
+  range,
+}: {
+  ticks: RulerTick[];
+  decades: RulerDecade[];
+  range?: RulerRange | null;
+}) {
   return (
     <div
       className="sticky z-30 overflow-hidden border-b border-zinc-200 bg-white/95 backdrop-blur-sm"
@@ -71,6 +86,26 @@ export function TimelineRuler({ ticks, decades }: { ticks: RulerTick[]; decades:
             }}
           />
         ))}
+
+        {/* 연도 범위 밖 — 눈금 위에 덮어 흐리게 하되, 눈금 자체의 색(관련도)은 그대로 둔다 */}
+        {range && (
+          <>
+            {range.fromPct > 0 && (
+              <div
+                className="pointer-events-none absolute bottom-0 left-0 top-0 border-r border-zinc-300 bg-zinc-500/10"
+                style={{ width: `${range.fromPct}%` }}
+                aria-hidden
+              />
+            )}
+            {range.toPct < 100 && (
+              <div
+                className="pointer-events-none absolute bottom-0 right-0 top-0 border-l border-zinc-300 bg-zinc-500/10"
+                style={{ width: `${100 - range.toPct}%` }}
+                aria-hidden
+              />
+            )}
+          </>
+        )}
       </div>
     </div>
   );

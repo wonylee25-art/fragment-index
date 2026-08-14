@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
-import { ArchiveItemType, PaperData, PaperQuote, RelatedItem, SegmentCardData, TimelineEventData } from "./types";
+import { ArchiveItemType, PaperData, PaperQuote, RelatedItem, SegmentCardData, TimelineEventData, UnlinkedMaterials } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -32,7 +32,6 @@ interface DbTimelineEvent {
 
 interface DbArchiveItem {
   id: string;
-  event_id: string | null;
   item_type: string;
   title: string;
   source_org: string | null;
@@ -47,7 +46,6 @@ interface DbSegment {
   source_id: string | null;
   narrator_id: string | null;
   interviewer_id: string | null;
-  event_id: string | null;
   segment_text: string;
   has_discrepancy: boolean;
   discrepancy_note: string | null;
@@ -55,6 +53,15 @@ interface DbSegment {
   keywords: string[];
   user_memo: string | null;
   is_important: boolean;
+}
+
+// 사건과 자료(사료·구술)를 잇는 "연결선". 사건 자체는 항상 확정이고,
+// 확정/후보 구분은 이 연결선에만 있다 — 사용자뷰는 confirmed만 본다.
+interface DbLink {
+  event_id: string;
+  target_type: "archive_item" | "segment";
+  target_id: string;
+  status: "confirmed" | "candidate" | "rejected";
 }
 
 interface DbSegmentPerson {
@@ -73,31 +80,41 @@ function toRelatedItem(item: DbArchiveItem): RelatedItem {
   };
 }
 
-export async function getChronicleEvents(): Promise<TimelineEventData[]> {
-  const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: segments, error: segmentsError }] =
+export interface ChronicleOptions {
+  // 관리페이지용 — 후보 연결선까지 함께 가져온다. 기본값(false)은 사용자뷰용으로 확정만 본다.
+  // 반려(rejected)는 어느 쪽에도 나오지 않는다.
+  includeCandidates?: boolean;
+}
+
+export async function getChronicleEvents({ includeCandidates = false }: ChronicleOptions = {}): Promise<TimelineEventData[]> {
+  const visibleStatuses = includeCandidates ? ["confirmed", "candidate"] : ["confirmed"];
+
+  const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: links, error: linksError }] =
     await Promise.all([
       supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, has_discrepancy, keywords, user_saved, user_memo").order("id"),
-      supabase.from("archive_items").select("id, event_id, item_type, title, source_org, source_url, description"),
-      supabase.from("segments").select("id, event_id"),
+      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description"),
+      supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     ]);
   if (eventsError) throw eventsError;
   if (materialsError) throw materialsError;
-  if (segmentsError) throw segmentsError;
+  if (linksError) throw linksError;
+
+  const materialById = new Map(((materials as DbArchiveItem[]) ?? []).map((m) => [m.id, m]));
 
   const materialsByEvent = new Map<string, RelatedItem[]>();
-  for (const m of (materials as DbArchiveItem[]) ?? []) {
-    if (!m.event_id) continue;
-    const list = materialsByEvent.get(m.event_id) ?? [];
-    list.push(toRelatedItem(m));
-    materialsByEvent.set(m.event_id, list);
-  }
-
   const segmentIdsByEvent = new Map<string, string[]>();
-  for (const s of (segments as { id: string; event_id: string | null }[]) ?? []) {
-    if (!s.event_id) continue;
-    const list = segmentIdsByEvent.get(s.event_id) ?? [];
-    list.push(s.id);
-    segmentIdsByEvent.set(s.event_id, list);
+  for (const link of (links as DbLink[]) ?? []) {
+    if (link.target_type === "archive_item") {
+      const material = materialById.get(link.target_id);
+      if (!material) continue; // 자료가 지워졌는데 연결선이 남은 경우 — 화면에선 무시
+      const list = materialsByEvent.get(link.event_id) ?? [];
+      list.push(toRelatedItem(material));
+      materialsByEvent.set(link.event_id, list);
+    } else {
+      const list = segmentIdsByEvent.get(link.event_id) ?? [];
+      list.push(link.target_id);
+      segmentIdsByEvent.set(link.event_id, list);
+    }
   }
 
   return ((events as DbTimelineEvent[]) ?? []).map((e) => ({
@@ -113,6 +130,35 @@ export async function getChronicleEvents(): Promise<TimelineEventData[]> {
     savedByUser: e.user_saved,
     userMemo: e.user_memo ?? undefined,
   }));
+}
+
+// 검토함 ②번 칸 — 연결선이 하나도 안 붙은 자료·구술.
+// 사건이 정해지지 않은 상태를 "사건 칸이 빈 연결선"으로 만들지 않고, 연결선의 부재로 표현한다.
+// 나중에 사건 뼈대를 채울 때 여기 쌓인 것을 재료로 쓴다.
+export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
+  const [{ data: items, error: itemsError }, { data: segments, error: segmentsError }, { data: links, error: linksError }] =
+    await Promise.all([
+      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description").order("id"),
+      supabase.from("segments").select("id, item_title, date_value").order("id"),
+      // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
+      supabase.from("links").select("target_type, target_id").in("status", ["confirmed", "candidate"]),
+    ]);
+  if (itemsError) throw itemsError;
+  if (segmentsError) throw segmentsError;
+  if (linksError) throw linksError;
+
+  const linkedItemIds = new Set<string>();
+  const linkedSegmentIds = new Set<string>();
+  for (const link of (links as Pick<DbLink, "target_type" | "target_id">[]) ?? []) {
+    (link.target_type === "archive_item" ? linkedItemIds : linkedSegmentIds).add(link.target_id);
+  }
+
+  return {
+    materials: ((items as DbArchiveItem[]) ?? []).filter((m) => !linkedItemIds.has(m.id)).map(toRelatedItem),
+    segments: ((segments as { id: string; item_title: string | null; date_value: string | null }[]) ?? [])
+      .filter((s) => !linkedSegmentIds.has(s.id))
+      .map((s) => ({ id: s.id, itemTitle: s.item_title ?? "", dateValue: s.date_value ?? "" })),
+  };
 }
 
 export async function getSavedIds(): Promise<{ eventIds: Set<string>; archiveItemIds: Set<string> }> {
@@ -262,7 +308,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     supabase
       .from("segments")
       .select(
-        "id, item_title, date_value, source_id, narrator_id, interviewer_id, event_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
+        "id, item_title, date_value, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
       )
       .order("id"),
     supabase.from("persons").select("id, title"),

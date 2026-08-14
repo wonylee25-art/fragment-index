@@ -8,7 +8,8 @@ export default async function TimelinePage() {
   return (
     <div className="min-h-full bg-white">
       <SiteHeader active="/timeline" title="연표" />
-      <TimelineExperience events={chronicleEvents} segments={oralSegments} />
+      {/* 확정 연결선만 담긴 데이터를 읽기전용으로 — 관리용 조작은 /admin/timeline에 있다 */}
+      <TimelineExperience events={chronicleEvents} segments={oralSegments} mode="read" />
     </div>
   );
 }

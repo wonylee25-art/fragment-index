@@ -1,35 +1,41 @@
 import Link from "next/link";
 
 const NAV_ITEMS = [
+  { href: "/", label: "홈" },
   { href: "/search", label: "자료 찾기" },
   { href: "/timeline", label: "연표" },
-  { href: "/", label: "구술 목록" },
+  { href: "/segments", label: "구술 목록" },
   { href: "/research", label: "연구 동향" },
   { href: "/oral-history-projects", label: "구술사업 지도" },
+  // 관리페이지 입구. 안에서 [연표 관리][검토함] 탭으로 갈린다.
+  { href: "/admin/timeline", label: "관리" },
 ] as const;
 
 export function SiteHeader({
   active,
   title,
 }: {
-  active: "/" | "/timeline" | "/search" | "/research" | "/oral-history-projects";
+  active: "/" | "/timeline" | "/segments" | "/search" | "/research" | "/oral-history-projects" | "/admin/timeline";
   title: string;
 }) {
   return (
-    <header className="border-b border-zinc-200">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-6">
-        <div>
-          <h1 className="text-xl font-bold text-zinc-900">{title}</h1>
+    <header className="border-b border-line">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-end justify-between gap-6 px-4 py-6">
+        <div className="flex flex-col gap-1.5">
+          <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-2">
+            FRAGMENT INDEX
+          </span>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">{title}</h1>
         </div>
-        <nav className="flex gap-1">
+        <nav className="flex flex-wrap gap-1">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-sm px-3 py-1.5 font-mono text-xs ${
+              className={`border-b-2 px-3 py-1.5 text-sm font-semibold transition-colors ${
                 active === item.href
-                  ? "bg-zinc-900 text-white"
-                  : "text-zinc-500 hover:bg-zinc-100"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted hover:text-foreground"
               }`}
             >
               {item.label}

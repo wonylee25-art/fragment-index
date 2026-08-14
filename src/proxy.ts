@@ -2,10 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function proxy(request: NextRequest) {
+  // 로컬 개발 서버는 보호하지 않는다 — .env.local에 인증 정보가 있어도 통과시킨다.
+  // (미리보기 창처럼 Basic Auth 로그인 창을 못 띄우는 환경에서 화면을 볼 수 없기 때문)
+  if (process.env.NODE_ENV !== "production") {
+    return NextResponse.next();
+  }
+
   const user = process.env.SITE_AUTH_USER;
   const pass = process.env.SITE_AUTH_PASS;
 
-  // 인증 정보가 설정되지 않았으면 보호 없이 통과 (로컬 개발 편의)
+  // 인증 정보가 설정되지 않았으면 보호 없이 통과
   if (!user || !pass) {
     return NextResponse.next();
   }

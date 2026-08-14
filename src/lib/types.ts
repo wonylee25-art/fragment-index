@@ -86,6 +86,12 @@ export interface PaperData {
   quotes: PaperQuote[];
 }
 
+// 검토함 ②번 칸에 쌓이는, 아직 어느 사건에도 연결선이 붙지 않은 자료들.
+export interface UnlinkedMaterials {
+  materials: RelatedItem[];
+  segments: { id: string; itemTitle: string; dateValue: string }[];
+}
+
 export interface TimelineEventData {
   id: string;
   eventName: string;

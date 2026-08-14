@@ -62,3 +62,9 @@ export function edtfYearFloat(value: string): number {
   const [year, month = "1"] = datePart.split("-");
   return parseInt(year, 10) + (parseInt(month, 10) - 1) / 12;
 }
+
+// 연도(소수)를 연표 축 위 가로 위치(%)로 변환 — 좌우 3%씩 여백을 두고 나머지 94%에 분배.
+// TimelineExperience의 전체 연표와 홈 히어로 타임라인이 같은 좌표계를 공유하기 위한 함수.
+export function yearToAxisPercent(yearFloat: number, min = 1900, max = 2026): number {
+  return ((yearFloat - min) / (max - min)) * 94 + 3;
+}

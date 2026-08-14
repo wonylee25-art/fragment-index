@@ -7,7 +7,7 @@ import { MemoField } from "./MemoField";
 import { TimelineRuler, TickRelation } from "./TimelineRuler";
 import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
-import { edtfSortKey, edtfYear, edtfYearFloat, formatEdtfToKorean } from "@/lib/edtf";
+import { edtfSortKey, edtfYear, edtfYearFloat, formatEdtfToKorean, yearToAxisPercent } from "@/lib/edtf";
 import { narratorPullQuote } from "@/lib/quotes";
 import { osmUrl } from "@/lib/geo";
 import { downloadCsv, eventsToCsv } from "@/lib/csv";
@@ -73,6 +73,21 @@ function relevanceOf(event: TimelineEventData, query: string, segmentTags: Set<s
   return "none";
 }
 
+// 연도 범위 필터. 빈 칸은 그쪽 끝을 열어둔다는 뜻이고, 연도 미상 사건은 범위를 지정한 순간
+// 제외한다 — 몇 년인지 모르는 것을 "1950~1960년에 속한다"고 볼 수는 없기 때문.
+function matchesYearRange(event: TimelineEventData, from: number | null, to: number | null): boolean {
+  if (from === null && to === null) return true;
+  if (!event.dateValue) return false;
+  const year = Math.floor(edtfYearFloat(event.dateValue));
+  if (Number.isNaN(year)) return false;
+  return (from === null || year >= from) && (to === null || year <= to);
+}
+
+function parseYearInput(value: string): number | null {
+  const year = parseInt(value, 10);
+  return Number.isNaN(year) ? null : year;
+}
+
 function matchesQuery(event: TimelineEventData, query: string): boolean {
   if (!query) return true;
   return (
@@ -84,17 +99,27 @@ function matchesQuery(event: TimelineEventData, query: string): boolean {
   );
 }
 
+// 사용자뷰(read)와 관리페이지(admin)가 같은 컴포넌트를 쓴다 — 연표 표시 로직(눈금·필터·표)은
+// 양쪽이 똑같고, 다른 것은 조작 UI뿐이라 화면을 복제하는 대신 모드로 가른다.
+// read  : 확정 연결선만 담긴 데이터를 받아 읽기만 한다. 메모는 해설로 보여주되 편집 불가.
+// admin : 후보 연결선까지 담긴 데이터를 받고, 메모 편집·저장한 자료 필터가 열린다.
+export type TimelineMode = "read" | "admin";
+
 export function TimelineExperience({
   events,
   segments,
+  mode = "read",
 }: {
   events: TimelineEventData[];
   segments: SegmentCardData[];
+  mode?: TimelineMode;
 }) {
   const [query, setQuery] = useState("");
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
   const [relationFilter, setRelationFilter] = useState<TickRelation | "all">("all");
   const [savedOnly, setSavedOnly] = useState(false);
+  const [yearFrom, setYearFrom] = useState("");
+  const [yearTo, setYearTo] = useState("");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [detailLevel, setDetailLevel] = useState<DetailLevel>("full");
   const [collection, setCollection] = useState<Set<string>>(new Set());
@@ -116,17 +141,23 @@ export function TimelineExperience({
     [events],
   );
 
+  const yearRange = useMemo(
+    () => ({ from: parseYearInput(yearFrom), to: parseYearInput(yearTo) }),
+    [yearFrom, yearTo],
+  );
+
   const visible = useMemo(() => {
     const q = query.trim();
     const base = sortedAll.filter(
       (e) =>
         (!activeKeyword || e.keywordTags.includes(activeKeyword)) &&
         matchesQuery(e, q) &&
+        matchesYearRange(e, yearRange.from, yearRange.to) &&
         (relationFilter === "all" || relevanceOf(e, query, segmentTags) === relationFilter) &&
         (!savedOnly || e.savedByUser),
     );
     return sortDirection === "asc" ? base : [...base].reverse();
-  }, [sortedAll, activeKeyword, sortDirection, query, relationFilter, segmentTags, savedOnly]);
+  }, [sortedAll, activeKeyword, sortDirection, query, relationFilter, segmentTags, savedOnly, yearRange]);
 
   const keywords = useMemo(() => {
     const set = new Set<string>();
@@ -135,8 +166,7 @@ export function TimelineExperience({
   }, [events]);
 
   // 눈금 좌표계 — 1900~2026 고정 도메인
-  const toPct = (yearFloat: number) =>
-    ((yearFloat - TIMELINE_START) / (TIMELINE_END - TIMELINE_START)) * 94 + 3;
+  const toPct = (yearFloat: number) => yearToAxisPercent(yearFloat, TIMELINE_START, TIMELINE_END);
 
   // 바코드는 검색·필터로 걸러진 목록이 아니라 전체 사건을 대상으로, 관련도만 색으로 표시한다.
   const ticks = useMemo(
@@ -149,6 +179,17 @@ export function TimelineExperience({
       })),
     [sortedAll, segmentTags, query],
   );
+
+  // 연도 범위 필터가 걸린 구간을 바코드에도 표시한다 — 범위 밖에 음영을 깐다.
+  // 끝 연도는 그 해를 포함하므로 다음 해 시작(to + 1)까지가 밝은 구간이다.
+  const rulerRange = useMemo(() => {
+    if (yearRange.from === null && yearRange.to === null) return null;
+    const clamp = (pct: number) => Math.min(100, Math.max(0, pct));
+    return {
+      fromPct: yearRange.from === null ? 0 : clamp(toPct(yearRange.from)),
+      toPct: yearRange.to === null ? 100 : clamp(toPct(yearRange.to + 1)),
+    };
+  }, [yearRange]);
 
   // 눈금선은 10년마다, 연도 라벨은 20년마다 (126년 도메인에서 겹치지 않게)
   const decades = useMemo(() => {
@@ -175,28 +216,34 @@ export function TimelineExperience({
 
   return (
     <div className="bg-white">
-      <TimelineRuler ticks={ticks} decades={decades} />
+      <TimelineRuler ticks={ticks} decades={decades} range={rulerRange} />
 
       {/* 표제부 — 페이지 제목(SiteHeader의 "연표")과 중복되지 않게 기간·통계만 한 줄로 */}
       <div className="border-b border-zinc-200">
         <div className="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-5 gap-y-1 px-4 py-3">
           <p className="font-mono text-xs text-zinc-400">
-            {TIMELINE_START}–{TIMELINE_END} · 사건 {sortedAll.length} · 교차점{" "}
-            {sortedAll.filter((e) => e.linkedSegmentIds.length > 0).length}
+            {TIMELINE_START}–{TIMELINE_END} · 사건{" "}
+            {visible.length === sortedAll.length ? sortedAll.length : `${visible.length} / ${sortedAll.length}`} · 교차점{" "}
+            {visible.filter((e) => e.linkedSegmentIds.length > 0).length}
           </p>
           <div className="ml-auto flex items-center gap-2 font-mono text-[10px]">
-            <button
-              type="button"
-              onClick={() => setSavedOnly((v) => !v)}
-              title="자료 찾기에서 저장한 사건만 보기"
-              className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
-                savedOnly ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-              }`}
-            >
-              <span aria-hidden>✓</span>
-              저장한 자료만 ({sortedAll.filter((e) => e.savedByUser).length})
-            </button>
-            <span className="h-3 w-px bg-zinc-200" />
+            {/* "저장한 자료만"은 자료 찾기에서 사람이 골라 저장했는지를 묻는 관리용 필터다 */}
+            {mode === "admin" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSavedOnly((v) => !v)}
+                  title="자료 찾기에서 저장한 사건만 보기"
+                  className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
+                    savedOnly ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                  }`}
+                >
+                  <span aria-hidden>✓</span>
+                  저장한 자료만 ({sortedAll.filter((e) => e.savedByUser).length})
+                </button>
+                <span className="h-3 w-px bg-zinc-200" />
+              </>
+            )}
             <button
               type="button"
               onClick={() => setRelationFilter(relationFilter === "high" ? "all" : "high")}
@@ -222,12 +269,14 @@ export function TimelineExperience({
             <span className="flex items-center gap-1 px-1.5 py-0.5 text-zinc-300">
               <span className="inline-block h-2.5 w-[1px] bg-zinc-300" /> 무관
             </span>
-            {(relationFilter !== "all" || savedOnly) && (
+            {(relationFilter !== "all" || savedOnly || yearFrom || yearTo) && (
               <button
                 type="button"
                 onClick={() => {
                   setRelationFilter("all");
                   setSavedOnly(false);
+                  setYearFrom("");
+                  setYearTo("");
                 }}
                 className="ml-1 text-zinc-400 underline decoration-dotted underline-offset-2 hover:text-zinc-800"
               >
@@ -252,6 +301,29 @@ export function TimelineExperience({
                 className="w-full rounded-sm border border-zinc-300 bg-white px-3 py-1.5 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-orange-400 focus:outline-none"
               />
             </label>
+            {/* 연도 범위 — 빈 칸은 그쪽 끝을 열어둔다 */}
+            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+              <span className="text-[10px] uppercase tracking-wider text-zinc-400">연도</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={yearFrom}
+                onChange={(e) => setYearFrom(e.target.value)}
+                placeholder={String(TIMELINE_START)}
+                aria-label="시작 연도"
+                className="w-16 rounded-sm border border-zinc-300 bg-white px-2 py-1.5 text-center text-xs tabular-nums text-zinc-700 placeholder:text-zinc-300 focus:border-orange-400 focus:outline-none"
+              />
+              <span className="text-zinc-400">–</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={yearTo}
+                onChange={(e) => setYearTo(e.target.value)}
+                placeholder={String(TIMELINE_END)}
+                aria-label="끝 연도"
+                className="w-16 rounded-sm border border-zinc-300 bg-white px-2 py-1.5 text-center text-xs tabular-nums text-zinc-700 placeholder:text-zinc-300 focus:border-orange-400 focus:outline-none"
+              />
+            </div>
             <div className="flex items-center gap-1 font-mono text-[11px]">
               <span className="mr-1 text-zinc-400">SCALE —</span>
               {DETAIL_LEVELS.map((level) => (
@@ -345,6 +417,7 @@ export function TimelineExperience({
             <EventEntry
               key={event.id}
               event={event}
+              mode={mode}
               detailLevel={detailLevel}
               linkedSegments={event.linkedSegmentIds
                 .map((id) => segmentById.get(id))
@@ -380,14 +453,29 @@ function SavedBadge() {
   );
 }
 
+// 큐레이터 메모. 관리페이지에서는 편집할 수 있고, 사용자뷰에서는 사건 해설로 읽히기만 한다.
+function CuratorMemo({ event, mode }: { event: TimelineEventData; mode: TimelineMode }) {
+  if (mode === "admin") {
+    return <MemoField initialValue={event.userMemo} onSave={(memo) => saveTimelineMemo(event.id, memo)} />;
+  }
+  if (!event.userMemo) return null;
+  return (
+    <p className="mt-1.5 rounded-sm border border-amber-200 bg-amber-50 p-2 font-mono text-xs leading-4 whitespace-pre-wrap text-zinc-700">
+      {event.userMemo}
+    </p>
+  );
+}
+
 function EventEntry({
   event,
+  mode,
   detailLevel,
   linkedSegments,
   inCollection,
   onToggleCollection,
 }: {
   event: TimelineEventData;
+  mode: TimelineMode;
   detailLevel: DetailLevel;
   linkedSegments: SegmentCardData[];
   inCollection: boolean;
@@ -408,9 +496,9 @@ function EventEntry({
         <div className="min-w-0">
           <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">
             {event.eventName}
-            {event.savedByUser && <SavedBadge />}
+            {mode === "admin" && event.savedByUser && <SavedBadge />}
           </h3>
-          <MemoField initialValue={event.userMemo} onSave={(memo) => saveTimelineMemo(event.id, memo)} />
+          <CuratorMemo event={event} mode={mode} />
         </div>
       </div>
     );
@@ -456,7 +544,7 @@ function EventEntry({
       <div className="min-w-0">
         <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">
           {event.eventName}
-          {event.savedByUser && <SavedBadge />}
+          {mode === "admin" && event.savedByUser && <SavedBadge />}
         </h3>
         <div className="mt-1.5 flex flex-wrap gap-1">
           {event.places.map((p) => (
@@ -501,7 +589,7 @@ function EventEntry({
 
       {/* 메모 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간 너비에만 맞춘다 */}
       <div className={detailLevel === "full" ? "sm:col-start-2 sm:col-end-5" : "sm:col-span-full"}>
-        <MemoField initialValue={event.userMemo} onSave={(memo) => saveTimelineMemo(event.id, memo)} />
+        <CuratorMemo event={event} mode={mode} />
       </div>
     </div>
   );
@@ -553,7 +641,7 @@ function OralQuote({ segment }: { segment: SegmentCardData }) {
           </span>
         )}{" "}
         <Link
-          href={`/?focus=${segment.id}`}
+          href={`/segments?focus=${segment.id}`}
           className="ml-1 text-orange-700 underline decoration-dotted underline-offset-4 hover:text-orange-900"
         >
           구술 전체 보기 ↗
