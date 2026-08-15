@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MaterialDraft, saveMaterial } from "@/app/actions";
 import { EventOption, EventPicker } from "./EventPicker";
 
-// 검토함의 작업대. 왼쪽에 연결 대상 사건 목록을 펼쳐두고(드롭다운 없이 항상 보이게),
+// 사료 연결의 작업대. 왼쪽에 연결 대상 사건 목록을 펼쳐두고(드롭다운 없이 항상 보이게),
 // 오른쪽 사료 카드에서 버튼 한 번으로 저장+연결한다.
 // 사건을 고르면 카드 버튼이 "1931 청계천 상류 복개에 연결"처럼 대상을 이름으로 보여줘서,
 // 자료마다 목록을 다시 띄울 필요가 없다.

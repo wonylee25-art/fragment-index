@@ -2,12 +2,12 @@ import Link from "next/link";
 
 const NAV_ITEMS = [
   // 연표가 곧 메인화면이라 "홈" 항목은 따로 두지 않는다.
-  // "자료 찾기"는 수집·검토 작업이라 관리 안(검토함)에 있다.
+  // "자료 찾기"는 수집·검토 작업이라 관리 안(사료 연결)에 있다.
   { href: "/", label: "연표" },
   { href: "/segments", label: "구술 목록" },
   { href: "/research", label: "연구 동향" },
-  { href: "/oral-history-projects", label: "구술사업 지도" },
-  // 관리페이지 입구. 안에서 [연표 관리][검토함] 탭으로 갈린다.
+  { href: "/oral-history-projects", label: "구술 사업" },
+  // 관리페이지 입구. 안에서 [연표 관리][사료 연결] 탭으로 갈린다.
   { href: "/admin/timeline", label: "관리" },
 ] as const;
 

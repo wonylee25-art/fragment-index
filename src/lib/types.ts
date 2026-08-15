@@ -87,7 +87,7 @@ export interface PaperData {
   quotes: PaperQuote[];
 }
 
-// 검토함 ②번 칸에 쌓이는, 아직 어느 사건에도 연결선이 붙지 않은 자료들.
+// 사료 연결 ②번 칸에 쌓이는, 아직 어느 사건에도 연결선이 붙지 않은 자료들.
 export interface UnlinkedMaterials {
   materials: RelatedItem[];
   segments: { id: string; itemTitle: string; dateValue: string }[];
@@ -103,6 +103,6 @@ export interface TimelineEventData {
   keywordTags: string[]; // 지리적 키워드(행정구역 등)도 여기에 포함해 필터·검색에 걸리게 한다
   linkedSegmentIds: string[]; // 그물망 연결(links, link_basis=인물/장소/사건)로 이어진 구술 발췌
   linkedMaterials: RelatedItem[]; // 같은 연결에서 딸려오는 사료(사진/신문/지도 등) — 교차 블록에 이미지로 노출
-  savedByUser: boolean; // 검토함 "사료 검색"에서 사람이 직접 저장했거나 직접 만든 사건인지 — 연표에서 강조 표시
+  savedByUser: boolean; // 사료 연결 "사료 검색"에서 사람이 직접 저장했거나 직접 만든 사건인지 — 연표에서 강조 표시
   userMemo?: string; // 이용자가 이 사건에 대해 직접 적는 개인 메모
 }

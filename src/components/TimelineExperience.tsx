@@ -283,13 +283,13 @@ export function TimelineExperience({
             {visible.filter((e) => e.linkedSegmentIds.length > 0).length}
           </p>
           <div className="ml-auto flex items-center gap-2 font-mono text-[10px]">
-            {/* "저장한 자료만"은 검토함에서 골라 저장했거나 직접 만든 사건인지를 묻는 관리용 필터다 */}
+            {/* "저장한 자료만"은 사료 연결에서 골라 저장했거나 직접 만든 사건인지를 묻는 관리용 필터다 */}
             {mode === "admin" && (
               <>
                 <button
                   type="button"
                   onClick={() => setSavedOnly((v) => !v)}
-                  title="검토함에서 저장했거나 직접 만든 사건만 보기"
+                  title="사료 연결에서 저장했거나 직접 만든 사건만 보기"
                   className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
                     savedOnly ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
                   }`}
@@ -539,12 +539,12 @@ export function TimelineExperience({
   );
 }
 
-// 검토함에서 저장했거나 직접 만든 사건 표시 — 그냥 나열되지 않고
+// 사료 연결에서 저장했거나 직접 만든 사건 표시 — 그냥 나열되지 않고
 // 눈에 띄게(초록 배지 + 왼쪽 테두리, EventEntry에서 함께 적용) 구분한다.
 function SavedBadge() {
   return (
     <span
-      title="검토함에서 저장했거나 직접 만든 사건"
+      title="사료 연결에서 저장했거나 직접 만든 사건"
       className="ml-2 inline-flex items-center gap-0.5 rounded-sm bg-emerald-100 px-1.5 py-0.5 align-middle font-mono text-[10px] font-normal text-emerald-700"
     >
       ✓ 저장됨

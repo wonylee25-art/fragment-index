@@ -164,7 +164,7 @@ export async function getHiddenEvents(): Promise<HiddenEventSummary[]> {
   }));
 }
 
-// 검토함 ②번 칸 — 연결선이 하나도 안 붙은 자료·구술.
+// 사료 연결 ②번 칸 — 연결선이 하나도 안 붙은 자료·구술.
 // 사건이 정해지지 않은 상태를 "사건 칸이 빈 연결선"으로 만들지 않고, 연결선의 부재로 표현한다.
 // 나중에 사건 뼈대를 채울 때 여기 쌓인 것을 재료로 쓴다.
 export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
@@ -211,7 +211,7 @@ export async function getSavedIds(): Promise<{ eventIds: Set<string>; archiveIte
   };
 }
 
-// 검토함 "사료 검색"의 빈 상태(검색어 입력 전)에 보여줄 제안 키워드 — DB(사건·구술)에
+// 사료 연결 "사료 검색"의 빈 상태(검색어 입력 전)에 보여줄 제안 키워드 — DB(사건·구술)에
 // 실제로 붙어 있는 키워드 태그 중 등장 빈도가 높은 순.
 export async function getSuggestedKeywords(limit = 24): Promise<string[]> {
   const [events, segments] = await Promise.all([getChronicleEvents(), getOralSegments()]);

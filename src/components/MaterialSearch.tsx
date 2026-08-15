@@ -8,7 +8,7 @@ import { formatEdtfToKorean, edtfYear } from "@/lib/edtf";
 import { saveThEvent } from "@/app/actions";
 import { EventOption, MaterialGroup, MaterialWorkbench } from "./MaterialWorkbench";
 
-// 기획 정리노트 8-8 "검색창(직접 키워드 입력) 화면". 수집·검토 작업이라 관리(검토함) 안에 둔다.
+// 기획 정리노트 8-8 "검색창(직접 키워드 입력) 화면". 수집·검토 작업이라 관리(사료 연결) 안에 둔다.
 // 검색 → 내용 확인 → 저장+연결이 한 화면에서 끝나야 하므로, 자료 카드에는 원문을 열지 않고도
 // 판단할 수 있을 만큼(썸네일·설명·크기·공개여부) 싣는다.
 // 연결 후보 사건은 "같은 검색어로 걸린 DB 사건"이다 — 209건 전체를 훑는 것보다 정확하고,
