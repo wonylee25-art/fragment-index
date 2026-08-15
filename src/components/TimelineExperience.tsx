@@ -7,6 +7,7 @@ import { MemoField } from "./MemoField";
 import { EventRowControls } from "./EventEditor";
 import { UnlinkButton } from "./UnlinkButton";
 import { TimelineRuler, TickRelation } from "./TimelineRuler";
+import { Switch } from "./Switch";
 import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
 import { edtfSortKey, edtfYear, edtfYearFloat, formatEdtfToKorean, yearToAxisPercent } from "@/lib/edtf";
@@ -127,6 +128,13 @@ export function TimelineExperience({
   const [collection, setCollection] = useState<Set<string>>(new Set());
   const [collectionName, setCollectionName] = useState("나의 컬렉션");
 
+  // 연표 위쪽 세 겹(눈금·표제부·키워드 칩)을 접을 수 있게 한다 — 표를 넓게 보고 싶을 때
+  // 화면 절반을 차지하던 것들이다. 검색·연도·SCALE 줄은 접히지 않고 늘 위에 남는다.
+  // 접은 상태는 기억하지 않는다 — 새로 열면 늘 펼친 상태다.
+  const [showRuler, setShowRuler] = useState(true);
+  const [showHeadline, setShowHeadline] = useState(true);
+  const [showKeywords, setShowKeywords] = useState(true);
+
   const segmentById = useMemo(() => {
     const map = new Map<string, SegmentCardData>();
     segments.forEach((s) => map.set(s.id, s));
@@ -202,6 +210,17 @@ export function TimelineExperience({
     return list;
   }, []);
 
+  // 표제부에 걸 수 있는 필터들 — 표제부를 접으면 해제 버튼도 같이 사라지므로,
+  // 접힌 상태에서도 "걸려 있음"을 알리고 풀 수 있도록 조건과 해제를 따로 뽑아둔다.
+  const headlineFilterOn = relationFilter !== "all" || savedOnly || Boolean(yearFrom) || Boolean(yearTo);
+
+  function clearHeadlineFilters() {
+    setRelationFilter("all");
+    setSavedOnly(false);
+    setYearFrom("");
+    setYearTo("");
+  }
+
   function toggleCollection(id: string) {
     setCollection((prev) => {
       const next = new Set(prev);
@@ -218,9 +237,10 @@ export function TimelineExperience({
 
   return (
     <div className="bg-white">
-      <TimelineRuler ticks={ticks} decades={decades} range={rulerRange} />
+      {showRuler && <TimelineRuler ticks={ticks} decades={decades} range={rulerRange} />}
 
       {/* 표제부 — 페이지 제목(SiteHeader의 "연표")과 중복되지 않게 기간·통계만 한 줄로 */}
+      {showHeadline && (
       <div className="border-b border-zinc-200">
         <div className="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-5 gap-y-1 px-4 py-3">
           <p className="font-mono text-xs text-zinc-400">
@@ -271,15 +291,10 @@ export function TimelineExperience({
             <span className="flex items-center gap-1 px-1.5 py-0.5 text-zinc-300">
               <span className="inline-block h-2.5 w-[1px] bg-zinc-300" /> 무관
             </span>
-            {(relationFilter !== "all" || savedOnly || yearFrom || yearTo) && (
+            {headlineFilterOn && (
               <button
                 type="button"
-                onClick={() => {
-                  setRelationFilter("all");
-                  setSavedOnly(false);
-                  setYearFrom("");
-                  setYearTo("");
-                }}
+                onClick={clearHeadlineFilters}
                 className="ml-1 text-zinc-400 underline decoration-dotted underline-offset-2 hover:text-zinc-800"
               >
                 필터 해제
@@ -288,6 +303,7 @@ export function TimelineExperience({
           </div>
         </div>
       </div>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 pt-5">
         {/* 검색 + 키워드 필터 + 표시 단위 */}
@@ -343,8 +359,48 @@ export function TimelineExperience({
                 </button>
               ))}
             </div>
+
+            {/* 위쪽 세 겹을 접었다 펴는 on/off — 검색 줄 오른쪽 끝에 붙인다.
+                접혀도 걸어둔 값은 살아 있다(접기는 보기만 바꾼다). */}
+            <div className="ml-auto flex items-center gap-x-3 font-mono text-[11px]">
+              {(
+                [
+                  { label: "눈금", on: showRuler, toggle: () => setShowRuler((v) => !v) },
+                  { label: "교차점", on: showHeadline, toggle: () => setShowHeadline((v) => !v) },
+                  { label: "키워드", on: showKeywords, toggle: () => setShowKeywords((v) => !v) },
+                ] as const
+              ).map((item) => (
+                <Switch key={item.label} label={item.label} on={item.on} onToggle={item.toggle} />
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 font-mono text-[11px]">
+
+          {/* 접힌 줄에 필터가 걸려 있으면 목록이 왜 줄었는지 알 길이 없다 — 여기서 알리고 푼다 */}
+          {((!showHeadline && headlineFilterOn) || (!showKeywords && activeKeyword)) && (
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+              {!showHeadline && headlineFilterOn && (
+                <button
+                  type="button"
+                  onClick={clearHeadlineFilters}
+                  className="rounded-sm bg-orange-100 px-2 py-1 text-orange-700 hover:bg-orange-200"
+                >
+                  교차점 필터 걸림 · 해제
+                </button>
+              )}
+              {!showKeywords && activeKeyword && (
+                <button
+                  type="button"
+                  onClick={() => setActiveKeyword(null)}
+                  className="rounded-sm bg-orange-100 px-2 py-1 text-orange-700 hover:bg-orange-200"
+                >
+                  키워드 “{activeKeyword}” · 해제
+                </button>
+              )}
+            </div>
+          )}
+          <div
+            className={`flex-wrap items-baseline gap-x-4 gap-y-1.5 font-mono text-[11px] ${showKeywords ? "flex" : "hidden"}`}
+          >
             <span className="text-zinc-400">필터 · 제안 키워드 —</span>
             <button
               type="button"

@@ -9,6 +9,7 @@ import { CopyForNotionButton } from "./CopyForNotionButton";
 import { FlagToggle } from "./FlagToggle";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { AddPaperForm } from "./AddPaperForm";
+import { Switch } from "./Switch";
 import { savePaperMemo } from "@/lib/memo-actions";
 import { togglePaperImportant, togglePaperRead } from "@/lib/flag-actions";
 import { refreshResearchData } from "@/lib/research-sync-actions";
@@ -19,25 +20,39 @@ const MIN_MENTIONS = 2; // 노이즈를 줄이기 위해 2회 이상 등장한 �
 const MIN_FONT_PX = 11;
 const MAX_FONT_PX = 27;
 
-type SortMode = "year" | "recent" | "read";
+// 발행 시점(최신순·과거순)과 수집 시점(등록순)은 서로 다른 축이다 — 이름으로 구분한다.
+// "등록순"은 논문이 이 DB에 들어온 시각(created_at)이고, 논문이 언제 쓰였는지와는 무관하다.
+type SortMode = "latest" | "oldest" | "registered" | "read" | "important";
 
 const SORT_LABELS: Record<SortMode, string> = {
-  year: "연도순",
-  recent: "최근순",
-  read: "읽은 순",
+  latest: "최신순",
+  oldest: "과거순",
+  registered: "등록순",
+  read: "읽은순",
+  important: "중요순",
 };
 
 function sortPapers(papers: PaperData[], mode: SortMode): PaperData[] {
   const sorted = [...papers];
   switch (mode) {
-    case "recent":
+    case "oldest":
+      // 연도 미상은 어느 방향으로 정렬하든 끝으로 보낸다.
+      sorted.sort((a, b) => (a.year ?? Infinity) - (b.year ?? Infinity));
+      break;
+    case "registered":
       sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       break;
     case "read":
       // 읽은 논문을 먼저, 동일 조건 내에서는 최신 연도순.
       sorted.sort((a, b) => Number(b.isRead) - Number(a.isRead) || (b.year ?? -Infinity) - (a.year ?? -Infinity));
       break;
-    case "year":
+    case "important":
+      // ★ 표시한 논문을 먼저 — "중요만 보기"(필터)와 달리 나머지도 아래에 그대로 남는다.
+      sorted.sort(
+        (a, b) => Number(b.isImportant) - Number(a.isImportant) || (b.year ?? -Infinity) - (a.year ?? -Infinity),
+      );
+      break;
+    case "latest":
     default:
       sorted.sort((a, b) => (b.year ?? -Infinity) - (a.year ?? -Infinity));
       break;
@@ -94,7 +109,10 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const [addingPaper, setAddingPaper] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [importantOnly, setImportantOnly] = useState(false);
-  const [sortMode, setSortMode] = useState<SortMode>("year");
+  const [sortMode, setSortMode] = useState<SortMode>("latest");
+  // 주제어 클라우드는 화면 위쪽을 크게 차지한다 — 논문 목록만 보고 싶을 때 접는다.
+  // 접어도 골라둔 주제어는 살아 있고, 접힌 채로도 해제할 수 있게 알린다.
+  const [showKeywords, setShowKeywords] = useState(true);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -146,26 +164,51 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           <h2 className="font-mono text-xs text-zinc-400">
             주제어 {cloudKeywords.length}개 · 논문 {papers.length}편 (RISS, 국내 구술사·구술생애사 연구)
           </h2>
-          <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-400">
-            <span>최신화: {formatSyncedAt(syncedAt)} 기준</span>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="rounded-sm bg-zinc-100 px-2 py-0.5 text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
-            >
-              {refreshing ? "시작하는 중…" : "🔄 새로고침"}
-            </button>
+          {/* 오른쪽 상단 — 최신화 줄 아래에 보기 스위치와 정렬 띠를 모아 둔다 */}
+          <div className="flex flex-col items-end gap-1.5 font-mono text-[11px] text-zinc-400">
+            <div className="flex items-center gap-2">
+              <span>최신화: {formatSyncedAt(syncedAt)} 기준</span>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="rounded-sm bg-zinc-100 px-2 py-0.5 text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
+              >
+                {refreshing ? "시작하는 중…" : "🔄 새로고침"}
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+              <Switch label="키워드" on={showKeywords} onToggle={() => setShowKeywords((v) => !v)} />
+              <span className="mx-1 h-3 w-px bg-zinc-200" />
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setSortMode(mode)}
+                  aria-pressed={sortMode === mode}
+                  className={`rounded-sm px-2 py-1 ${
+                    sortMode === mode
+                      ? "bg-zinc-900 text-white"
+                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
+                  }`}
+                >
+                  {SORT_LABELS[mode]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {refreshMessage && <p className="mb-2 text-xs text-emerald-700">{refreshMessage}</p>}
 
-        <p className="mb-3 text-xs text-zinc-500">
-          자주 등장한 주제어일수록 크게 표시됩니다. 클릭하면 같은 논문에 함께 등장한 연관 주제어가 강조되고,
-          아래 목록이 해당 주제어로 좁혀집니다.
-        </p>
+        {showKeywords && (
+          <p className="mb-3 text-xs text-zinc-500">
+            자주 등장한 주제어일수록 크게 표시됩니다. 클릭하면 같은 논문에 함께 등장한 연관 주제어가 강조되고,
+            아래 목록이 해당 주제어로 좁혀집니다.
+          </p>
+        )}
 
+        {/* 클라우드를 접어도 골라둔 주제어는 살아 있다 — 접힌 채로도 무엇이 걸렸는지 보이고 풀 수 있다 */}
         {activeKeyword && (
           <button
             type="button"
@@ -176,7 +219,11 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           </button>
         )}
 
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5 rounded-sm border border-zinc-200 bg-zinc-50/60 p-4">
+        <div
+          className={`flex-wrap items-baseline gap-x-2.5 gap-y-1.5 rounded-sm border border-zinc-200 bg-zinc-50/60 p-4 ${
+            showKeywords ? "flex" : "hidden"
+          }`}
+        >
           {cloudKeywords.length === 0 ? (
             <p className="font-mono text-xs text-zinc-400">데이터가 아직 없습니다.</p>
           ) : (
@@ -226,17 +273,8 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
             >
               {importantOnly ? "★ 중요만" : "☆ 중요만"} ({importantCount})
             </button>
-            <select
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as SortMode)}
-              className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 hover:bg-zinc-200"
-            >
-              {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
-                <option key={mode} value={mode}>
-                  {SORT_LABELS[mode]}
-                </option>
-              ))}
-            </select>
+            {/* 정렬은 오른쪽 상단 띠로 옮겼다 — 지금 무슨 순서인지만 여기 남긴다 */}
+            <span className="font-mono text-[10px] text-zinc-400">{SORT_LABELS[sortMode]}</span>
           </div>
           {!addingPaper && (
             <button
