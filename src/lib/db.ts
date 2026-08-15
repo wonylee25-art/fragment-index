@@ -88,12 +88,20 @@ export interface ChronicleOptions {
   includeCandidates?: boolean;
 }
 
+// 관리페이지에서 숨긴 사건(hidden_at != null)의 id — 연표에서 빼고, 그 사건에 매달린
+// 연결선도 "없는 것"으로 치기 위해 여러 곳에서 쓴다.
+async function fetchHiddenEventIds(): Promise<Set<string>> {
+  const { data, error } = await supabase.from("timeline_events").select("id").not("hidden_at", "is", null);
+  if (error) throw error;
+  return new Set(((data as { id: string }[]) ?? []).map((e) => e.id));
+}
+
 export async function getChronicleEvents({ includeCandidates = false }: ChronicleOptions = {}): Promise<TimelineEventData[]> {
   const visibleStatuses = includeCandidates ? ["confirmed", "candidate"] : ["confirmed"];
 
   const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: links, error: linksError }] =
     await Promise.all([
-      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, has_discrepancy, keywords, user_saved, user_memo").order("id"),
+      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, has_discrepancy, keywords, user_saved, user_memo").is("hidden_at", null).order("id"),
       supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url"),
       supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     ]);
@@ -134,16 +142,39 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
   }));
 }
 
+export interface HiddenEventSummary {
+  id: string;
+  eventName: string;
+  dateValue: string;
+}
+
+// 관리페이지 아래쪽 "숨긴 사건" 목록용. 되살리는 길이 없으면 숨김은 삭제와 다를 바 없다.
+export async function getHiddenEvents(): Promise<HiddenEventSummary[]> {
+  const { data, error } = await supabase
+    .from("timeline_events")
+    .select("id, event_name, date_value, hidden_at")
+    .not("hidden_at", "is", null)
+    .order("hidden_at", { ascending: false }); // 최근에 숨긴 것부터 — 실수로 숨겼을 때 바로 보인다
+  if (error) throw error;
+
+  return ((data as { id: string; event_name: string; date_value: string | null }[]) ?? []).map((e) => ({
+    id: e.id,
+    eventName: e.event_name,
+    dateValue: e.date_value ?? "",
+  }));
+}
+
 // 검토함 ②번 칸 — 연결선이 하나도 안 붙은 자료·구술.
 // 사건이 정해지지 않은 상태를 "사건 칸이 빈 연결선"으로 만들지 않고, 연결선의 부재로 표현한다.
 // 나중에 사건 뼈대를 채울 때 여기 쌓인 것을 재료로 쓴다.
 export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
-  const [{ data: items, error: itemsError }, { data: segments, error: segmentsError }, { data: links, error: linksError }] =
+  const [{ data: items, error: itemsError }, { data: segments, error: segmentsError }, { data: links, error: linksError }, hiddenEventIds] =
     await Promise.all([
       supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").order("id"),
       supabase.from("segments").select("id, item_title, date_value").order("id"),
       // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
-      supabase.from("links").select("target_type, target_id").in("status", ["confirmed", "candidate"]),
+      supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
+      fetchHiddenEventIds(),
     ]);
   if (itemsError) throw itemsError;
   if (segmentsError) throw segmentsError;
@@ -151,7 +182,10 @@ export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
 
   const linkedItemIds = new Set<string>();
   const linkedSegmentIds = new Set<string>();
-  for (const link of (links as Pick<DbLink, "target_type" | "target_id">[]) ?? []) {
+  for (const link of (links as Pick<DbLink, "event_id" | "target_type" | "target_id">[]) ?? []) {
+    // 숨긴 사건에만 붙어 있는 자료는 미연결로 친다 — 그러지 않으면 연표에도 안 보이고
+    // 보류함에도 안 뜨는 사각지대에 갇힌다.
+    if (hiddenEventIds.has(link.event_id)) continue;
     (link.target_type === "archive_item" ? linkedItemIds : linkedSegmentIds).add(link.target_id);
   }
 

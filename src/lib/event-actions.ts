@@ -4,10 +4,13 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
 
-// 연표 사건의 추가·수정·삭제. 지금까지 사건은 CSV 동기화(D001…)와 오늘의역사 저장(th_…)으로만
+// 연표 사건의 추가·수정·숨김. 지금까지 사건은 CSV 동기화(D001…)와 오늘의역사 저장(th_…)으로만
 // 들어왔고 사람이 직접 만들 길이 없었다 — 여기서 그 길을 연다.
 // 직접 만든 사건은 id에 ev_ 접두어를 붙여 출처를 구분한다. sync-csv는 upsert만 하고 삭제하지
 // 않으므로 여기서 만든 사건이 동기화로 지워지는 일은 없다.
+//
+// 관리페이지에는 사건을 지우는 길이 없다 — 숨기기만 한다. 손으로 모은 연표를 되돌릴 수 없게
+// 날리는 버튼은 두지 않는다는 결정.
 
 export interface EventInput {
   eventName: string;
@@ -17,9 +20,9 @@ export interface EventInput {
   keywords: string[];
 }
 
-export interface EventDeletionSummary {
-  releasedMaterials: number; // 보류함으로 되돌아간 사료 수
-  releasedSegments: number; // 연결이 끊긴 구술 수
+export interface EventHideSummary {
+  hiddenMaterials: number; // 사건과 함께 화면에서 빠지는 사료 수
+  hiddenSegments: number; // 사건과 함께 화면에서 빠지는 구술 수
 }
 
 // 화면 폼(쉼표로 구분한 키워드 한 줄)을 DB에 넣을 모양으로 다듬는다.
@@ -64,8 +67,8 @@ export async function updateEvent(id: string, input: EventInput) {
   revalidatePath("/admin/timeline");
 }
 
-// 삭제 전에 "무엇이 딸려 사라지는지" 미리 보여주기 위한 집계. 확인 대화상자에서 쓴다.
-export async function countEventAttachments(id: string): Promise<EventDeletionSummary> {
+// 숨기기 전에 "무엇이 함께 안 보이게 되는지" 미리 보여주기 위한 집계. 확인 대화상자에서 쓴다.
+export async function countEventAttachments(id: string): Promise<EventHideSummary> {
   const { data, error } = await supabaseAdmin
     .from("links")
     .select("target_type")
@@ -75,31 +78,35 @@ export async function countEventAttachments(id: string): Promise<EventDeletionSu
 
   const rows = (data as { target_type: string }[]) ?? [];
   return {
-    releasedMaterials: rows.filter((r) => r.target_type === "archive_item").length,
-    releasedSegments: rows.filter((r) => r.target_type === "segment").length,
+    hiddenMaterials: rows.filter((r) => r.target_type === "archive_item").length,
+    hiddenSegments: rows.filter((r) => r.target_type === "segment").length,
   };
 }
 
-// 사건만 지우고 붙어 있던 자료·구술은 지우지 않는다 — 연결선만 끊어서 보류함으로 되돌린다.
-// 사건 하나 지웠다고 어렵게 모은 사료가 같이 사라지면 안 된다.
-export async function deleteEvent(id: string): Promise<EventDeletionSummary> {
-  const released = await countEventAttachments(id);
+// 사건을 화면에서만 내린다 — DB에서는 아무것도 지우지 않는다.
+// 연결선(links)과 인물·장소 연결도 그대로 두기 때문에, 되살리면 붙어 있던 사료가 함께 돌아온다.
+// 대신 숨은 사건에 매달린 사료가 보류함에도 안 뜨는 사각지대가 생기므로, 읽는 쪽(db.ts)에서
+// 숨은 사건의 연결선을 "붙어 있지 않은 것"으로 친다.
+export async function hideEvent(id: string): Promise<EventHideSummary> {
+  const hidden = await countEventAttachments(id);
 
-  // links.event_id → timeline_events.id 외래키가 걸려 있어 연결선을 먼저 지워야 한다.
-  const { error: linksError } = await supabaseAdmin.from("links").delete().eq("event_id", id);
-  if (linksError) throw linksError;
-
-  const { error: personsError } = await supabaseAdmin.from("event_persons").delete().eq("event_id", id);
-  if (personsError) throw personsError;
-
-  const { error: placesError } = await supabaseAdmin.from("event_places").delete().eq("event_id", id);
-  if (placesError) throw placesError;
-
-  const { error } = await supabaseAdmin.from("timeline_events").delete().eq("id", id);
+  const { error } = await supabaseAdmin
+    .from("timeline_events")
+    .update({ hidden_at: new Date().toISOString() })
+    .eq("id", id);
   if (error) throw error;
 
   revalidatePath("/");
   revalidatePath("/admin/timeline");
   revalidatePath("/admin/review");
-  return released;
+  return hidden;
+}
+
+export async function unhideEvent(id: string) {
+  const { error } = await supabaseAdmin.from("timeline_events").update({ hidden_at: null }).eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+  revalidatePath("/admin/review");
 }

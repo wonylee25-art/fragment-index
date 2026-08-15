@@ -6,12 +6,15 @@ import {
   EventInput,
   countEventAttachments,
   createEvent,
-  deleteEvent,
+  hideEvent,
+  unhideEvent,
   updateEvent,
 } from "@/lib/event-actions";
 
-// 연표 사건을 사람이 직접 만들고 고치고 지우는 UI. 관리페이지(mode="admin")에서만 열린다.
+// 연표 사건을 사람이 직접 만들고 고치고 숨기는 UI. 관리페이지(mode="admin")에서만 열린다.
 // 폼 하나를 추가(빈 값)와 수정(기존 값)이 함께 쓴다.
+// 지우는 버튼은 없다 — 숨김은 DB를 건드리지 않고 화면에서만 내리며, 아래 "숨긴 사건" 목록에서
+// 언제든 되돌린다.
 
 const EMPTY: EventInput = {
   eventName: "",
@@ -142,16 +145,16 @@ function EventForm({
   );
 }
 
-// 사건 행마다 붙는 [수정][삭제]. 삭제는 딸린 연결선 수를 먼저 세어 보여주고 확인을 받는다.
+// 사건 행마다 붙는 [수정][숨김]. 숨김은 함께 안 보이게 될 연결선 수를 먼저 세어 보여준다.
 export function EventRowControls({ event }: { event: TimelineEventData }) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState<{
-    releasedMaterials: number;
-    releasedSegments: number;
+    hiddenMaterials: number;
+    hiddenSegments: number;
   } | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function handleAskDelete() {
+  async function handleAskHide() {
     setPending(true);
     try {
       setConfirming(await countEventAttachments(event.id));
@@ -160,10 +163,10 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
     }
   }
 
-  async function handleDelete() {
+  async function handleHide() {
     setPending(true);
     try {
-      await deleteEvent(event.id);
+      await hideEvent(event.id);
       setConfirming(null);
     } finally {
       setPending(false);
@@ -185,15 +188,15 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
   }
 
   if (confirming) {
-    const nothingAttached = confirming.releasedMaterials + confirming.releasedSegments === 0;
+    const nothingAttached = confirming.hiddenMaterials + confirming.hiddenSegments === 0;
     return (
-      <div className="mt-2 rounded-sm border border-red-200 bg-red-50 p-2.5">
+      <div className="mt-2 rounded-sm border border-amber-200 bg-amber-50 p-2.5">
         <p className="font-mono text-[11px] leading-5 text-zinc-700">
-          <strong className="font-bold">{event.eventName}</strong> 사건을 지웁니다.
+          <strong className="font-bold">{event.eventName}</strong> 사건을 연표에서 숨깁니다.
           <br />
           {nothingAttached
-            ? "붙어 있는 자료·구술이 없습니다."
-            : `연결된 사료 ${confirming.releasedMaterials}건 · 구술 ${confirming.releasedSegments}건은 지워지지 않고 보류함으로 돌아갑니다.`}
+            ? "DB에서는 지워지지 않습니다 — 아래 “숨긴 사건”에서 되돌릴 수 있습니다."
+            : `연결된 사료 ${confirming.hiddenMaterials}건 · 구술 ${confirming.hiddenSegments}건도 함께 화면에서 빠집니다. DB에서는 아무것도 지워지지 않고, 되돌리면 연결도 그대로 돌아옵니다.`}
         </p>
         <div className="mt-1.5 flex justify-end gap-2">
           <button
@@ -206,11 +209,11 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
           </button>
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={handleHide}
             disabled={pending}
-            className="rounded-sm bg-red-600 px-2 py-0.5 font-mono text-[11px] text-white hover:bg-red-700 disabled:opacity-50"
+            className="rounded-sm bg-zinc-900 px-2 py-0.5 font-mono text-[11px] text-white hover:bg-zinc-700 disabled:opacity-50"
           >
-            {pending ? "삭제 중…" : "삭제"}
+            {pending ? "숨기는 중…" : "숨김"}
           </button>
         </div>
       </div>
@@ -228,12 +231,71 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
       </button>
       <button
         type="button"
-        onClick={handleAskDelete}
+        onClick={handleAskHide}
         disabled={pending}
-        className="font-mono text-[11px] text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-red-600 disabled:opacity-50"
+        className="font-mono text-[11px] text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-700 disabled:opacity-50"
       >
-        삭제
+        숨김
       </button>
+    </div>
+  );
+}
+
+// 연표 아래쪽에 접어두는 "숨긴 사건" 목록. 되돌리는 길이 없으면 숨김은 삭제와 다르지 않다.
+export function HiddenEventsPanel({
+  events,
+}: {
+  events: { id: string; eventName: string; dateValue: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  if (events.length === 0) return null;
+
+  return (
+    <div className="border-t border-zinc-200 bg-zinc-50">
+      <div className="mx-auto max-w-6xl px-4 py-3">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="font-mono text-[11px] font-bold text-zinc-500 hover:text-zinc-800"
+        >
+          {open ? "▾" : "▸"} 숨긴 사건 {events.length}건
+        </button>
+
+        {open && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {events.map((event) => (
+              <li
+                key={event.id}
+                className="flex items-baseline justify-between gap-3 border-t border-zinc-200 py-1.5"
+              >
+                <span className="text-[13px] text-zinc-500">
+                  <span className="mr-2 font-mono text-[11px] tabular-nums text-zinc-400">
+                    {event.dateValue || "—"}
+                  </span>
+                  {event.eventName}
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setPendingId(event.id);
+                    try {
+                      await unhideEvent(event.id);
+                    } finally {
+                      setPendingId(null);
+                    }
+                  }}
+                  disabled={pendingId === event.id}
+                  className="shrink-0 rounded-sm border border-zinc-300 bg-white px-2 py-0.5 font-mono text-[11px] text-zinc-700 hover:border-zinc-500 disabled:opacity-50"
+                >
+                  {pendingId === event.id ? "되돌리는 중…" : "되돌리기"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
