@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { TEXT_SUBHEAD_CLASSNAME, TEXT_BODY_CLASSNAME } from "@/lib/design-tokens";
+import { TEXT_SUBHEAD_CLASSNAME, TEXT_DENSE_CLASSNAME } from "@/lib/design-tokens";
 import { Inline } from "@/lib/inline-markdown";
 import {
   ConfirmationLevel,
@@ -152,7 +152,7 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
                 </h4>
                 <ul className="space-y-1">
                   {sub.items.map((item, i) => (
-                    <li key={i} className={`${TEXT_BODY_CLASSNAME} leading-5 text-zinc-600`}>
+                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-zinc-600`}>
                       {item.isBullet && <span className="mr-1 text-zinc-300">·</span>}
                       <Inline text={item.text} />
                     </li>
@@ -174,7 +174,7 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
                 <h4 className="mb-1 font-mono text-[11px] font-bold text-zinc-500">{g.title}</h4>
                 <ol className="list-decimal space-y-1 pl-4">
                   {g.items.map((item, i) => (
-                    <li key={i} className={`${TEXT_BODY_CLASSNAME} leading-5 text-zinc-600`}>
+                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-zinc-600`}>
                       <Inline text={item} />
                     </li>
                   ))}
@@ -223,7 +223,7 @@ function CategoryPanel({
       }`}
     >
       <div className={`mb-2.5 flex items-center justify-between rounded-sm px-2 py-1.5 ${style.headerBg}`}>
-        <span className={`flex items-center gap-1.5 font-mono ${TEXT_BODY_CLASSNAME} font-bold ${style.text}`}>
+        <span className={`flex items-center gap-1.5 font-mono ${TEXT_DENSE_CLASSNAME} font-bold ${style.text}`}>
           <span className={`inline-block h-2.5 w-2.5 rounded-full ${style.dot}`} />
           {category.label}. {category.title}
         </span>
@@ -294,7 +294,7 @@ function EntryCard({
           {entry.yearApprox && entry.year !== null ? "경" : ""}
         </span>
       </div>
-      <p className={`truncate mt-1 ${TEXT_BODY_CLASSNAME} font-semibold leading-4 text-zinc-900`}>{entry.institution}</p>
+      <p className={`truncate mt-1 ${TEXT_DENSE_CLASSNAME} font-semibold leading-4 text-zinc-900`}>{entry.institution}</p>
       {entry.projectName && (
         <p className="truncate mt-0.5 text-[11px] leading-4 text-zinc-500">{entry.projectName}</p>
       )}
@@ -305,7 +305,7 @@ function EntryCard({
 function Row({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
-    <div className={`grid grid-cols-[56px_1fr] gap-2 py-1 ${TEXT_BODY_CLASSNAME} leading-5`}>
+    <div className={`grid grid-cols-[56px_1fr] gap-2 py-1 ${TEXT_DENSE_CLASSNAME} leading-5`}>
       <dt className="font-mono text-[10px] text-zinc-400">{label}</dt>
       <dd className="text-zinc-700">
         <Inline text={value} />
@@ -356,7 +356,7 @@ function DetailPanel({
         {entry.whenSubItems.length > 0 && (
           <ul className="ml-[64px] mb-1 list-disc space-y-0.5 pl-4">
             {entry.whenSubItems.map((s, i) => (
-              <li key={i} className={`${TEXT_BODY_CLASSNAME} leading-5 text-zinc-600`}>
+              <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-zinc-600`}>
                 <Inline text={s} />
               </li>
             ))}
@@ -370,7 +370,7 @@ function DetailPanel({
       </dl>
 
       {entry.notes.map((note, i) => (
-        <div key={i} className={`mt-2 rounded-sm bg-amber-50 p-2 ${TEXT_BODY_CLASSNAME} leading-5 text-amber-900`}>
+        <div key={i} className={`mt-2 rounded-sm bg-amber-50 p-2 ${TEXT_DENSE_CLASSNAME} leading-5 text-amber-900`}>
           <strong className="font-semibold">{note.label}</strong>
           {note.value && (
             <>

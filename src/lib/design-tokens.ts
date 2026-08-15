@@ -24,6 +24,12 @@ export const TEXT_SUBHEAD_CLASSNAME = "text-[13px]";
 export const TEXT_BODY_CLASSNAME = "text-[13px]";
 export const TEXT_META_CLASSNAME = "text-[11px]";
 
+// 한 단 조밀한 자리. 구술 사업 도표처럼 한 화면에 카드 수십 장을 늘어놓아, 한 장을
+// 읽는 것보다 전체가 한눈에 들어오는 것이 먼저인 곳에만 쓴다. 읽는 글(본문)을 여기로
+// 내리지 말 것 — 이건 크기를 줄여도 되는 글이라는 뜻이 아니라, 글이 아니라 지도에
+// 가까운 자리라는 뜻이다.
+export const TEXT_DENSE_CLASSNAME = "text-[12px]";
+
 // 자료 유형별 아이콘 — 구술 목록(SegmentRow)과 연표(TimelineExperience)가 함께 쓴다.
 export const ARCHIVE_ITEM_ICON: Record<ArchiveItemType, string> = {
   구술: "🎙️",

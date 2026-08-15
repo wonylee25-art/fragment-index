@@ -387,7 +387,11 @@ function EventEntry({
 
       {/* 사건명 + 하단 키워드 */}
       <div className="min-w-0">
-        <h3 className={`font-serif ${TEXT_SUBHEAD_CLASSNAME} font-semibold leading-snug text-zinc-900`}>
+        {/* 사건명은 본문과 같은 고딕(Gothic A1)이다. 여기만 명조로 두었더니 다른 화면의
+            제목들(논문 제목·기관명)과 서체가 갈려 사건명만 다른 종류의 글처럼 보였다.
+            굵기는 font-bold(700) — layout.tsx가 받는 굵기는 400·500·700·800이라
+            font-semibold(600)로 적으면 브라우저가 알아서 700으로 바꿔 그린다. */}
+        <h3 className={`${TEXT_SUBHEAD_CLASSNAME} font-bold leading-snug text-zinc-900`}>
           {event.eventName}
           {mode === "admin" && event.savedByUser && <SavedBadge />}
         </h3>
