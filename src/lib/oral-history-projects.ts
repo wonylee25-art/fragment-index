@@ -35,7 +35,8 @@ export interface OralHistoryEntry {
 }
 
 export interface OralHistoryCategory {
-  number: number;
+  // 문서의 머리표 그대로 — 주제 카테고리는 "1"~"7", 축이 다른 카테고리는 "A"처럼 글자를 쓴다.
+  label: string;
   title: string;
   entries: OralHistoryEntry[];
 }
@@ -317,15 +318,20 @@ export async function getOralHistoryProjectsDoc(): Promise<OralHistoryDoc> {
   let planGroups: OralHistoryPlanGroup[] = [];
 
   for (const section of sections) {
-    const numMatch = /^(\d+)\.\s+(.*)$/.exec(section.title);
-    if (numMatch) {
-      const number = Number(numMatch[1]);
-      if (number === 8) {
-        unresolvedTitle = numMatch[2].trim();
-        unresolvedSubsections = parseUnresolvedSection(section.body);
-      } else {
-        categories.push({ number, title: numMatch[2].trim(), entries: parseCategoryEntries(section.body) });
-      }
+    // "확인했으나 정보 불충분" 섹션은 카테고리가 아니라 미해결 목록이다. 예전에는 번호(8번)로
+    // 구분했는데, 카테고리가 늘면 번호가 밀려서 제목으로 판정하도록 바꿨다 — 이 섹션은
+    // 문서에서 번호 없이 둔다.
+    if (section.title.startsWith("확인했으나")) {
+      unresolvedTitle = section.title;
+      unresolvedSubsections = parseUnresolvedSection(section.body);
+      continue;
+    }
+
+    // 머리표는 숫자("1.")뿐 아니라 글자("A.")도 받는다 — 주제와 축이 다른 카테고리는
+    // 번호 대열에 끼우지 않고 글자를 준다.
+    const headMatch = /^([0-9]+|[A-Z])\.\s+(.*)$/.exec(section.title);
+    if (headMatch) {
+      categories.push({ label: headMatch[1], title: headMatch[2].trim(), entries: parseCategoryEntries(section.body) });
     } else if (section.title === "다음으로 고려할 것") {
       planTitle = section.title;
       planGroups = parsePlanSection(section.body);

@@ -10,7 +10,7 @@ import {
 } from "@/lib/oral-history-projects";
 
 // 발주기관·사업명·연도·구술 대상만 압축해서 보여주는 클러스터 다이어그램.
-// 카테고리(1~7)마다 테두리 있는 패널을 만들고, 그 안에 카드를 채워 넣는다 —
+// 카테고리(주제별 1~7, 축이 다른 A)마다 테두리 있는 패널을 만들고, 그 안에 카드를 채워 넣는다 —
 // 나선형으로 흩뿌리는 대신 이 방식을 쓴 이유는, 흩뿌리면 "큰 카테고리가 한눈에
 // 보이고 세부 항목이 분명히 구분된다"는 목표를 만족하지 못했기 때문(패널 경계 +
 // flex-wrap이면 겹침 걱정 없이 브라우저가 알아서 정렬해 준다). 패널은 CSS 다단
@@ -18,16 +18,18 @@ import {
 // 더 큰 덩어리로 보인다. 자세한 5W1H는 카드를 클릭하면 아래 상세 패널에 펼쳐진다.
 
 const CATEGORY_STYLE: Record<
-  number,
+  string,
   { panelBg: string; headerBg: string; text: string; border: string; dot: string }
 > = {
-  1: { panelBg: "bg-zinc-50/60", headerBg: "bg-zinc-200", text: "text-zinc-700", border: "border-zinc-300", dot: "bg-zinc-400" },
-  2: { panelBg: "bg-violet-50/50", headerBg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300", dot: "bg-violet-400" },
-  3: { panelBg: "bg-rose-50/50", headerBg: "bg-rose-100", text: "text-rose-800", border: "border-rose-300", dot: "bg-rose-400" },
-  4: { panelBg: "bg-amber-50/50", headerBg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300", dot: "bg-amber-400" },
-  5: { panelBg: "bg-blue-50/50", headerBg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300", dot: "bg-blue-400" },
-  6: { panelBg: "bg-orange-50/50", headerBg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300", dot: "bg-orange-400" },
-  7: { panelBg: "bg-emerald-50/50", headerBg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", dot: "bg-emerald-400" },
+  "1": { panelBg: "bg-zinc-50/60", headerBg: "bg-zinc-200", text: "text-zinc-700", border: "border-zinc-300", dot: "bg-zinc-400" },
+  "2": { panelBg: "bg-violet-50/50", headerBg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300", dot: "bg-violet-400" },
+  "3": { panelBg: "bg-rose-50/50", headerBg: "bg-rose-100", text: "text-rose-800", border: "border-rose-300", dot: "bg-rose-400" },
+  "4": { panelBg: "bg-amber-50/50", headerBg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300", dot: "bg-amber-400" },
+  "5": { panelBg: "bg-blue-50/50", headerBg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300", dot: "bg-blue-400" },
+  "6": { panelBg: "bg-orange-50/50", headerBg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300", dot: "bg-orange-400" },
+  "7": { panelBg: "bg-emerald-50/50", headerBg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", dot: "bg-emerald-400" },
+  // A. 구술채록 수행기관 — 주제별 사업과 축이 다르므로 번호가 아니라 글자를 쓰고, 색도 무채색으로 뗀다.
+  A: { panelBg: "bg-slate-50/60", headerBg: "bg-slate-200", text: "text-slate-700", border: "border-slate-400", dot: "bg-slate-500" },
 };
 
 const LEVEL_DOT_CLASSNAME: Record<ConfirmationLevel, string> = {
@@ -38,8 +40,8 @@ const LEVEL_DOT_CLASSNAME: Record<ConfirmationLevel, string> = {
 
 // 정렬 순서(연도순)에 기대지 않는 안정적인 키 — 카테고리 안에서 기관+사업명 조합은
 // 유일하다고 가정한다(현재 문서에 중복 사례 없음).
-function entryKey(categoryNumber: number, entry: OralHistoryEntry): string {
-  return `${categoryNumber}-${entry.institution}-${entry.projectName}`;
+function entryKey(categoryLabel: string, entry: OralHistoryEntry): string {
+  return `${categoryLabel}-${entry.institution}-${entry.projectName}`;
 }
 
 function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
@@ -124,7 +126,7 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
           <div key={i} className="flex flex-1 flex-col gap-4">
             {column.map((category) => (
               <CategoryPanel
-                key={category.number}
+                key={category.label}
                 category={category}
                 query={query}
                 selectedKey={selectedKey}
@@ -135,7 +137,7 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
         ))}
       </div>
 
-      {/* 8. 확인 필요 목록 */}
+      {/* 확인 필요 목록 */}
       {doc.unresolvedSubsections.length > 0 && (
         <details className="mt-8 rounded-sm border border-zinc-200 p-3">
           <summary className="cursor-pointer font-mono text-xs text-zinc-500">
@@ -196,7 +198,7 @@ function CategoryPanel({
   selectedKey: string | null;
   onSelect: (key: string | null) => void;
 }) {
-  const style = CATEGORY_STYLE[category.number] ?? CATEGORY_STYLE[1];
+  const style = CATEGORY_STYLE[category.label] ?? CATEGORY_STYLE["1"];
   const matchCount = category.entries.filter((e) => matchesFilter(e, query)).length;
 
   // 하위구분(문서의 "- **하위구분**:" 필드)이 있으면 문서에 처음 등장하는 순서대로
@@ -222,7 +224,7 @@ function CategoryPanel({
       <div className={`mb-2.5 flex items-center justify-between rounded-sm px-2 py-1.5 ${style.headerBg}`}>
         <span className={`flex items-center gap-1.5 font-mono text-[12px] font-bold ${style.text}`}>
           <span className={`inline-block h-2.5 w-2.5 rounded-full ${style.dot}`} />
-          {category.number}. {category.title}
+          {category.label}. {category.title}
         </span>
         <span className={`font-mono text-[10px] ${style.text} opacity-70`}>
           {query.trim() ? `${matchCount}/${category.entries.length}건` : `${category.entries.length}건`}
@@ -241,7 +243,7 @@ function CategoryPanel({
                 몇 번째 칸에 있든 바로 그 밑에서 펼쳐지고 뒤이은 카드들만 아래로 밀린다. */}
             <div className="flex flex-wrap gap-2">
               {g.entries.map((entry) => {
-                const key = entryKey(category.number, entry);
+                const key = entryKey(category.label, entry);
                 return (
                   <Fragment key={key}>
                     <EntryCard
@@ -320,7 +322,7 @@ function DetailPanel({
   entry: OralHistoryEntry;
   onClose: () => void;
 }) {
-  const style = CATEGORY_STYLE[category.number] ?? CATEGORY_STYLE[1];
+  const style = CATEGORY_STYLE[category.label] ?? CATEGORY_STYLE["1"];
   return (
     <div className="mt-1 w-full rounded-sm border border-zinc-200 bg-zinc-50/60 p-4">
       <div className="mb-2 flex items-start justify-between gap-3">
@@ -328,7 +330,7 @@ function DetailPanel({
           <span
             className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${style.headerBg} ${style.text}`}
           >
-            {category.number}. {category.title}
+            {category.label}. {category.title}
           </span>
           <h3 className="mt-1.5 text-[16px] font-semibold text-zinc-900">
             {entry.institution}
