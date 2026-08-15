@@ -7,6 +7,7 @@ import { searchWomensOralArchive } from "@/lib/womens-oral-archive";
 import { formatEdtfToKorean, edtfYear } from "@/lib/edtf";
 import { saveThEvent } from "@/app/actions";
 import { EventOption, MaterialGroup, MaterialWorkbench } from "./MaterialWorkbench";
+import { AddMaterialForm } from "./AddMaterialForm";
 
 // 기획 정리노트 8-8 "검색창(직접 키워드 입력) 화면". 수집·검토 작업이라 관리(사료 연결) 안에 둔다.
 // 검색 → 내용 확인 → 저장+연결이 한 화면에서 끝나야 하므로, 자료 카드에는 원문을 열지 않고도
@@ -34,7 +35,15 @@ async function externalSearch(query: string) {
   };
 }
 
-export async function MaterialSearch({ query }: { query: string }) {
+// allEvents는 직접 추가 폼의 연결 후보다. 아래 검색 결과 카드가 쓰는 후보(검색어로 걸린 사건)와
+// 달리, 손으로 넣는 자료는 검색어를 거치지 않으므로 연표 전체가 후보가 된다.
+export async function MaterialSearch({
+  query,
+  allEvents,
+}: {
+  query: string;
+  allEvents: EventOption[];
+}) {
   const [local, external, saved, suggestedKeywords] = await Promise.all([
     query ? searchLocal(query) : Promise.resolve({ events: [], segments: [] }),
     query ? externalSearch(query) : Promise.resolve(null),
@@ -78,14 +87,15 @@ export async function MaterialSearch({ query }: { query: string }) {
           results: external.relics.map((r) => ({
             draft: {
               id: r.id,
-              itemType: "사진" as const,
+              // 유물정보가 주는 것은 유물 자체(실물)다 — 딸려오는 사진이 아니라 박물로 넣는다
+              itemType: "박물" as const,
               title: r.name,
               sourceOrg: r.museumName,
               sourceUrl: r.detailUrl,
               imageUrl: r.imageUrl,
               description: r.description,
             },
-            metaLine: [r.purposeName ?? "사진", r.museumName, r.materialName, r.sizeInfo]
+            metaLine: [r.purposeName ?? "박물", r.museumName, r.materialName, r.sizeInfo]
               .filter(Boolean)
               .join(" · "),
             badges: [],
@@ -114,11 +124,14 @@ export async function MaterialSearch({ query }: { query: string }) {
 
   return (
     <section className="border-b border-line pb-10">
-      <div className="mb-7 flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-xl font-extrabold tracking-tight text-foreground">사료 검색</h2>
+      {/* 폼이 열리면 이 줄의 w-full 자식으로 흘러 다음 줄을 차지한다(연표의 AddEventPanel과 같은 방식) */}
+      <div className="mb-7 flex flex-wrap items-baseline gap-3">
+        <h2 className="mr-auto text-xl font-extrabold tracking-tight text-foreground">사료 검색</h2>
         <span className="text-sm font-medium text-muted-2">
           DB · 국가기록원 · 국립중앙박물관 · 국사편찬위 · 여성사전시관
         </span>
+        {/* 이 목록에 없는 자료 — 직접 찍은 사진, 종이 스크랩 — 는 여기서 손으로 넣는다 */}
+        <AddMaterialForm events={allEvents} />
       </div>
 
       <form action="/admin/review" method="GET" className="flex gap-2">

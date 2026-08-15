@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SegmentRow } from "./SegmentRow";
-import { AddSegmentForm } from "./AddSegmentForm";
-import { SegmentCardData } from "@/lib/types";
+import { OralIntakeForm } from "./OralIntakeForm";
+import { EventOption } from "./EventPicker";
+import { SourceOption } from "@/lib/db";
+import { PersonBrief, SegmentCardData } from "@/lib/types";
 import { edtfSortKey } from "@/lib/edtf";
 import { ADD_BUTTON_CLASSNAME } from "@/lib/design-tokens";
 
@@ -12,9 +14,15 @@ type SortDirection = "asc" | "desc";
 export function SegmentListClient({
   segments,
   focusId,
+  persons,
+  sources,
+  events,
 }: {
   segments: SegmentCardData[];
   focusId?: string;
+  persons: PersonBrief[];
+  sources: SourceOption[];
+  events: EventOption[];
 }) {
   const [query, setQuery] = useState("");
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
@@ -96,7 +104,14 @@ export function SegmentListClient({
         </div>
       </div>
 
-      {adding && <AddSegmentForm onClose={() => setAdding(false)} />}
+      {adding && (
+        <OralIntakeForm
+          persons={persons}
+          sources={sources}
+          events={events}
+          onClose={() => setAdding(false)}
+        />
+      )}
 
       <div className="grid grid-cols-[64px_1fr] gap-4 border-t border-b border-zinc-200 px-1 py-2 sm:grid-cols-[88px_1fr_110px]">
         <button

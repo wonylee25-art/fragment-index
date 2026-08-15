@@ -73,7 +73,7 @@ async function main() {
     return {
       id: `seoul-photo-${csvId}`,
       event_id: null,
-      item_type: "사진",
+      item_type: "이미지",
       title,
       source_org: "서울기록원",
       source_url: sourceUrl,

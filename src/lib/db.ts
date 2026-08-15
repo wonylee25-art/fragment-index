@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
-import { ArchiveItemType, PaperData, PaperQuote, RelatedItem, SegmentCardData, TimelineEventData, UnlinkedMaterials } from "./types";
+import { ArchiveItemType, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -10,6 +10,7 @@ import { ArchiveItemType, PaperData, PaperQuote, RelatedItem, SegmentCardData, T
 interface DbPerson {
   id: string;
   title: string;
+  affiliation?: string | null; // 소속(직위) — 동명이인을 가려내고 면담자를 알아보기 위한 최소 신상
 }
 
 interface DbSource {
@@ -69,6 +70,17 @@ interface DbLink {
 interface DbSegmentPerson {
   segment_id: string;
   person_id: string;
+}
+
+interface DbSegmentSpeaker {
+  segment_id: string;
+  person_id: string;
+  role: "구술자" | "면담자";
+  seq: number;
+}
+
+function isPresent<T>(value: T | undefined): value is T {
+  return value !== undefined;
 }
 
 function toRelatedItem(item: DbArchiveItem): RelatedItem {
@@ -336,6 +348,69 @@ export async function getPapers(): Promise<PaperData[]> {
   }));
 }
 
+// 구술 추가 화면의 인물 목록. 역할로 미리 가르지 않는다 — 한 사람이 어떤 면담에서는
+// 구술자, 다른 면담에서는 면담자일 수 있고, 역할은 발췌마다 명단에서 정해지기 때문이다.
+export async function getPersons(): Promise<PersonBrief[]> {
+  const { data, error } = await supabase.from("persons").select("id, title, affiliation").order("title");
+  if (error) throw error;
+  return ((data as DbPerson[]) ?? []).map((p) => ({
+    id: p.id,
+    name: p.title,
+    affiliation: p.affiliation ?? undefined,
+  }));
+}
+
+export interface SourceOption {
+  id: string;
+  title: string;
+  creator: string; // 구술채록 사업·기관 — 같은 제목이 여럿일 때 가려내는 단서
+}
+
+export async function getSourceOptions(): Promise<SourceOption[]> {
+  const { data, error } = await supabase.from("sources").select("id, title, creator").order("title");
+  if (error) throw error;
+  return ((data as { id: string; title: string | null; creator: string | null }[]) ?? []).map((s) => ({
+    id: s.id,
+    title: s.title ?? "(제목 없음)",
+    creator: s.creator ?? "",
+  }));
+}
+
+// 관리 "구술 연결" 화면 — 구술 하나하나가 어느 사건에 붙어 있는지, 아직 안 붙었는지.
+// 사료 연결의 보류함이 "안 붙은 것"만 보여주는 것과 달리, 여기서는 붙은 것도 함께 보여
+// 어느 사건에 이미 매여 있는지 알고 고칠 수 있게 한다.
+export interface SegmentLinkRow {
+  id: string;
+  dateValue: string;
+  speakers: string[]; // 구술자 이름 — 목록에서 발췌를 알아보는 가장 빠른 단서
+  preview: string; // 본문 첫 발화
+  linkedEvents: { id: string; eventName: string; dateValue: string }[];
+}
+
+export async function getSegmentLinkRows(): Promise<SegmentLinkRow[]> {
+  const [segments, events] = await Promise.all([
+    getOralSegments(),
+    getChronicleEvents({ includeCandidates: true }),
+  ]);
+
+  const eventsBySegment = new Map<string, { id: string; eventName: string; dateValue: string }[]>();
+  for (const event of events) {
+    for (const segmentId of event.linkedSegmentIds) {
+      const list = eventsBySegment.get(segmentId) ?? [];
+      list.push({ id: event.id, eventName: event.eventName, dateValue: event.dateValue });
+      eventsBySegment.set(segmentId, list);
+    }
+  }
+
+  return segments.map((s) => ({
+    id: s.id,
+    dateValue: s.dateValue,
+    speakers: s.narrators.map((n) => n.name),
+    preview: s.utterances.find((u) => u.text.trim())?.text ?? "",
+    linkedEvents: eventsBySegment.get(s.id) ?? [],
+  }));
+}
+
 export async function getOralSegments(): Promise<SegmentCardData[]> {
   const [
     { data: segments, error: segmentsError },
@@ -349,7 +424,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
         "id, item_title, date_value, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
       )
       .order("id"),
-    supabase.from("persons").select("id, title"),
+    supabase.from("persons").select("id, title, affiliation"),
     supabase.from("sources").select("id, title, identifier"),
     supabase.from("segment_persons").select("segment_id, person_id"),
   ]);
@@ -358,8 +433,51 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
   if (sourcesError) throw sourcesError;
   if (segmentPersonsError) throw segmentPersonsError;
 
+  // 구술자·면담자가 여럿인 발췌(segment_speakers)와, 번호로 쌓이는 각주(segment_notes).
+  const [{ data: speakers, error: speakersError }, { data: segmentNotes, error: notesError }] =
+    await Promise.all([
+      supabase.from("segment_speakers").select("segment_id, person_id, role, seq").order("seq"),
+      supabase.from("segment_notes").select("segment_id, seq, note_text").order("seq"),
+    ]);
+  if (speakersError) throw speakersError;
+  if (notesError) throw notesError;
+
+  const personRecordById = new Map(((persons as DbPerson[]) ?? []).map((p) => [p.id, p]));
   const personById = new Map(((persons as DbPerson[]) ?? []).map((p) => [p.id, p.title]));
   const sourceById = new Map(((sources as DbSource[]) ?? []).map((s) => [s.id, s]));
+
+  const speakerRows = (speakers as DbSegmentSpeaker[]) ?? [];
+  const narratorsBySegment = new Map<string, PersonBrief[]>();
+  const interviewersBySegment = new Map<string, PersonBrief[]>();
+  // 이름 → 역할. 본문의 "김청기:" 같은 줄머리를 역할로 되돌리는 데 쓴다(segment-text.ts).
+  const roleByNameBySegment = new Map<string, Map<string, SpeakerRole>>();
+  for (const row of speakerRows) {
+    const person = personRecordById.get(row.person_id);
+    if (!person) continue;
+    const brief: PersonBrief = {
+      id: person.id,
+      name: person.title,
+      affiliation: person.affiliation ?? undefined,
+    };
+    const bucket = row.role === "면담자" ? interviewersBySegment : narratorsBySegment;
+    bucket.set(row.segment_id, [...(bucket.get(row.segment_id) ?? []), brief]);
+
+    const names = roleByNameBySegment.get(row.segment_id) ?? new Map<string, SpeakerRole>();
+    names.set(person.title, row.role === "면담자" ? "interviewer" : "narrator");
+    roleByNameBySegment.set(row.segment_id, names);
+  }
+
+  const notesBySegment = new Map<string, string[]>();
+  for (const row of ((segmentNotes as { segment_id: string; note_text: string }[]) ?? [])) {
+    notesBySegment.set(row.segment_id, [...(notesBySegment.get(row.segment_id) ?? []), row.note_text]);
+  }
+
+  function toBrief(id: string | null) {
+    if (!id) return undefined;
+    const person = personRecordById.get(id);
+    if (!person) return undefined;
+    return { id: person.id, name: person.title, affiliation: person.affiliation ?? undefined };
+  }
 
   const personTagsBySegment = new Map<string, string[]>();
   for (const sp of (segmentPersons as DbSegmentPerson[]) ?? []) {
@@ -375,15 +493,20 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     return {
       id: s.id,
       itemTitle: s.item_title ?? "",
+      // 화자 명단은 segment_speakers가 먼저다. 거기 없으면(CSV 동기화분) 한 명씩 담긴
+      // narrator_id/interviewer_id로 되돌아간다.
+      narrators: narratorsBySegment.get(s.id) ?? [toBrief(s.narrator_id)].filter(isPresent),
+      interviewers: interviewersBySegment.get(s.id) ?? [toBrief(s.interviewer_id)].filter(isPresent),
       dateValue: s.date_value ?? "",
-      utterances: parseSegmentText(s.segment_text),
+      utterances: parseSegmentText(s.segment_text, roleByNameBySegment.get(s.id)),
       personPlaceTags: personTagsBySegment.get(s.id) ?? [],
       keywordTags: s.keywords ?? [],
       hasDiscrepancy: s.has_discrepancy,
       discrepancyNote: s.discrepancy_note ?? undefined,
       notes: s.notes ?? undefined,
+      noteList: notesBySegment.get(s.id) ?? [],
       sourceRef: source ? { title: source.title, url: source.identifier ?? undefined } : undefined,
-      relatedItems: [], // 발췌구간 단위 관련자료는 아직 없음 — 사건(linkedMaterials) 쪽에만 있음
+      relatedItems: [], // 자료는 사건을 거쳐서만 붙는다 — 사건 쪽 linkedMaterials를 본다
       userMemo: s.user_memo ?? undefined,
       isImportant: s.is_important,
     };

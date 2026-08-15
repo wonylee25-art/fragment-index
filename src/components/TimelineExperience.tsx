@@ -39,20 +39,26 @@ const MATERIAL_SURFACE: Record<ArchiveItemType, string> = {
   구술: "bg-gradient-to-br from-orange-100 to-orange-200",
   신문: "bg-gradient-to-br from-zinc-100 to-zinc-300",
   문서: "bg-gradient-to-br from-stone-100 to-stone-300",
-  사진: "bg-gradient-to-br from-zinc-200 to-zinc-400",
-  논문: "bg-gradient-to-br from-blue-100 to-blue-200",
+  이미지: "bg-gradient-to-br from-zinc-200 to-zinc-400",
+  학술: "bg-gradient-to-br from-blue-100 to-blue-200",
   지도: "bg-gradient-to-br from-blue-50 to-blue-200",
+  박물: "bg-gradient-to-br from-rose-100 to-rose-200",
+  음원: "bg-gradient-to-br from-teal-100 to-teal-200",
+  영상: "bg-gradient-to-br from-indigo-100 to-indigo-300",
 };
 
-// 사료 유형별 실제 물성 차이(사진·지도는 이미지 위주라 크게, 신문·문서·논문·구술은 텍스트
+// 사료 유형별 실제 물성 차이(이미지·지도·박물은 볼거리 위주라 크게, 신문·문서·학술·구술은 텍스트
 // 위주라 작게)를 흉내 내 썸네일 높이를 다르게 준다 — 획일적인 그리드 대신 콜라주에 가깝게.
 const MATERIAL_HEIGHT: Record<ArchiveItemType, string> = {
-  사진: "h-32",
+  이미지: "h-32",
   지도: "h-28",
+  박물: "h-28",
+  영상: "h-28",
+  음원: "h-20",
   구술: "h-20",
   신문: "h-16",
   문서: "h-16",
-  논문: "h-16",
+  학술: "h-16",
 };
 
 // 연도 범위 필터. 빈 칸은 그쪽 끝을 열어둔다는 뜻이고, 연도 미상 사건은 범위를 지정한 순간
@@ -556,8 +562,11 @@ function SelectionHeader({
     }
   }
 
+  // 표를 따라 내려가는 동안에도 도구가 화면 위에 붙어 있게 한다 — 아래쪽에서 고른 사건을
+  // 숨기려고 맨 위까지 되돌아가지 않아도 된다. 위 여백은 margin 대신 padding으로 두어야
+  // 붙었을 때 그 틈으로 행이 비쳐 보이지 않는다.
   return (
-    <div className="mt-4 hidden grid-cols-[220px_1fr] gap-x-5 border-b-2 border-zinc-900 pb-1.5 sm:grid">
+    <div className="sticky top-0 z-20 hidden grid-cols-[220px_1fr] gap-x-5 border-b-2 border-zinc-900 bg-white pb-1.5 pt-4 sm:grid">
       {/* 사료 칸은 비워 둔다 — 체크박스가 아래 행들의 체크박스와 같은 세로선에 놓이게 */}
       <span />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px]">

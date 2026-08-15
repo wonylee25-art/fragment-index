@@ -43,7 +43,8 @@ export default async function ReviewPage({
 
   return (
     <main className="page-shell flex flex-col gap-10 py-8">
-      <MaterialSearch query={q?.trim() ?? ""} />
+      {/* eventOptions는 보류함과 "직접 사료 추가"가 함께 쓴다 — 둘 다 검색어 없이 연표 전체가 후보다 */}
+      <MaterialSearch query={q?.trim() ?? ""} allEvents={eventOptions} />
       <UnlinkedBoard events={eventOptions} materials={materials} segments={segments} />
     </main>
   );

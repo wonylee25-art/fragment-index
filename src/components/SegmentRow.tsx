@@ -21,9 +21,12 @@ const ITEM_TYPE_THUMBNAIL_BG: Record<ArchiveItemType, string> = {
   구술: "bg-amber-50",
   신문: "bg-zinc-100",
   문서: "bg-stone-100",
-  사진: "bg-blue-50",
-  논문: "bg-violet-50",
+  이미지: "bg-blue-50",
+  학술: "bg-violet-50",
   지도: "bg-emerald-50",
+  박물: "bg-rose-50",
+  음원: "bg-teal-50",
+  영상: "bg-indigo-50",
 };
 
 export function SegmentRow({
@@ -63,7 +66,18 @@ export function SegmentRow({
             inactiveLabel="☆ 중요"
             activeClassName="bg-amber-100 text-amber-700"
           />
-          <span>{data.itemTitle}</span>
+          {/* 구술을 알아보는 가장 빠른 단서는 제목이 아니라 누가 말했는가다. 화자가 적혀
+              있으면 그것을 먼저 보이고, 없는 발췌(CSV 동기화분)만 제목으로 되돌아간다. */}
+          {data.narrators.length > 0 ? (
+            <span className="font-medium text-zinc-600">
+              {data.narrators.map((n) => n.name).join(" · ")}
+              {data.interviewers.length > 0 && (
+                <span className="text-zinc-400"> ← {data.interviewers.map((i) => i.name).join(" · ")}</span>
+              )}
+            </span>
+          ) : (
+            <span>{data.itemTitle}</span>
+          )}
           {data.hasDiscrepancy && (
             <span className={`${DISCREPANCY_LABEL_CLASSNAME} font-medium`} title={data.discrepancyNote}>
               🔍 이견 발견
@@ -75,6 +89,15 @@ export function SegmentRow({
               title={data.notes}
             >
               📝 원문 각주
+            </span>
+          )}
+          {/* 각주가 여럿이면 번호를 붙여 보여준다 — 몇 개인지가 곧 원본이 얼마나 손질됐는지다 */}
+          {data.noteList.length > 0 && (
+            <span
+              className="cursor-help underline decoration-dotted underline-offset-4 text-zinc-400 hover:text-zinc-700"
+              title={data.noteList.map((n, i) => `${i + 1}. ${n}`).join("\n")}
+            >
+              📝 각주 {data.noteList.length}
             </span>
           )}
         </div>

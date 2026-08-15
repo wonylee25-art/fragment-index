@@ -8,9 +8,12 @@ export const ARCHIVE_ITEM_ICON: Record<ArchiveItemType, string> = {
   구술: "🎙️",
   신문: "📰",
   문서: "🗂️",
-  사진: "🖼️",
-  논문: "📄",
+  이미지: "🖼️",
+  학술: "📄",
   지도: "🗺️",
+  박물: "🏺",
+  음원: "🎧",
+  영상: "🎬",
 };
 
 export const SPEAKER_CLASSNAME: Record<SpeakerRole, string> = {

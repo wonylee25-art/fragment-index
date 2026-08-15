@@ -5,11 +5,12 @@
 export type SpeakerRole = "interviewer" | "narrator" | "stage";
 
 export interface Utterance {
-  role: SpeakerRole;
+  role: SpeakerRole; // 배색과 들여쓰기를 정한다 — 이름을 몰라도 대화의 흐름이 보이도록
   text: string;
+  speaker?: string; // 말한 사람 이름. 구술자가 둘 이상인 면담에서 누구의 말인지 가른다
 }
 
-export type ArchiveItemType = "구술" | "신문" | "문서" | "사진" | "논문" | "지도";
+export type ArchiveItemType = "구술" | "신문" | "문서" | "이미지" | "학술" | "지도" | "박물" | "음원" | "영상";
 
 export interface RelatedItem {
   id: string;
@@ -21,9 +22,21 @@ export interface RelatedItem {
   imageUrl?: string; // 원본 아카이브의 썸네일 (박물관 유물 등) — 재호스팅하지 않고 링크만 건다
 }
 
+// 구술자·면담자를 화면에 보이기 위한 최소 정보. 신상기록부에 있는 현주소·연락처·종교·
+// 직계가족 연락처는 DB에 두지 않는다 — persons는 anon 키로 공개 읽기가 열려 있어
+// 넣는 순간 공개되기 때문이다. 사람을 가려낼 만큼(이름 + 소속)만 남긴다.
+export interface PersonBrief {
+  id: string;
+  name: string;
+  affiliation?: string; // 예: "ㅇㅇ대학교 문화인류학과 교수"
+}
+
 export interface SegmentCardData {
   id: string;
   itemTitle: string;
+  // 한 면담에 구술자가 둘 이상인 경우가 있어 배열로 받는다(면담자도 마찬가지).
+  narrators: PersonBrief[];
+  interviewers: PersonBrief[];
   dateValue: string; // EDTF 형식 (6-3 참고), 화면 표시는 formatEdtfToKorean으로 변환
   utterances: Utterance[];
   personPlaceTags: string[];
@@ -33,6 +46,9 @@ export interface SegmentCardData {
   // 원본 구술 자료에 이미 달려 있던 각주 — 엑셀은 각주를 못 담아서 별도 컬럼으로 옮겨온 것.
   // "이견"(6-4, 서로 다른 자료 간 사실 충돌)과는 다른 개념 — 채록·편집 과정의 보충 설명·정정.
   notes?: string;
+  // 각주는 원본에 여러 개 달려 있는 게 보통이라 번호가 매겨진 목록으로 따로 쌓는다.
+  // 위의 notes는 CSV 동기화분이 한 덩어리로 들고 온 각주라 당분간 둘 다 있다.
+  noteList: string[];
   // 이 발췌가 나온 원본 구술 자료(sources_authority). url이 있으면 그리로 링크, 없으면 제목만 표시.
   sourceRef?: { title: string; url?: string };
   relatedItems: RelatedItem[];
@@ -103,7 +119,7 @@ export interface TimelineEventData {
   places: PlaceRef[]; // 인물·장소 태그 중 장소 — 좌표를 가지며 지도로 링크
   keywordTags: string[]; // 지리적 키워드(행정구역 등)도 여기에 포함해 필터·검색에 걸리게 한다
   linkedSegmentIds: string[]; // 그물망 연결(links, link_basis=인물/장소/사건)로 이어진 구술 발췌
-  linkedMaterials: RelatedItem[]; // 같은 연결에서 딸려오는 사료(사진/신문/지도 등) — 교차 블록에 이미지로 노출
+  linkedMaterials: RelatedItem[]; // 같은 연결에서 딸려오는 사료(이미지/신문/지도 등) — 교차 블록에 이미지로 노출
   savedByUser: boolean; // 사료 연결 "사료 검색"에서 사람이 직접 저장했거나 직접 만든 사건인지 — 연표에서 강조 표시
   userMemo?: string; // 이용자가 이 사건에 대해 직접 적는 개인 메모
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const ADMIN_TABS = [
   { href: "/admin/timeline", label: "연표 관리" },
   { href: "/admin/review", label: "사료 연결" },
+  { href: "/admin/oral", label: "구술 연결" },
 ] as const;
 
 // 탭 줄에는 탭만 둔다 — 사건 추가 입구는 연표 표 아래(AddEventPanel)로 내려갔다.
