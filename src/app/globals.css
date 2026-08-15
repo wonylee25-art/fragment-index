@@ -27,7 +27,10 @@
   --color-flag-marked: var(--flag-marked);
   --color-flag-marked-soft: var(--flag-marked-soft);
   --font-sans: var(--font-gothic-a1);
-  --font-serif: var(--font-noto-serif-kr);
+  /* 명조는 내려받지 않고 기기에 있는 것을 쓴다 — 라틴은 ui-serif/Georgia, 한글은 macOS의
+     AppleMyungjo·나눔명조, Windows의 바탕이 차례로 잡힌다. 명조가 없는 기기는 serif로 떨어진다.
+     next/font/google로 받던 Noto Serif KR을 걷어낸 경위는 layout.tsx 주석 참고. */
+  --font-serif: ui-serif, Georgia, "AppleMyungjo", "Nanum Myeongjo", "Batang", 바탕, serif;
   --font-mono: var(--font-plex-mono);
 }
 
