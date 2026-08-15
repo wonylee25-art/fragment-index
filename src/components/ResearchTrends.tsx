@@ -335,14 +335,21 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       />
                     </div>
 
-                    <a
-                      href={paper.rissUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[15px] leading-6 text-zinc-800 underline decoration-dotted underline-offset-4 hover:text-zinc-950"
-                    >
-                      {paper.title} <span className="text-zinc-300">↗</span>
-                    </a>
+                    {/* 원문 링크가 없는 논문(직접 추가분 등)은 링크로 만들지 않는다 — href=""는 클릭해도
+                        같은 페이지를 다시 불러올 뿐이라 "안 넘어간다"로 보인다. 차콜 글씨로 두어
+                        링크가 없다는 걸 드러내고, 링크는 「수정」에서 채워 넣게 한다. */}
+                    {paper.rissUrl ? (
+                      <a
+                        href={paper.rissUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[15px] leading-6 text-zinc-800 underline decoration-dotted underline-offset-4 hover:text-zinc-950"
+                      >
+                        {paper.title} <span className="text-zinc-300">↗</span>
+                      </a>
+                    ) : (
+                      <p className="text-[15px] leading-6 text-zinc-700">{paper.title}</p>
+                    )}
 
                     <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
                       {paper.author}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SegmentRow } from "./SegmentRow";
+import { AddSegmentForm } from "./AddSegmentForm";
 import { SegmentCardData } from "@/lib/types";
 import { edtfSortKey } from "@/lib/edtf";
 
@@ -17,6 +18,7 @@ export function SegmentListClient({
   const [query, setQuery] = useState("");
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [adding, setAdding] = useState(false);
 
   // 연표 목록 등 다른 화면에서 "이 구술로 이동" 링크를 타고 들어온 경우 해당 행까지 스크롤한다.
   // 검색어/키워드 필터는 애초에 빈 상태로 시작하므로 focusId 행을 가릴 일이 없다.
@@ -60,7 +62,8 @@ export function SegmentListClient({
           placeholder="검색어를 입력하세요 (인물, 장소, 본문)"
           className="w-full rounded-sm border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-700 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
         />
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
+          <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
             onClick={() => setActiveKeyword(null)}
@@ -82,8 +85,21 @@ export function SegmentListClient({
               {kw}
             </button>
           ))}
+          </div>
+          {/* 연구 동향의 "+ 논문 추가"와 같은 자리·같은 모양 — 목록 위 오른쪽 끝 */}
+          {!adding && (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="shrink-0 rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-xs text-white hover:bg-zinc-700"
+            >
+              + 구술 추가
+            </button>
+          )}
         </div>
       </div>
+
+      {adding && <AddSegmentForm onClose={() => setAdding(false)} />}
 
       <div className="grid grid-cols-[64px_1fr] gap-4 border-t border-b border-zinc-200 px-1 py-2 sm:grid-cols-[88px_1fr_110px]">
         <button
