@@ -5,6 +5,7 @@ import { SegmentRow } from "./SegmentRow";
 import { AddSegmentForm } from "./AddSegmentForm";
 import { SegmentCardData } from "@/lib/types";
 import { edtfSortKey } from "@/lib/edtf";
+import { ADD_BUTTON_CLASSNAME } from "@/lib/design-tokens";
 
 type SortDirection = "asc" | "desc";
 
@@ -88,11 +89,7 @@ export function SegmentListClient({
           </div>
           {/* 연구 동향의 "+ 논문 추가"와 같은 자리·같은 모양 — 목록 위 오른쪽 끝 */}
           {!adding && (
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              className="shrink-0 rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-xs text-white hover:bg-zinc-700"
-            >
+            <button type="button" onClick={() => setAdding(true)} className={ADD_BUTTON_CLASSNAME}>
               + 구술 추가
             </button>
           )}

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PaperData, PaperType } from "@/lib/types";
-import { TAG_CLASSNAME } from "@/lib/design-tokens";
+import { ADD_BUTTON_CLASSNAME, TAG_CLASSNAME } from "@/lib/design-tokens";
 import { MemoField } from "./MemoField";
 import { QuoteList } from "./QuoteList";
 import { CopyForNotionButton } from "./CopyForNotionButton";
@@ -207,7 +207,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                 <button
                   type="button"
                   onClick={() => setAddingPaper(true)}
-                  className="rounded-sm bg-zinc-900 px-2.5 py-1 text-white hover:bg-zinc-700"
+                  className={ADD_BUTTON_CLASSNAME}
                 >
                   + 논문 추가
                 </button>

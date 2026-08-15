@@ -25,6 +25,12 @@ export const TAG_CLASSNAME = {
   keyword: "bg-zinc-100 text-zinc-500", // 키워드: 회색 태그
 };
 
+// 구술 목록·연구 동향·관리(연표)의 "+ ○○ 추가" 입구는 자리(목록 위 오른쪽 끝)와 모양을 공유한다.
+// 셋이 같은 성격의 입구라서 화면을 옮겨도 눈이 같은 자리를 찾게 하려는 것 — 새 화면에 추가 입구를
+// 만들 때도 이 상수를 쓰고, 감싸는 줄에 justify-end를 준다.
+export const ADD_BUTTON_CLASSNAME =
+  "shrink-0 rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-[11px] text-white hover:bg-zinc-700";
+
 export const DISCREPANCY_ROW_CLASSNAME = "bg-red-50/70";
 export const DISCREPANCY_LABEL_CLASSNAME = "text-red-600";
 
