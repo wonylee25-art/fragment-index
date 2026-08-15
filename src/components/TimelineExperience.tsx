@@ -13,7 +13,11 @@ import { edtfSortKey, edtfYearFloat, formatEdtfToKorean } from "@/lib/edtf";
 import { narratorPullQuote } from "@/lib/quotes";
 import { osmUrl } from "@/lib/geo";
 import { downloadCsv, eventsToCsv } from "@/lib/csv";
-import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
+import {
+  ARCHIVE_ITEM_ICON,
+  TEXT_BODY_CLASSNAME,
+  TEXT_SUBHEAD_CLASSNAME,
+} from "@/lib/design-tokens";
 
 type SortDirection = "asc" | "desc";
 
@@ -383,7 +387,7 @@ function EventEntry({
 
       {/* 사건명 + 하단 키워드 */}
       <div className="min-w-0">
-        <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">
+        <h3 className={`font-serif ${TEXT_SUBHEAD_CLASSNAME} font-semibold leading-snug text-zinc-900`}>
           {event.eventName}
           {mode === "admin" && event.savedByUser && <SavedBadge />}
         </h3>
@@ -399,7 +403,7 @@ function EventEntry({
 
       {/* 내용 + 하단 출처 */}
       <div className="min-w-0">
-        <p className="text-[13px] leading-5 text-zinc-600">{event.summary}</p>
+        <p className={`${TEXT_BODY_CLASSNAME} leading-5 text-zinc-600`}>{event.summary}</p>
         <p className="mt-1 font-mono text-[10px] text-zinc-400">
           {event.sourceUrl ? (
             <a
@@ -499,8 +503,8 @@ function OralQuote({
       <p
         className={
           isShort
-            ? "font-serif text-[17px] font-medium italic leading-6 text-zinc-900"
-            : "font-serif text-[13px] italic leading-5 text-zinc-800"
+            ? `font-serif ${TEXT_SUBHEAD_CLASSNAME} font-medium italic leading-6 text-zinc-900`
+            : `font-serif ${TEXT_BODY_CLASSNAME} italic leading-5 text-zinc-800`
         }
       >
         “{quote}”

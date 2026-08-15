@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { PaperData, PaperType } from "@/lib/types";
-import { ADD_BUTTON_CLASSNAME, TAG_CLASSNAME } from "@/lib/design-tokens";
+import {
+  ADD_BUTTON_CLASSNAME,
+  TAG_CLASSNAME,
+  TEXT_SUBHEAD_CLASSNAME,
+} from "@/lib/design-tokens";
 import { MemoField } from "./MemoField";
 import { QuoteList } from "./QuoteList";
 import { CopyForNotionButton } from "./CopyForNotionButton";
@@ -343,12 +347,12 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                         href={paper.rissUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[15px] leading-6 text-zinc-800 underline decoration-dotted underline-offset-4 hover:text-zinc-950"
+                        className={`${TEXT_SUBHEAD_CLASSNAME} leading-6 text-zinc-800 underline decoration-dotted underline-offset-4 hover:text-zinc-950`}
                       >
                         {paper.title} <span className="text-zinc-300">↗</span>
                       </a>
                     ) : (
-                      <p className="text-[15px] leading-6 text-zinc-700">{paper.title}</p>
+                      <p className={`${TEXT_SUBHEAD_CLASSNAME} leading-6 text-zinc-700`}>{paper.title}</p>
                     )}
 
                     <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
