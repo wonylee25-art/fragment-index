@@ -29,7 +29,11 @@ export function parseSegmentText(text: string, roleByName?: Map<string, SpeakerR
       if (role) return { role, text: byName[2], speaker: byName[1] };
     }
 
-    return { role: "narrator" as const, text: line };
+    // 어느 줄머리도 아니면 지문이다. serializeUtterances가 지문을 접두사 없이 쓰므로
+    // 이쪽이 그 짝이다 — narrator로 돌려주면 화자 없는 줄이 구술자의 말이 되고, 목록에서
+    // 지문에 "구술자"라는 이름표가 붙는다. 명단에 없는 이름이 줄머리에 온 줄("김씨: 그러니까")도
+    // 여기로 오는데, 그 경우도 화자를 단정하지 않는 편이 낫다.
+    return { role: "stage" as const, text: line };
   });
 }
 

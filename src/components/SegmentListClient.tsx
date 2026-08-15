@@ -11,6 +11,12 @@ import { ADD_BUTTON_CLASSNAME } from "@/lib/design-tokens";
 
 type SortDirection = "asc" | "desc";
 
+// 연표와 같은 말을 쓴다 — 같은 자료를 두 화면에서 다르게 부르면 같은 것인지 알 수 없다.
+const SORT_OPTIONS: { value: SortDirection; label: string }[] = [
+  { value: "asc", label: "과거순" },
+  { value: "desc", label: "최신순" },
+];
+
 export function SegmentListClient({
   segments,
   focusId,
@@ -66,21 +72,66 @@ export function SegmentListClient({
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="검색어를 입력하세요 (인물, 장소, 본문)"
-          className="w-full rounded-sm border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-700 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
-        />
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5">
-          <div className="flex flex-wrap gap-1.5">
+      {/* 목록 위 도구는 한 줄로 끝낸다 — 검색·정렬·추가. 연표(TimelineExperience)가 먼저
+          같은 모양으로 줄였고, 두 목록이 다른 규칙으로 열려 있을 이유가 없다.
+          키워드는 개수가 정해져 있지 않아 이 줄 아래로 내린다 — 한 줄에 끼워 넣으면
+          키워드가 늘어난 날 검색칸과 정렬이 어디로 밀릴지 알 수 없다. */}
+      <div className="mb-3 flex flex-col gap-2 border-b border-zinc-200 pb-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <label className="flex items-center gap-2">
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+              검색
+            </span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="인물, 장소, 본문"
+              className="w-52 rounded-sm border border-zinc-300 bg-white px-2.5 py-1 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
+            />
+          </label>
+
+          {/* 정렬은 표 헤더의 화살표에만 숨어 있었다 — 과거순·최신순은 훑는 방향을 정하는
+              것이라 이름을 달고 나와 있어야 한다(연표에서 같은 판단을 이미 했다). */}
+          <div className="flex items-center gap-1 font-mono text-[11px]">
+            <span className="mr-1 text-[10px] uppercase tracking-wider text-zinc-400">정렬</span>
+            {SORT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSortDirection(option.value)}
+                className={`rounded-sm px-2 py-1 ${
+                  sortDirection === option.value
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 연구 동향의 "+ 논문 추가"와 같은 자리·같은 모양 — 도구 줄 오른쪽 끝 */}
+          {!adding && (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className={`ml-auto ${ADD_BUTTON_CLASSNAME}`}
+            >
+              + 구술 추가
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+            키워드
+          </span>
           <button
             type="button"
             onClick={() => setActiveKeyword(null)}
-            className={`rounded-sm px-2.5 py-1 font-mono text-xs ${
-              activeKeyword === null ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+            className={`rounded-sm px-2 py-0.5 font-mono text-[11px] ${
+              activeKeyword === null ? "bg-zinc-900 text-white" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
             }`}
           >
             전체
@@ -90,20 +141,13 @@ export function SegmentListClient({
               key={kw}
               type="button"
               onClick={() => setActiveKeyword(kw === activeKeyword ? null : kw)}
-              className={`rounded-sm px-2.5 py-1 font-mono text-xs ${
-                activeKeyword === kw ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              className={`rounded-sm px-2 py-0.5 font-mono text-[11px] ${
+                activeKeyword === kw ? "bg-zinc-900 text-white" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
               }`}
             >
               {kw}
             </button>
           ))}
-          </div>
-          {/* 연구 동향의 "+ 논문 추가"와 같은 자리·같은 모양 — 목록 위 오른쪽 끝 */}
-          {!adding && (
-            <button type="button" onClick={() => setAdding(true)} className={ADD_BUTTON_CLASSNAME}>
-              + 구술 추가
-            </button>
-          )}
         </div>
       </div>
 
@@ -116,19 +160,7 @@ export function SegmentListClient({
         />
       )}
 
-      <div className="grid grid-cols-[64px_1fr] gap-4 border-t border-b border-zinc-200 px-1 py-2 sm:grid-cols-[88px_1fr_110px]">
-        <button
-          type="button"
-          onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
-          className="flex items-center gap-1 font-mono text-[11px] text-zinc-400 hover:text-zinc-800"
-        >
-          연도 {sortDirection === "asc" ? "▲" : "▼"}
-        </button>
-        <div />
-        <div className="hidden sm:block" />
-      </div>
-
-      <div>
+      <div className="border-t border-zinc-200">
         {filtered.length === 0 ? (
           <p className="py-8 text-center font-mono text-xs text-zinc-400">
             일치하는 구술 발췌가 없습니다.

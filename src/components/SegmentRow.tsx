@@ -5,7 +5,7 @@ import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
 import { FlagToggle } from "./FlagToggle";
 import { SegmentDeleteButton } from "./SegmentDeleteButton";
-import { SegmentCardData, ArchiveItemType, PersonBrief } from "@/lib/types";
+import { SegmentCardData, ArchiveItemType, PersonBrief, Utterance } from "@/lib/types";
 import { saveSegmentMemo } from "@/lib/memo-actions";
 import { toggleSegmentImportant } from "@/lib/flag-actions";
 import {
@@ -64,6 +64,42 @@ const ITEM_TYPE_THUMBNAIL_BG: Record<ArchiveItemType, string> = {
 // 동기화분은 CSV의 segment_id를 그대로 쓰므로 이 접두어가 둘을 가른다.
 function isManual(id: string) {
   return id.startsWith("manual-");
+}
+
+// 구술 본문. 발화를 한 문단에 이어 붙이면 색깔만으로 화자가 바뀐 것을 알아채야 하는데,
+// 면담자의 짧은 물음이 구술자의 긴 답 사이에 끼면 그 초록색이 인용이나 강조로 읽힌다.
+// 발화마다 줄을 주고, 화자가 바뀌는 줄에만 이름을 붙인다 — 같은 사람이 이어 말할 때
+// 이름을 반복하면 이름이 본문만큼 눈에 들어온다.
+function Transcript({ utterances }: { utterances: Utterance[] }) {
+  return (
+    <ul className="flex flex-col gap-1 text-[15px] leading-7 text-zinc-800">
+      {utterances.map((utterance, i) => {
+        const previous = utterances[i - 1];
+        // 지문은 화자가 없는 줄이라 이름을 달지 않고, 다음 발화의 "바뀌었는가" 판단에서도
+        // 건너뛴다 — 지문이 끼었다고 같은 사람의 이름을 다시 적을 이유는 없다.
+        const label =
+          utterance.role === "stage"
+            ? null
+            : utterance.speaker ?? (utterance.role === "interviewer" ? "면담자" : "구술자");
+        const previousLabel =
+          previous && previous.role !== "stage"
+            ? previous.speaker ?? (previous.role === "interviewer" ? "면담자" : "구술자")
+            : undefined;
+        const showLabel = label !== null && label !== previousLabel;
+
+        return (
+          <li key={i} className={utterance.role === "stage" ? "pl-3" : undefined}>
+            {showLabel && (
+              <span className="mr-1.5 font-mono text-[10px] text-zinc-400">{label}</span>
+            )}
+            <span className={SPEAKER_CLASSNAME[utterance.role]}>
+              {utterance.role === "stage" ? `[${utterance.text}]` : utterance.text}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 export function SegmentRow({
@@ -142,32 +178,9 @@ export function SegmentRow({
               📝 각주 {data.noteList.length}
             </span>
           )}
-          {/* 화면에서 넣은 발췌만 고칠 수 있다 — CSV 동기화분은 여기서 고쳐도 다음
-              동기화 때 되돌아간다(segment-actions.ts의 updateSegment 참고). */}
-          {isManual(data.id) && (
-            <>
-              {onEdit && (
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  className="text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800"
-                >
-                  고치기
-                </button>
-              )}
-              <SegmentDeleteButton segmentId={data.id} noteCount={data.noteList.length} />
-            </>
-          )}
         </div>
 
-        <p className="text-[15px] leading-7 text-zinc-800">
-          {data.utterances.map((u, i) => (
-            <span key={i} className={SPEAKER_CLASSNAME[u.role]}>
-              {u.role === "stage" ? `[${u.text}]` : u.text}
-              {i < data.utterances.length - 1 ? " " : ""}
-            </span>
-          ))}
-        </p>
+        <Transcript utterances={data.utterances} />
 
         <div className="flex flex-wrap items-center gap-1.5">
           {data.personPlaceTags.map((tag) => (
@@ -178,32 +191,55 @@ export function SegmentRow({
           ))}
         </div>
 
-        {data.sourceRef && (
-          <div className="mt-1.5 font-mono text-[11px] text-zinc-400">
-            {data.sourceRef.url ? (
-              <a
-                href={data.sourceRef.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-dotted underline-offset-4 hover:text-zinc-800"
-              >
-                {data.sourceRef.title} ↗
-              </a>
-            ) : (
-              <span>{data.sourceRef.title}</span>
+        {/* 행의 아랫줄 — 왼쪽은 이 발췌가 어디서 왔는지, 오른쪽은 이 발췌를 손보는 일.
+            읽는 데 필요한 것은 위(화자·이견·각주)에 두고, 손대는 것은 여기로 모은다. */}
+        {(data.sourceRef || isManual(data.id)) && (
+          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-400">
+            <span className="min-w-0">
+              {data.sourceRef &&
+                (data.sourceRef.url ? (
+                  <a
+                    href={data.sourceRef.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-dotted underline-offset-4 hover:text-zinc-800"
+                  >
+                    {data.sourceRef.title} ↗
+                  </a>
+                ) : (
+                  <span>{data.sourceRef.title}</span>
+                ))}
+            </span>
+
+            {/* 화면에서 넣은 발췌만 고치고 지울 수 있다 — CSV 동기화분은 여기서 손대도
+                다음 동기화 때 되돌아간다(segment-actions.ts 참고).
+                점선 밑줄을 쓰지 않는다: 이 화면에서 점선 밑줄은 "올려 보면 더 있다"는
+                뜻이고(각주·출처), 눌러서 무언가 일어나는 것과 섞이면 안 된다. */}
+            {isManual(data.id) && (
+              <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
+                {onEdit && (
+                  <button type="button" onClick={onEdit} className="hover:text-zinc-900">
+                    고치기
+                  </button>
+                )}
+                <SegmentDeleteButton segmentId={data.id} noteCount={data.noteList.length} />
+              </span>
             )}
           </div>
         )}
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="font-mono text-[11px] text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800 sm:hidden"
-          >
-            관련자료 {data.relatedItems.length} {expanded ? "▲" : "▼"}
-          </button>
-        </div>
+        {/* 관련자료는 붙어 있을 때만 여닫는다 — "관련자료 0"은 눌러도 아무 일이 없다 */}
+        {data.relatedItems.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="font-mono text-[11px] text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800 sm:hidden"
+            >
+              관련자료 {data.relatedItems.length} {expanded ? "▲" : "▼"}
+            </button>
+          </div>
+        )}
 
         {/* 메모(모바일) — 오른쪽 칸이 사라지는 좁은 화면에서는 본문 흐름 안에 그대로 둔다 */}
         <div className="sm:hidden">
@@ -257,13 +293,15 @@ export function SegmentRow({
         <div className="w-full">
           <MemoField initialValue={data.userMemo} onSave={(memo) => saveSegmentMemo(data.id, memo)} />
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="font-mono text-xs text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800"
-        >
-          관련자료 {data.relatedItems.length} {expanded ? "▲" : "▼"}
-        </button>
+        {data.relatedItems.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="font-mono text-xs text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800"
+          >
+            관련자료 {data.relatedItems.length} {expanded ? "▲" : "▼"}
+          </button>
+        )}
       </div>
     </div>
   );

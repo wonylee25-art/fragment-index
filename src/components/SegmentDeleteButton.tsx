@@ -62,11 +62,7 @@ export function SegmentDeleteButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => setArmed(true)}
-      className="text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-red-600"
-    >
+    <button type="button" onClick={() => setArmed(true)} className="hover:text-red-600">
       지우기
     </button>
   );
