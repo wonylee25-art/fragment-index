@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addSegment, SpeakerRoleLabel } from "@/lib/segment-actions";
+import { addSegment, updateSegment, SpeakerRoleLabel } from "@/lib/segment-actions";
 import { createPerson } from "@/lib/person-actions";
 import { serializeUtterances } from "@/lib/segment-text";
-import { PersonBrief, PersonKind, Utterance } from "@/lib/types";
+import { PersonBrief, PersonKind, SegmentCardData, Utterance } from "@/lib/types";
 import { SourceOption } from "@/lib/db";
 import { EventOption } from "./EventPicker";
 import { SpeakerOption, UtteranceDraft, UtteranceEditor } from "./UtteranceEditor";
@@ -33,32 +33,69 @@ const SECTION_TITLE_CLASSNAME =
 
 const EMPTY_SOURCE = { title: "", creator: "", publisher: "", url: "" };
 
+// 화자 명단을 역할이 붙은 형태로 되돌린다.
+function toSpeakerOptions(people: PersonBrief[], role: SpeakerRoleLabel): SpeakerOption[] {
+  return people.map((p) => ({ id: p.id, name: p.name, role }));
+}
+
+// 저장된 본문을 다시 줄 단위 입력기로 되돌린다. 저장할 때 화자는 이름 문자열로 눌러
+// 담기므로(segment-text.ts) 이름을 명단의 id로 되짚는다.
+//
+// 이름이 안 걸리는 줄은 지문으로 둔다. 역할만 보고 "그 역할의 첫 화자"로 떨어뜨리면
+// 지문이 구술자 발화로 바뀐다 — 지문은 접두사 없이 저장되고, 접두사 없는 줄은 파서가
+// speaker 없는 narrator로 돌려주기 때문에 둘의 모양이 같다. 고칠 수 있는 것은 화면에서
+// 넣은 발췌뿐이고, 그것들은 발화마다 이름이 붙어 있으므로 이름이 없으면 지문이 맞다.
+function toUtteranceDrafts(utterances: Utterance[], roster: SpeakerOption[]): UtteranceDraft[] {
+  const idByName = new Map(roster.map((s) => [s.name, s.id]));
+  const drafts = utterances.map(({ text, speaker }) => ({
+    speakerId: (speaker ? idByName.get(speaker) : undefined) ?? null,
+    text,
+  }));
+  return drafts.length > 0 ? drafts : [{ speakerId: null, text: "" }];
+}
+
 export function OralIntakeForm({
   persons,
   sources,
   events,
+  editing,
   onClose,
 }: {
   persons: PersonBrief[];
   sources: SourceOption[];
   events: EventOption[];
+  // 주면 그 발췌를 되채운 "고치기"가 된다. 없으면 빈 "구술 추가".
+  editing?: SegmentCardData;
   onClose: () => void;
 }) {
-  const [sourceMode, setSourceMode] = useState<"existing" | "new">("new");
-  const [sourceId, setSourceId] = useState("");
+  const [sourceMode, setSourceMode] = useState<"existing" | "new">(
+    editing?.sourceId ? "existing" : "new",
+  );
+  const [sourceId, setSourceId] = useState(editing?.sourceId ?? "");
   const [source, setSource] = useState(EMPTY_SOURCE);
-  const [page, setPage] = useState("");
+  const [page, setPage] = useState(editing?.page ?? "");
 
   // 구술자와 면담자를 따로 들고 있다 — 한 칸에 역할 스위치를 두면 누구를 넣는 중인지
   // 매번 확인해야 하고, 구술자가 둘일 때 목록이 뒤섞인다.
-  const [narrators, setNarrators] = useState<SpeakerOption[]>([]);
-  const [interviewers, setInterviewers] = useState<SpeakerOption[]>([]);
+  const [narrators, setNarrators] = useState<SpeakerOption[]>(() =>
+    toSpeakerOptions(editing?.narrators ?? [], "구술자"),
+  );
+  const [interviewers, setInterviewers] = useState<SpeakerOption[]>(() =>
+    toSpeakerOptions(editing?.interviewers ?? [], "면담자"),
+  );
   const [people, setPeople] = useState<PersonBrief[]>(persons);
 
-  const [utterances, setUtterances] = useState<UtteranceDraft[]>([{ speakerId: null, text: "" }]);
-  const [notes, setNotes] = useState<string[]>([]);
-  const [dateValue, setDateValue] = useState("");
-  const [keywords, setKeywords] = useState("");
+  const [utterances, setUtterances] = useState<UtteranceDraft[]>(() =>
+    editing
+      ? toUtteranceDrafts(editing.utterances, [
+          ...toSpeakerOptions(editing.narrators, "구술자"),
+          ...toSpeakerOptions(editing.interviewers, "면담자"),
+        ])
+      : [{ speakerId: null, text: "" }],
+  );
+  const [notes, setNotes] = useState<string[]>(editing?.noteList ?? []);
+  const [dateValue, setDateValue] = useState(editing?.dateValue ?? "");
+  const [keywords, setKeywords] = useState((editing?.keywordTags ?? []).join(", "));
   const [eventId, setEventId] = useState<string | null>(null);
 
   const [pending, setPending] = useState(false);
@@ -88,7 +125,9 @@ export function OralIntakeForm({
     return notes.length + 1;
   }
 
-  async function save(intent: "link" | "hold") {
+  // 고치기에서는 사건을 붙이지 않는다 — 이미 붙어 있는 연결선을 여기서 또 다루면
+  // 어느 쪽이 최종인지 알 수 없어진다(segment-actions.ts의 updateSegment 참고).
+  async function save(intent: "link" | "hold" | "update") {
     const speakerById = new Map(roster.map((s) => [s.id, s]));
     const utteranceList: Utterance[] = utterances.map(({ speakerId, text }) => {
       const speaker = speakerId ? speakerById.get(speakerId) : undefined;
@@ -106,20 +145,29 @@ export function OralIntakeForm({
       return;
     }
 
+    const common = {
+      dateValue,
+      segmentText,
+      page,
+      keywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
+      speakers: roster.map((s) => ({ personId: s.id, role: s.role })),
+      noteList: notes,
+      sourceId: sourceMode === "existing" ? sourceId || null : null,
+      sourceDraft: sourceMode === "new" ? source : null,
+    };
+
     setPending(true);
     setError(null);
     try {
-      await addSegment({
-        dateValue,
-        segmentText,
-        page,
-        keywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
-        speakers: roster.map((s) => ({ personId: s.id, role: s.role })),
-        noteList: notes,
-        sourceId: sourceMode === "existing" ? sourceId || null : null,
-        sourceDraft: sourceMode === "new" ? source : null,
-        eventId: intent === "link" ? eventId : null,
-      });
+      if (intent === "update" && editing) {
+        await updateSegment({ ...common, id: editing.id });
+        // 고친 값은 목록 행에 그대로 나타나야 하므로 폼을 접는다. 서버 액션이
+        // revalidatePath로 이 화면을 다시 그리게 해 둔 상태다.
+        onClose();
+        return;
+      }
+
+      await addSegment({ ...common, eventId: intent === "link" ? eventId : null });
 
       setSavedNote(
         intent === "link" && selectedEvent
@@ -142,12 +190,18 @@ export function OralIntakeForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        void save(eventId ? "link" : "hold");
+        void save(editing ? "update" : eventId ? "link" : "hold");
       }}
       className="mb-6 flex flex-col gap-7 border border-line-strong bg-surface p-4"
     >
-      {/* ① 어느 사건 이야기인가 — 맨 위에 둔다 */}
-      <EventField events={events} selectedId={eventId} onSelect={setEventId} />
+      {/* ① 어느 사건 이야기인가 — 맨 위에 둔다. 고칠 때는 사건을 다루지 않는다 */}
+      {editing ? (
+        <p className="font-mono text-[11px] text-muted-2">
+          구술 고치기 — 사건 연결은 여기서 바꾸지 않습니다. 관리 → 구술 연결에서 붙이고 뗍니다.
+        </p>
+      ) : (
+        <EventField events={events} selectedId={eventId} onSelect={setEventId} />
+      )}
 
       {/* ② 어디서 왔나 */}
       <section>
@@ -299,23 +353,27 @@ export function OralIntakeForm({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          disabled={pending || !eventId}
+          disabled={pending || (!editing && !eventId)}
           className="border border-foreground bg-foreground px-3 py-1.5 font-mono text-[12px] font-bold text-background hover:bg-surface hover:text-foreground disabled:border-line disabled:bg-surface disabled:text-muted-2"
         >
           {pending
             ? "저장 중…"
-            : selectedEvent
-              ? `${selectedEvent.year} ${selectedEvent.eventName}에 연결하고 저장`
-              : "맨 위에서 사건을 고르세요"}
+            : editing
+              ? "고친 내용 저장"
+              : selectedEvent
+                ? `${selectedEvent.year} ${selectedEvent.eventName}에 연결하고 저장`
+                : "맨 위에서 사건을 고르세요"}
         </button>
-        <button
-          type="button"
-          onClick={() => void save("hold")}
-          disabled={pending}
-          className="border border-line-strong px-3 py-1.5 font-mono text-[12px] font-semibold text-muted hover:border-foreground hover:text-foreground disabled:text-muted-2"
-        >
-          보류
-        </button>
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => void save("hold")}
+            disabled={pending}
+            className="border border-line-strong px-3 py-1.5 font-mono text-[12px] font-semibold text-muted hover:border-foreground hover:text-foreground disabled:text-muted-2"
+          >
+            보류
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}

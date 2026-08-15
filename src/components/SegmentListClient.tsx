@@ -28,6 +28,9 @@ export function SegmentListClient({
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [adding, setAdding] = useState(false);
+  // 고치는 중인 발췌. 행 자리에 폼이 대신 펼쳐진다 — 어느 줄을 고치는 중인지가
+  // 위치로 드러나서, 폼 안에 "무엇을 고치는 중"이라고 또 적을 필요가 없다.
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // 연표 목록 등 다른 화면에서 "이 구술로 이동" 링크를 타고 들어온 경우 해당 행까지 스크롤한다.
   // 검색어/키워드 필터는 애초에 빈 상태로 시작하므로 focusId 행을 가릴 일이 없다.
@@ -131,14 +134,29 @@ export function SegmentListClient({
             일치하는 구술 발췌가 없습니다.
           </p>
         ) : (
-          filtered.map((segment, i) => (
-            <SegmentRow
-              key={segment.id}
-              data={segment}
-              zebra={i % 2 === 1}
-              highlighted={segment.id === focusId}
-            />
-          ))
+          filtered.map((segment, i) =>
+            segment.id === editingId ? (
+              <OralIntakeForm
+                key={segment.id}
+                persons={persons}
+                sources={sources}
+                events={events}
+                editing={segment}
+                onClose={() => setEditingId(null)}
+              />
+            ) : (
+              <SegmentRow
+                key={segment.id}
+                data={segment}
+                zebra={i % 2 === 1}
+                highlighted={segment.id === focusId}
+                onEdit={() => {
+                  setAdding(false);
+                  setEditingId(segment.id);
+                }}
+              />
+            ),
+          )
         )}
       </div>
     </div>

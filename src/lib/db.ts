@@ -55,6 +55,7 @@ interface DbSegment {
   id: string;
   item_title: string | null;
   date_value: string | null;
+  page: string | null;
   source_id: string | null;
   narrator_id: string | null;
   interviewer_id: string | null;
@@ -438,7 +439,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     supabase
       .from("segments")
       .select(
-        "id, item_title, date_value, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
+        "id, item_title, date_value, page, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
       )
       .order("id"),
     // subject까지 읽는다 — 화자가 가명·익명·미상이면 목록에서 그렇게 보여야 한다.
@@ -531,6 +532,9 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
       notes: s.notes ?? undefined,
       noteList: notesBySegment.get(s.id) ?? [],
       sourceRef: source ? { title: source.title, url: source.identifier ?? undefined } : undefined,
+      // 고치기 화면이 폼을 되채우는 데 쓴다 — 화면에 그리는 값은 아니다.
+      page: s.page ?? undefined,
+      sourceId: s.source_id ?? undefined,
       relatedItems: [], // 자료는 사건을 거쳐서만 붙는다 — 사건 쪽 linkedMaterials를 본다
       userMemo: s.user_memo ?? undefined,
       isImportant: s.is_important,

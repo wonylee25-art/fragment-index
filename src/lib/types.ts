@@ -57,6 +57,9 @@ export interface SegmentCardData {
   noteList: string[];
   // 이 발췌가 나온 원본 구술 자료(sources_authority). url이 있으면 그리로 링크, 없으면 제목만 표시.
   sourceRef?: { title: string; url?: string };
+  // 아래 둘은 그리는 값이 아니라 고치기 화면이 폼을 되채우는 데 쓰는 값이다.
+  page?: string;
+  sourceId?: string;
   relatedItems: RelatedItem[];
   // 이용자가 화면에서 직접 적는 개인 메모 — 원본 자료에 딸려온 notes(각주)와 달리 순수 개인 작업용.
   userMemo?: string;

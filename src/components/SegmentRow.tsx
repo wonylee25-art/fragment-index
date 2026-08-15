@@ -59,14 +59,22 @@ const ITEM_TYPE_THUMBNAIL_BG: Record<ArchiveItemType, string> = {
   영상: "bg-indigo-50",
 };
 
+// 화면에서 직접 넣은 발췌는 id가 "manual-"로 시작한다(segment-actions.ts). CSV
+// 동기화분은 CSV의 segment_id를 그대로 쓰므로 이 접두어가 둘을 가른다.
+function isManual(id: string) {
+  return id.startsWith("manual-");
+}
+
 export function SegmentRow({
   data,
   zebra,
   highlighted = false,
+  onEdit,
 }: {
   data: SegmentCardData;
   zebra: boolean;
   highlighted?: boolean;
+  onEdit?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -132,6 +140,17 @@ export function SegmentRow({
             >
               📝 각주 {data.noteList.length}
             </span>
+          )}
+          {/* 화면에서 넣은 발췌만 고칠 수 있다 — CSV 동기화분은 여기서 고쳐도 다음
+              동기화 때 되돌아간다(segment-actions.ts의 updateSegment 참고). */}
+          {onEdit && isManual(data.id) && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800"
+            >
+              고치기
+            </button>
           )}
         </div>
 

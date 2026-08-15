@@ -122,3 +122,79 @@ export async function addSegment(input: AddSegmentInput): Promise<string> {
   revalidatePath("/admin/review");
   return id;
 }
+
+// 화면에서 넣은 발췌를 다시 고친다. 쪽수를 잘못 봤거나 화자를 뒤바꿔 넣은 것은 저장한
+// 다음에야 눈에 띄는 종류의 실수라, 지우고 다시 넣게 두면 사건 연결까지 다시 하게 된다.
+//
+// 사건 연결은 여기서 건드리지 않는다 — 붙이고 떼는 일은 구술 연결 화면이 맡고 있고,
+// 이 폼에서 한 번 더 다루면 어느 쪽이 최종인지 알 수 없어진다.
+export interface UpdateSegmentInput extends Omit<AddSegmentInput, "eventId"> {
+  id: string;
+}
+
+export async function updateSegment(input: UpdateSegmentInput): Promise<void> {
+  const segmentText = input.segmentText.trim();
+  if (!segmentText) throw new Error("구술 본문을 입력하세요.");
+
+  // CSV 동기화분은 막는다. sync-csv.mjs가 CSV의 segment_id로 upsert하기 때문에 여기서
+  // 고쳐 봐야 다음 동기화 때 원래 값으로 되돌아간다 — 고쳐진 줄 알고 넘어가는 게 더 나쁘다.
+  if (!input.id.startsWith("manual-")) {
+    throw new Error("CSV 동기화로 들어온 발췌는 화면에서 고칠 수 없습니다. 원본 CSV를 고치세요.");
+  }
+
+  const sourceId = await resolveSourceId(input);
+  const narrators = input.speakers.filter((s) => s.role === "구술자");
+  const interviewers = input.speakers.filter((s) => s.role === "면담자");
+
+  const { error } = await supabaseAdmin
+    .from("segments")
+    .update({
+      date_value: input.dateValue.trim() || null,
+      segment_text: segmentText,
+      page: input.page.trim() || null,
+      keywords: input.keywords,
+      source_id: sourceId,
+      narrator_id: narrators[0]?.personId ?? null,
+      interviewer_id: interviewers[0]?.personId ?? null,
+    })
+    .eq("id", input.id);
+  if (error) throw error;
+
+  // 화자와 각주는 순서가 뜻을 갖는 목록이라(seq가 각주 번호다) 한 줄씩 맞춰 고치는 대신
+  // 통째로 새로 깐다. 세 번째 각주를 지웠을 때 네 번째가 세 번째로 당겨져야 한다.
+  const { error: speakerDeleteError } = await supabaseAdmin
+    .from("segment_speakers")
+    .delete()
+    .eq("segment_id", input.id);
+  if (speakerDeleteError) throw speakerDeleteError;
+
+  if (input.speakers.length > 0) {
+    const { error: speakerError } = await supabaseAdmin.from("segment_speakers").insert(
+      input.speakers.map((s, i) => ({
+        segment_id: input.id,
+        person_id: s.personId,
+        role: s.role,
+        seq: i,
+      })),
+    );
+    if (speakerError) throw speakerError;
+  }
+
+  const { error: noteDeleteError } = await supabaseAdmin
+    .from("segment_notes")
+    .delete()
+    .eq("segment_id", input.id);
+  if (noteDeleteError) throw noteDeleteError;
+
+  const notes = input.noteList.map((n) => n.trim()).filter(Boolean);
+  if (notes.length > 0) {
+    const { error: noteError } = await supabaseAdmin
+      .from("segment_notes")
+      .insert(notes.map((note_text, i) => ({ segment_id: input.id, seq: i, note_text })));
+    if (noteError) throw noteError;
+  }
+
+  revalidatePath("/segments");
+  revalidatePath("/admin/oral");
+  revalidatePath("/admin/review");
+}
