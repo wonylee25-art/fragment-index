@@ -1,0 +1,65 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { linkTargetToEvent } from "@/lib/link-actions";
+import { ArchiveItemType } from "@/lib/types";
+import { ThTimelineEntry } from "@/lib/th-timeline";
+
+// 검토함 "사료 검색"의 저장 버튼. 외부 검색 결과를 DB에 확정 반영한다.
+// - th.xml 사건 → timeline_events (사건 자체)
+// - 국가기록원/박물관/여성사 자료 → archive_items. 이때 어느 사건에 붙일지도 함께 정한다:
+//   [연결하고 저장] 이면 links까지 confirmed로 만들고, [보류] 면 연결 없이 자료만 넣어
+//   검토함 아래 "연결선 없는 자료"에 쌓인다.
+
+// 소스마다 응답 모양이 달라, 저장 직전에 이 공통 모양으로 맞춰서 넘긴다.
+export interface MaterialDraft {
+  id: string;
+  itemType: ArchiveItemType;
+  title: string;
+  sourceOrg: string;
+  sourceUrl: string;
+  description?: string;
+  imageUrl?: string;
+}
+
+export async function saveThEvent(entry: ThTimelineEntry) {
+  const { error } = await supabaseAdmin.from("timeline_events").insert({
+    id: entry.id,
+    event_name: entry.title,
+    date_value: entry.dateValue,
+    summary: entry.title,
+    source_reference: "오늘의역사(국사편찬위원회)",
+    has_discrepancy: false,
+    keywords: [],
+    user_saved: true, // 사람이 직접 골라 저장한 사건 — 연표에서 별도 표시
+  });
+  if (error && error.code !== "23505") throw error; // 23505 = 중복(이미 저장됨) — 조용히 무시
+  revalidatePath("/admin/review");
+  revalidatePath("/"); // 연표(메인화면)에 "저장됨" 사건으로 바로 뜬다
+}
+
+// 자료를 DB에 넣고, 폼에서 고른 사건이 있으면 연결선까지 한 번에 만든다.
+// eventId는 <select name="eventId">에서 오고, 비어 있으면 보류(연결 없음)다.
+export async function saveMaterial(draft: MaterialDraft, formData: FormData) {
+  const { error } = await supabaseAdmin.from("archive_items").insert({
+    id: draft.id,
+    item_type: draft.itemType,
+    title: draft.title,
+    source_org: draft.sourceOrg,
+    source_url: draft.sourceUrl || null,
+    description: draft.description || null,
+    image_url: draft.imageUrl || null,
+  });
+  if (error && error.code !== "23505") throw error; // 이미 저장된 자료면 연결만 이어서 진행
+
+  // [보류]로 눌렀으면 사건이 골라져 있어도 연결하지 않는다 — 판단을 미룬 것이므로.
+  const held = formData.get("intent") === "hold";
+  const eventId = String(formData.get("eventId") ?? "").trim();
+  if (!held && eventId) {
+    // 검색어로 찾아 이은 것이므로 근거는 keyword로 남긴다.
+    await linkTargetToEvent(eventId, "archive_item", draft.id, "keyword");
+  }
+
+  revalidatePath("/admin/review");
+}

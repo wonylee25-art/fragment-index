@@ -1,15 +1,6 @@
-import { SiteHeader } from "@/components/SiteHeader";
-import { TimelineExperience } from "@/components/TimelineExperience";
-import { getChronicleEvents, getOralSegments } from "@/lib/db";
+import { redirect } from "next/navigation";
 
-export default async function TimelinePage() {
-  const [chronicleEvents, oralSegments] = await Promise.all([getChronicleEvents(), getOralSegments()]);
-
-  return (
-    <div className="min-h-full bg-white">
-      <SiteHeader active="/timeline" title="연표" />
-      {/* 확정 연결선만 담긴 데이터를 읽기전용으로 — 관리용 조작은 /admin/timeline에 있다 */}
-      <TimelineExperience events={chronicleEvents} segments={oralSegments} mode="read" />
-    </div>
-  );
+// 연표는 메인화면(/)으로 올라갔다. 예전 /timeline 링크(다른 화면·북마크·외부 공유)를 살려두기 위한 리다이렉트.
+export default function TimelineRedirect() {
+  redirect("/");
 }

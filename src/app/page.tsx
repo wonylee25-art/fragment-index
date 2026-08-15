@@ -1,21 +1,19 @@
 import { SiteHeader } from "@/components/SiteHeader";
-import { SegmentListClient } from "@/components/SegmentListClient";
-import { getOralSegments } from "@/lib/db";
+import { TimelineExperience } from "@/components/TimelineExperience";
+import { getChronicleEvents, getOralSegments } from "@/lib/db";
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ focus?: string }>;
-}) {
-  const [{ focus }, oralSegments] = await Promise.all([searchParams, getOralSegments()]);
+// 연표(사용자뷰)가 곧 메인화면이다 — 별도의 홈 화면은 두지 않는다.
+// 확정 연결선만 담긴 데이터를 읽기전용으로 보여주고, 관리용 조작은 /admin/timeline에 있다.
+export default async function Home() {
+  const [chronicleEvents, oralSegments] = await Promise.all([
+    getChronicleEvents(),
+    getOralSegments(),
+  ]);
 
   return (
     <div className="min-h-full bg-white">
-      <SiteHeader active="/" title="구술 목록" />
-
-      <main className="mx-auto max-w-6xl px-4 py-6">
-        <SegmentListClient segments={oralSegments} focusId={focus} />
-      </main>
+      <SiteHeader active="/" title="연표" />
+      <TimelineExperience events={chronicleEvents} segments={oralSegments} mode="read" />
     </div>
   );
 }

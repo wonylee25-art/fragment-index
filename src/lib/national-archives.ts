@@ -12,6 +12,7 @@ export interface ArchiveRecord {
   producer: string; // prod_name — 생산기관
   productionYear: string; // prod_year
   isOpen: boolean; // is_open === "1"
+  onlineReading: boolean; // online_reading === "Y" — 원문을 온라인에서 바로 볼 수 있는지
   detailUrl: string; // link — 기록물 상세정보페이지
 }
 
@@ -36,6 +37,7 @@ export async function searchArchiveRecords(query: string, display = 5): Promise<
     producer: String(item.prod_name ?? ""),
     productionYear: String(item.prod_year ?? ""),
     isOpen: String(item.is_open) === "1",
+    onlineReading: String(item.online_reading) === "Y",
     detailUrl: String(item.link ?? ""),
   }));
 }

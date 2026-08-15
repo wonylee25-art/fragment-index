@@ -18,6 +18,7 @@ export interface RelatedItem {
   sourceOrg: string;
   sourceUrl: string; // 외부 원본 아카이브 링크 (재호스팅하지 않음, 4번 IA 참고)
   description?: string; // 호버 미리보기에 쓰는 짧은 설명 (자료 등록 시 오픈그래프 등으로 수집될 값의 mock)
+  imageUrl?: string; // 원본 아카이브의 썸네일 (박물관 유물 등) — 재호스팅하지 않고 링크만 건다
 }
 
 export interface SegmentCardData {
@@ -102,6 +103,6 @@ export interface TimelineEventData {
   keywordTags: string[]; // 지리적 키워드(행정구역 등)도 여기에 포함해 필터·검색에 걸리게 한다
   linkedSegmentIds: string[]; // 그물망 연결(links, link_basis=인물/장소/사건)로 이어진 구술 발췌
   linkedMaterials: RelatedItem[]; // 같은 연결에서 딸려오는 사료(사진/신문/지도 등) — 교차 블록에 이미지로 노출
-  savedByUser: boolean; // "자료 찾기" 화면에서 외부 검색 결과 중 사람이 직접 저장한 사건인지 — 연표에서 강조 표시
+  savedByUser: boolean; // 검토함 "사료 검색"에서 사람이 직접 저장했거나 직접 만든 사건인지 — 연표에서 강조 표시
   userMemo?: string; // 이용자가 이 사건에 대해 직접 적는 개인 메모
 }

@@ -19,8 +19,14 @@ export interface MuseumRelic {
   id: string;
   name: string;
   museumName: string; // museumName2 — 소장 기관
-  imageUrl: string; // imgThumUriM — 중간크기 썸네일 (없으면 imgUri)
+  imageUrl: string; // imgThumUriL — 큰 썸네일 (없으면 M, 그것도 없으면 원본)
   detailUrl: string; // e뮤지엄 상세페이지
+  // 아래 셋은 목록 API에 없고 상세 API(/detail)에만 있다 — 검토 화면에서 원문을 열지 않고
+  // 판단할 수 있게 하려고 유물마다 한 번 더 부른다.
+  description?: string; // desc — 유물 설명
+  sizeInfo?: string; // sizeInfo — "가로 7.9cm, 세로 5.7cm"
+  materialName?: string; // materialName1 — "종이"
+  purposeName?: string; // purposeName3 — "사진기록"
 }
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
@@ -63,8 +69,36 @@ export async function searchMuseumRelics(query: string, numOfRows = 5): Promise<
       id: f.id ?? "",
       name: f.name ?? f.nameKr ?? "",
       museumName: f.museumName2 ?? f.museumName1 ?? "",
-      imageUrl: f.imgThumUriM ?? f.imgUri ?? "",
+      imageUrl: f.imgThumUriL ?? f.imgThumUriM ?? f.imgUri ?? "",
       detailUrl: `https://emuseum.go.kr/detail?relicId=${f.id ?? ""}`,
     };
+  });
+}
+
+// 유물 한 건의 상세. 목록 API가 설명을 주지 않아, 검토 화면에서 내용을 보려면 이걸 따로 불러야 한다.
+async function fetchRelicDetail(id: string): Promise<Partial<MuseumRelic>> {
+  const xml = await callApi("/detail", { id });
+  const parsed = parser.parse(xml);
+  const entries = asArray(parsed?.result?.list?.data ?? parsed?.result?.data) as Array<{ item?: unknown }>;
+  if (entries.length === 0) return {};
+
+  const f = flattenDataEntry(entries[0]);
+  return {
+    description: f.desc || undefined,
+    sizeInfo: f.sizeInfo || undefined,
+    materialName: f.materialName1 || undefined,
+    purposeName: f.purposeName3 || f.purposeName2 || f.purposeName1 || undefined,
+  };
+}
+
+// 목록 + 각 건의 상세를 한 번에. 상세는 병렬로 부르고, 실패한 건은 목록 정보만 남긴다
+// (한 건이 실패해도 검색 전체가 깨지지 않게).
+export async function searchMuseumRelicsDetailed(query: string, numOfRows = 5): Promise<MuseumRelic[]> {
+  const relics = await searchMuseumRelics(query, numOfRows);
+  const details = await Promise.allSettled(relics.map((r) => fetchRelicDetail(r.id)));
+
+  return relics.map((relic, i) => {
+    const detail = details[i];
+    return detail.status === "fulfilled" ? { ...relic, ...detail.value } : relic;
   });
 }

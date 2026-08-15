@@ -14,7 +14,7 @@ export async function saveTimelineMemo(id: string, memo: string) {
     .update({ user_memo: memo.trim() || null })
     .eq("id", id);
   if (error) throw error;
-  revalidatePath("/timeline");
+  revalidatePath("/"); // 연표가 메인화면
 }
 
 export async function saveSegmentMemo(id: string, memo: string) {
@@ -23,7 +23,7 @@ export async function saveSegmentMemo(id: string, memo: string) {
     .update({ user_memo: memo.trim() || null })
     .eq("id", id);
   if (error) throw error;
-  revalidatePath("/");
+  revalidatePath("/segments");
 }
 
 export async function savePaperMemo(id: string, memo: string) {

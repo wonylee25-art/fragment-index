@@ -20,11 +20,11 @@
 
 ### 국가기록원 (data.go.kr, searcharc 서비스)
 - **판정**: ✅
-- 진짜 REST API. `src/lib/national-archives.ts`에서 XML 파싱해서 사용 중. `/search` 화면에 연결 완료.
+- 진짜 REST API. `src/lib/national-archives.ts`에서 XML 파싱해서 사용 중. 검토함(`/admin/review`) 사료 검색에 연결 완료.
 
 ### 국립중앙박물관 전국 박물관 유물정보
 - **판정**: ✅
-- 진짜 REST API. `src/lib/museum-relics.ts`. `/search` 화면에 연결 완료.
+- 진짜 REST API. `src/lib/museum-relics.ts`. 검토함(`/admin/review`) 사료 검색에 연결 완료. 목록 API에는 설명이 없어 `searchMuseumRelicsDetailed`가 유물마다 `/detail`을 한 번 더 부른다(설명·크기·재질).
 
 ### 국사편찬위원회 "오늘의역사" 원문파일
 - **판정**: ✅ (단, 실시간 API 아님)
@@ -41,7 +41,7 @@
 - 상세 페이지 URL은 `NR_archiveView.do?ctgryId=...&type=A&upperNodeId=...&fileSn=300&fileId=<아카이브번호>` 패턴 — 검색결과 페이지의 `a[href*="NR_archiveView"]`에서 그대로 추출 가능(JS 리버스엔지니어링 불필요, 진짜 href).
 - 자료는 서울역사박물관이 상권/동네별로 낸 "서울생활문화자료조사" 단행본에서 발췌된 것들 — 공공누리 제1유형(출처표시)이라 원문 그대로 인용·저장 가능. 결과는 **사료**(`archive_items`) 성격.
 - "동대문 신발상가" 검색 실적·구체적 자료 내용은 `pilot1.md` 참고.
-- 다음 단계: `national-archives.ts`처럼 `seoul-museum-archive.ts` 클라이언트 작성 후 `/search`에 연결.
+- 다음 단계: `national-archives.ts`처럼 `seoul-museum-archive.ts` 클라이언트 작성 후 검토함 사료 검색에 연결.
 
 ### 서울역사편찬원 (history.seoul.go.kr)
 - **확인일**: 2026-07-19
@@ -145,7 +145,7 @@
 
 ### 여성사전시관 구술자료 정보 서비스 (data.go.kr, `15078220`)
 - **확인일**: 2026-08-06 (개발계정 키로 라이브 호출까지 검증 완료)
-- **판정**: ✅ (진짜 REST API — `src/lib/womens-oral-archive.ts`로 연동, `/search`에 연결 완료)
+- **판정**: ✅ (진짜 REST API — `src/lib/womens-oral-archive.ts`로 연동, 검토함 사료 검색에 연결 완료)
 - 제공기관: 성평등가족부. 요청: `GET https://apis.data.go.kr/1383000/eyis/oralDataService/getOralDataList?ServiceKey=<키>&type=xml&pageNo=1&numOfRows=100`
 - 응답 래퍼는 표준 `<response><header>/<body><items><item>` 형태 맞음. 단 **성공 시 `resultCode`가 문서(`00`)와 달리 실제로는 `0`(한 자리)으로 옴** — 파서가 순수 숫자 문자열을 숫자로 캐스팅하므로 `String()`으로 감싸서 비교해야 함.
 - **문서의 응답 항목 설명이 실제 값과 다름(중요, 라이브 호출로 확인)**:
@@ -165,7 +165,7 @@
 - **DESC 필드에 실제 개행 대신 리터럴 문자열 `/r/n`(98건 중 86건) 또는 `/n`이 그대로 박혀있음** — 원본 데이터 자체의 문제. 정규식으로 공백 치환해서 정리.
 - **CSV에 상세페이지 링크 컬럼이 없음.** 대신 실제 사이트(`archives.seoul.go.kr/photo`, "서울사진 아카이브")를 실시간으로 긁어 컬렉션 제목으로 매칭해서 상세 URL(`/photo/collection/detail/<id>`)을 찾음 — **CSV의 ID 컬럼은 이 사이트의 컬렉션 번호와 다름**(예: CSV ID=8 "서울 시내버스"가 실제로는 `detail/11`). 제목 매칭으로 98건 중 90건 성공, 8건(국풍 81·서울시 소방관·버스 안내원·광주 대단지·김포공항·와우아파트·대연각화재·난민촌)은 CSV 발행(2024-09-03) 이후 사이트에서 없어졌는지 매칭 안 돼 목록 페이지로 대체.
 - **컬렉션 단위 목록일 뿐** — 개별 사진(촬영일·이미지 URL 등)까지는 이 CSV에 없음. `item_type: "사진"`으로 저장.
-- **주의**: 다른 저장 스크립트(`saveArchiveRecord` 등)와 마찬가지로 `event_id: null`로 들어감. `/search`나 `/timeline` 어디에도 아직 "미연결 자료 모아보기" 화면이 없어서, 이 98건은 사람이 어떤 사건에 붙일지 SQL이나 향후 UI로 직접 연결하기 전까지는 화면에 안 보임 — DB에만 존재.
+- **주의**: 연결선 없이 자료만 들어감. 이런 미연결 자료는 검토함(`/admin/review`) 아래 **보류함**에 모여 보이고, 거기서 사건을 골라 연결할 수 있음. (2026-08-15 이전에는 모아보는 화면이 없어 DB에만 존재했음)
 
 ### RISS (riss.kr) · KCI (kci.go.kr)
 - **확인일**: 2026-07-19 (UI 수동 검색), 2026-07-25 (목록·상세페이지 자동 스크래핑)

@@ -32,8 +32,26 @@ function extractVideoUrl(html: string): string {
   return html.match(/<iframe[^>]*\ssrc="([^"]+)"/)?.[1] ?? "";
 }
 
+// 원문이 HTML 조각이라 본문에 &lsquo; &#39; 같은 엔티티가 그대로 섞여 있다.
+// 화면에 문자 그대로 노출되므로 여기서 실제 문자로 되돌린다.
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)))
+    .replace(/&lsquo;/g, "‘")
+    .replace(/&rsquo;/g, "’")
+    .replace(/&ldquo;/g, "“")
+    .replace(/&rdquo;/g, "”")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&"); // &amp;가 다른 엔티티를 감싸는 경우가 있어 맨 마지막에 푼다
+}
+
 function extractExcerpt(html: string): string {
-  return html.match(/<textarea[^>]*>([\s\S]*?)<\/textarea>/)?.[1]?.trim() ?? "";
+  const raw = html.match(/<textarea[^>]*>([\s\S]*?)<\/textarea>/)?.[1]?.trim() ?? "";
+  return decodeHtmlEntities(raw);
 }
 
 let cachedItems: WomensOralArchiveItem[] | null = null;

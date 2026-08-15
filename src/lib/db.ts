@@ -37,6 +37,7 @@ interface DbArchiveItem {
   source_org: string | null;
   source_url: string | null;
   description: string | null;
+  image_url: string | null;
 }
 
 interface DbSegment {
@@ -77,6 +78,7 @@ function toRelatedItem(item: DbArchiveItem): RelatedItem {
     sourceOrg: item.source_org ?? "",
     sourceUrl: item.source_url ?? "",
     description: item.description ?? undefined,
+    imageUrl: item.image_url ?? undefined,
   };
 }
 
@@ -92,7 +94,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
   const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: links, error: linksError }] =
     await Promise.all([
       supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, has_discrepancy, keywords, user_saved, user_memo").order("id"),
-      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description"),
+      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url"),
       supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     ]);
   if (eventsError) throw eventsError;
@@ -138,7 +140,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
 export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
   const [{ data: items, error: itemsError }, { data: segments, error: segmentsError }, { data: links, error: linksError }] =
     await Promise.all([
-      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description").order("id"),
+      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").order("id"),
       supabase.from("segments").select("id, item_title, date_value").order("id"),
       // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
       supabase.from("links").select("target_type, target_id").in("status", ["confirmed", "candidate"]),
@@ -175,7 +177,7 @@ export async function getSavedIds(): Promise<{ eventIds: Set<string>; archiveIte
   };
 }
 
-// "자료 찾기" 화면의 빈 상태(검색어 입력 전)에 보여줄 제안 키워드 — DB(사건·구술)에
+// 검토함 "사료 검색"의 빈 상태(검색어 입력 전)에 보여줄 제안 키워드 — DB(사건·구술)에
 // 실제로 붙어 있는 키워드 태그 중 등장 빈도가 높은 순.
 export async function getSuggestedKeywords(limit = 24): Promise<string[]> {
   const [events, segments] = await Promise.all([getChronicleEvents(), getOralSegments()]);

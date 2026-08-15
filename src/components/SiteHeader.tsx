@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const NAV_ITEMS = [
-  { href: "/", label: "홈" },
-  { href: "/search", label: "자료 찾기" },
-  { href: "/timeline", label: "연표" },
+  // 연표가 곧 메인화면이라 "홈" 항목은 따로 두지 않는다.
+  // "자료 찾기"는 수집·검토 작업이라 관리 안(검토함)에 있다.
+  { href: "/", label: "연표" },
   { href: "/segments", label: "구술 목록" },
   { href: "/research", label: "연구 동향" },
   { href: "/oral-history-projects", label: "구술사업 지도" },
@@ -15,7 +15,7 @@ export function SiteHeader({
   active,
   title,
 }: {
-  active: "/" | "/timeline" | "/segments" | "/search" | "/research" | "/oral-history-projects" | "/admin/timeline";
+  active: "/" | "/segments" | "/research" | "/oral-history-projects" | "/admin/timeline";
   title: string;
 }) {
   return (

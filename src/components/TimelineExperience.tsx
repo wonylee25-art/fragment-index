@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
+import { EventRowControls } from "./EventEditor";
+import { UnlinkButton } from "./UnlinkButton";
 import { TimelineRuler, TickRelation } from "./TimelineRuler";
 import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
@@ -227,13 +229,13 @@ export function TimelineExperience({
             {visible.filter((e) => e.linkedSegmentIds.length > 0).length}
           </p>
           <div className="ml-auto flex items-center gap-2 font-mono text-[10px]">
-            {/* "저장한 자료만"은 자료 찾기에서 사람이 골라 저장했는지를 묻는 관리용 필터다 */}
+            {/* "저장한 자료만"은 검토함에서 골라 저장했거나 직접 만든 사건인지를 묻는 관리용 필터다 */}
             {mode === "admin" && (
               <>
                 <button
                   type="button"
                   onClick={() => setSavedOnly((v) => !v)}
-                  title="자료 찾기에서 저장한 사건만 보기"
+                  title="검토함에서 저장했거나 직접 만든 사건만 보기"
                   className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
                     savedOnly ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
                   }`}
@@ -440,12 +442,12 @@ export function TimelineExperience({
   );
 }
 
-// "자료 찾기"에서 외부 검색 결과 중 사람이 직접 저장한 사건 표시 — 그냥 나열되지 않고
+// 검토함에서 저장했거나 직접 만든 사건 표시 — 그냥 나열되지 않고
 // 눈에 띄게(초록 배지 + 왼쪽 테두리, EventEntry에서 함께 적용) 구분한다.
 function SavedBadge() {
   return (
     <span
-      title="자료 찾기에서 저장한 사건"
+      title="검토함에서 저장했거나 직접 만든 사건"
       className="ml-2 inline-flex items-center gap-0.5 rounded-sm bg-emerald-100 px-1.5 py-0.5 align-middle font-mono text-[10px] font-normal text-emerald-700"
     >
       ✓ 저장됨
@@ -499,6 +501,7 @@ function EventEntry({
             {mode === "admin" && event.savedByUser && <SavedBadge />}
           </h3>
           <CuratorMemo event={event} mode={mode} />
+          {mode === "admin" && <EventRowControls event={event} />}
         </div>
       </div>
     );
@@ -520,7 +523,9 @@ function EventEntry({
           {event.linkedMaterials.length === 0 ? (
             <span className="font-mono text-[10px] text-zinc-300">—</span>
           ) : (
-            event.linkedMaterials.map((material) => <MaterialThumb key={material.id} material={material} />)
+            event.linkedMaterials.map((material) => (
+              <MaterialThumb key={material.id} material={material} eventId={event.id} mode={mode} />
+            ))
           )}
         </div>
       )}
@@ -582,7 +587,9 @@ function EventEntry({
           {linkedSegments.length === 0 ? (
             <span className="font-mono text-[10px] text-zinc-300">—</span>
           ) : (
-            linkedSegments.map((segment) => <OralQuote key={segment.id} segment={segment} />)
+            linkedSegments.map((segment) => (
+              <OralQuote key={segment.id} segment={segment} eventId={event.id} mode={mode} />
+            ))
           )}
         </div>
       )}
@@ -590,14 +597,24 @@ function EventEntry({
       {/* 메모 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간 너비에만 맞춘다 */}
       <div className={detailLevel === "full" ? "sm:col-start-2 sm:col-end-5" : "sm:col-span-full"}>
         <CuratorMemo event={event} mode={mode} />
+        {mode === "admin" && <EventRowControls event={event} />}
       </div>
     </div>
   );
 }
 
 // 이미지(사료의 실제 물성을 흉내 낸 높이) → 제목 → 연결링크 순으로 세로로 쌓는다.
-function MaterialThumb({ material }: { material: RelatedItem }) {
+function MaterialThumb({
+  material,
+  eventId,
+  mode,
+}: {
+  material: RelatedItem;
+  eventId: string;
+  mode: TimelineMode;
+}) {
   return (
+    <div className="flex flex-col">
     <a href={material.sourceUrl} target="_blank" rel="noopener noreferrer" className="group block">
       <span
         className={`flex w-full items-center justify-center text-3xl shadow-sm ${MATERIAL_HEIGHT[material.type]} ${MATERIAL_SURFACE[material.type]}`}
@@ -614,12 +631,24 @@ function MaterialThumb({ material }: { material: RelatedItem }) {
         </span>
       </p>
     </a>
+      {mode === "admin" && (
+        <UnlinkButton eventId={eventId} targetType="archive_item" targetId={material.id} />
+      )}
+    </div>
   );
 }
 
 // 발췌가 짧을수록 임팩트 있는 한마디일 가능성이 높아 크게, 길수록 작게 — 구술 길이에 따라
 // 인용구 크기가 자연스럽게 반응하도록 한다.
-function OralQuote({ segment }: { segment: SegmentCardData }) {
+function OralQuote({
+  segment,
+  eventId,
+  mode,
+}: {
+  segment: SegmentCardData;
+  eventId: string;
+  mode: TimelineMode;
+}) {
   const quote = narratorPullQuote(segment);
   const isShort = quote.length <= 45;
   return (
@@ -647,6 +676,9 @@ function OralQuote({ segment }: { segment: SegmentCardData }) {
           구술 전체 보기 ↗
         </Link>
       </p>
+      {mode === "admin" && (
+        <UnlinkButton eventId={eventId} targetType="segment" targetId={segment.id} />
+      )}
     </div>
   );
 }

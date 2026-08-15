@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR, Noto_Serif_KR, IBM_Plex_Mono } from "next/font/google";
+import { Gothic_A1, Noto_Serif_KR, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const notoSansKr = Noto_Sans_KR({
-  variable: "--font-noto-sans-kr",
+const gothicA1 = Gothic_A1({
+  variable: "--font-gothic-a1",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "700", "800"],
 });
 
 const notoSerifKr = Noto_Serif_KR({
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${notoSansKr.variable} ${notoSerifKr.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${gothicA1.variable} ${notoSerifKr.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
