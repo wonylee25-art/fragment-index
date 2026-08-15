@@ -90,14 +90,8 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
 
   return (
     <div>
-      {/* 소개문 */}
-      <section className="mb-5">
-        {doc.introParagraphs.slice(0, 2).map((p, i) => (
-          <p key={i} className="mb-2 text-[13px] leading-6 text-zinc-600">
-            <Inline text={p} />
-          </p>
-        ))}
-      </section>
+      {/* 소개문(doc.introParagraphs)은 화면에 걸지 않는다 — 표만 봐도 무엇인지 읽히고,
+          문서 원문은 reference/의 마크다운에 그대로 남아 있다. */}
 
       {/* 범례 + 검색 */}
       <section className="mb-4 flex flex-wrap items-center justify-between gap-3">
