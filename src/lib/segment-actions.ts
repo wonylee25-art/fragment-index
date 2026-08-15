@@ -198,3 +198,30 @@ export async function updateSegment(input: UpdateSegmentInput): Promise<void> {
   revalidatePath("/admin/oral");
   revalidatePath("/admin/review");
 }
+
+// 발췌를 지운다. 되돌리는 길은 없다 — 숨김 표시로 남겨 두는 방법도 있지만, 잘못 넣은
+// 발췌를 목록에서 안 보이게만 하고 DB에 남겨 두면 나중에 같은 구술을 다시 넣었을 때
+// 어느 쪽이 진짜인지 가릴 수 없다.
+//
+// 딸린 것들(segment_speakers·segment_notes·segment_persons·segment_places)은 FK가
+// on delete cascade라 함께 사라진다. links만 손으로 지운다 — 사건-자료 연결선은
+// 사료와 구술을 함께 담느라 target_id가 FK가 아니어서(polymorphic) 남아 버린다.
+export async function deleteSegment(id: string): Promise<void> {
+  if (!id.startsWith("manual-")) {
+    throw new Error("CSV 동기화로 들어온 발췌는 화면에서 지울 수 없습니다. 원본 CSV에서 빼세요.");
+  }
+
+  const { error: linkError } = await supabaseAdmin
+    .from("links")
+    .delete()
+    .eq("target_type", "segment")
+    .eq("target_id", id);
+  if (linkError) throw linkError;
+
+  const { error } = await supabaseAdmin.from("segments").delete().eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/segments");
+  revalidatePath("/admin/oral");
+  revalidatePath("/admin/review");
+}

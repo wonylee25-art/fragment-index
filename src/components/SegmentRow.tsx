@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
 import { FlagToggle } from "./FlagToggle";
+import { SegmentDeleteButton } from "./SegmentDeleteButton";
 import { SegmentCardData, ArchiveItemType, PersonBrief } from "@/lib/types";
 import { saveSegmentMemo } from "@/lib/memo-actions";
 import { toggleSegmentImportant } from "@/lib/flag-actions";
@@ -143,14 +144,19 @@ export function SegmentRow({
           )}
           {/* 화면에서 넣은 발췌만 고칠 수 있다 — CSV 동기화분은 여기서 고쳐도 다음
               동기화 때 되돌아간다(segment-actions.ts의 updateSegment 참고). */}
-          {onEdit && isManual(data.id) && (
-            <button
-              type="button"
-              onClick={onEdit}
-              className="text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800"
-            >
-              고치기
-            </button>
+          {isManual(data.id) && (
+            <>
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800"
+                >
+                  고치기
+                </button>
+              )}
+              <SegmentDeleteButton segmentId={data.id} noteCount={data.noteList.length} />
+            </>
           )}
         </div>
 
