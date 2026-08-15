@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 
-// oral_history_projects.md 등 손으로 쓴 마크다운 문서의 **굵게**·`코드`·[링크](url)만
+// docs/oral_history_projects.md 등 손으로 쓴 마크다운 문서의 **굵게**·`코드`·[링크](url)만
 // 처리하는 최소 인라인 렌더러. 리스트·헤딩 등 블록 문법은 다루지 않는다.
 type Token =
   | { type: "text"; value: string }

@@ -3,7 +3,7 @@
 // 행(재실행 시 이전 진행분)은 건너뛰어 중단돼도 이어서 돌릴 수 있다.
 // 실행: node scripts/backfill-volume-issue.mjs
 //
-// robots.txt Crawl-delay: 10을 지켜 상세페이지 요청 사이 10초씩 기다린다(archives.md "RISS" 참고).
+// robots.txt Crawl-delay: 10을 지켜 상세페이지 요청 사이 10초씩 기다린다(docs/archives.md "RISS" 참고).
 
 import { existsSync } from "node:fs";
 import { politeFetch, parseVolumeIssue } from "./lib/riss-http.mjs";

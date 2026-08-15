@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-// oral_history_projects.md("국내 구술채록 사업 정리")를 파싱해 구조화된 데이터로 만든다.
+// docs/oral_history_projects.md("국내 구술채록 사업 정리")를 파싱해 구조화된 데이터로 만든다.
 // 이 문서는 계속 항목이 추가되는 living document라, 화면에 옮겨 적는 대신
 // 매 요청마다 원문을 다시 읽어 파싱한다 — 문서만 고치면 화면도 같이 바뀐다.
 
-const MD_PATH = path.join(process.cwd(), "oral_history_projects.md");
+const MD_PATH = path.join(process.cwd(), "docs", "oral_history_projects.md");
 
 export type ConfirmationLevel = "●●●" | "●●○" | "●○○";
 

@@ -4,7 +4,7 @@ import { asArray } from "./xml";
 // 성평등가족부_여성사전시관 구술자료 정보 서비스 (data.go.kr, 서비스 ID 15078220) 클라이언트.
 // 서버 전용 — WOMENS_HISTORY_ORAL_API_KEY는 .env.local에만 두고 클라이언트로 내려가지 않는다.
 //
-// **API 문서의 필드 설명이 실제 응답 내용과 다르다** (2026-08-06 실제 호출로 확인, archives.md 참고):
+// **API 문서의 필드 설명이 실제 응답 내용과 다르다** (2026-08-06 실제 호출로 확인, docs/archives.md 참고):
 // - dctnDataNm("구술자료명"이라 표기) → 실제로는 시리즈/카테고리명 (예: "여성과 교육", "여성과 노동")
 // - vdoUrlAddr("동영상URL주소"라 표기) → 실제로는 URL이 아니라 인터뷰 제목(구술자 한 줄 소개)
 // - vdoSbttlIfmtn("동영상자막정보"라 표기) → 실제로는 <iframe src="유튜브 URL">과

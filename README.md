@@ -24,7 +24,7 @@
 | `/` | 연표 (메인) | 사료·날짜·사건명·내용·구술 5컬럼 표. 1900–2026 고정 타임라인, 관련도 색상 강조, 표시 밀도 3단계(전체/내용만/제목만), 개인 컬렉션 담기 + CSV 내보내기. 확정된 연결선만 보여줌 |
 | `/segments` | 구술 목록 | 발췌 구간을 날짜순 리스트로 보여주고, 검색/키워드 필터/정렬, 이견·원문 각주 표시, 관련자료 미리보기를 지원 |
 | `/research` | 연구 동향 | RISS에서 수집한 국내 구술사/생애사 관련 학위논문·학술논문·단행본 메타데이터, 인용구·개인 메모 관리 |
-| `/oral-history-projects` | 구술사업 지도 | 국내외 구술채록 사업을 지역별로 정리 |
+| `/oral-history-projects` | 구술사업 지도 | 국내 구술채록 사업을 지역별로 정리 ([docs/oral_history_projects.md](docs/oral_history_projects.md)를 그대로 읽어 렌더링) |
 | `/admin/timeline` | 관리 › 연표 관리 | 후보 연결선까지 포함해 보고, 사건 추가·수정·삭제, 연결선 끊기, 메모 편집 |
 | `/admin/review` | 관리 › 검토함 | 사료 검색(외부 소스) → 내용 확인 → 사건에 연결하며 저장. 아래 보류함에는 아직 어느 사건에도 안 붙은 자료가 쌓이고, 거기서도 같은 방식으로 연결 |
 
@@ -55,7 +55,9 @@
 실데이터는 **Supabase**(Postgres)에 저장되어 있고, 원본 소스는 두 갈래입니다.
 
 1. **구글 시트(fragments_index)** — 사용자가 직접 채록·정리 중인 구술 아카이브 원본(연표 `chronicle`, 구술 발췌 `oral segments`, 인물 전거 `persons_authority`, 출처 전거 `sources_authority`). `data/*.csv`로 내보낸 뒤 `npm run sync`로 Supabase에 반영합니다. **이 CSV들은 저장소에 커밋되지 않고(`.gitignore`) 로컬/Supabase에만 존재**합니다.
-2. **외부 오픈데이터/API** — 국가기록원, 국립중앙박물관 유물정보, 국사편찬위원회 "오늘의역사" 원문(XML), RISS 논문 메타데이터 등. 어떤 아카이브에 접근을 시도했고 자동화가 가능한지는 [archives.md](archives.md)에 전부 기록해 둡니다(성공/실패 무관하게).
+2. **외부 오픈데이터/API** — 국가기록원, 국립중앙박물관 유물정보, 국사편찬위원회 "오늘의역사" 원문(XML), 서울기록원 사진아카이브, RISS 논문 메타데이터 등. 어떤 아카이브에 접근을 시도했고 자동화가 가능한지는 [docs/archives.md](docs/archives.md)에 전부 기록해 둡니다(성공/실패 무관하게).
+
+`/oral-history-projects` 화면만은 예외로 DB가 아니라 **마크다운 문서를 직접 읽습니다** — [docs/oral_history_projects.md](docs/oral_history_projects.md)를 매 요청마다 파싱하므로([src/lib/oral-history-projects.ts](src/lib/oral-history-projects.ts)), 문서를 고치면 화면이 따라 바뀝니다.
 
 원본 자료는 재호스팅하지 않고 항상 원본 링크로 연결하는 것이 원칙입니다.
 
@@ -109,9 +111,39 @@ npm run dev
 | `npm run fetch:riss` | RISS에서 구술사/구술생애사 관련 논문 메타데이터를 긁어 `data/riss-papers.csv` 생성(요청 간 10초 대기, 수십 분 소요 — 백그라운드 실행 권장). 손으로 수정하지 말고 재실행으로 갱신할 것 |
 | `npm run tunnel` | localtunnel로 외부에서 개발 서버 접근 |
 
+그 밖에 `package.json`에 등록하지 않은 1회성·자동화 스크립트가 `scripts/`에 있습니다.
+
+- [scripts/weekly-research-sync.sh](scripts/weekly-research-sync.sh) — launchd(`com.fragment-index.research-sync`)가 매주 월요일 08:00에 `fetch:riss` + `sync`를 실행. 그 시각에 노트북이 꺼져 있었으면 다음 로그인 때 따라잡고, 이미 이번 주에 돌았으면 건너뜁니다
+- [scripts/import-seoul-photo-collections.mjs](scripts/import-seoul-photo-collections.mjs) — 서울기록원 사진아카이브 컬렉션 CSV를 `archive_items`에 반영
+- [scripts/match-museum-relics.mjs](scripts/match-museum-relics.mjs) — 국립중앙박물관 유물 매칭 후보를 콘솔에 출력(자동 반영하지 않고 사람이 확인)
+- [scripts/backfill-volume-issue.mjs](scripts/backfill-volume-issue.mjs) — RISS 논문의 권호 정보 보강(요청 간 10초 대기)
+
+## 저장소 구조
+
+```
+src/app/        라우트(App Router) — /, /segments, /research, /oral-history-projects, /admin/*
+src/components/ 화면 단위 클라이언트 컴포넌트
+src/lib/        DB 접근·서버 액션·도메인 로직(EDTF 날짜, 인용 형식, 외부 API 클라이언트)
+scripts/        수집·동기화 스크립트(Node .mjs) + 주간 자동 동기화용 셸 스크립트
+data/           구글 시트 export CSV·원본 내려받기(커밋하지 않음, .gitignore)
+docs/           기획·조사·진행 기록 문서 (아래)
+public/         정적 파일
+```
+
+루트에는 설정 파일과 `README.md`·`AGENTS.md`(에이전트용 지침, `CLAUDE.md`가 이를 참조)만 둡니다.
+
 ## 프로젝트 문서
 
-- [progress.md](progress.md) — 실제로 만든 화면·코드와 그 이유를 정리한 진행 기록
-- [archives.md](archives.md) — 외부 아카이브별 접근 방식·자동화 가능 여부 조사 기록
+조사·기록 문서는 전부 [`docs/`](docs)에 모아뒀습니다.
 
-기획 정리노트(`plan.md`)·로드맵(`roadmap.md`)·선행연구 조사(`literature_review.md`)·파일럿 조사(`pilot1.md`)는 개인 작업 메모라 저장소에는 커밋하지 않고 로컬에만 둡니다(`.gitignore` 참고).
+| 문서 | 내용 |
+|---|---|
+| [docs/progress.md](docs/progress.md) | 실제로 만든 화면·코드와 그 이유를 정리한 진행 기록 (초기 구현 시점 기준 — 현재 화면 구조는 이 README가 기준) |
+| [docs/archives.md](docs/archives.md) | 외부 아카이브별 접근 방식·자동화 가능 여부 조사 기록 (연동 실패한 곳까지 전부) |
+| [docs/oral_history_projects.md](docs/oral_history_projects.md) | 국내 구술채록 사업을 5W1H로 정리 — `/oral-history-projects` 화면의 데이터 원본 |
+| [docs/international_oral_history_projects.md](docs/international_oral_history_projects.md) | 해외 주요 국가기관의 구술 사업 분류 축 비교 — 국내 목록의 빈 영역을 찾기 위한 대조군 |
+| [docs/nrf_oral_history_research_projects.md](docs/nrf_oral_history_research_projects.md) | 한국연구재단(KRM) 구술 관련 연구과제 438건 전수조사 — 상설 사업의 "원형" 가설 검증 |
+
+세 조사 문서(국내 사업 / 해외 비교 / NRF 과제)는 서로 교차 참조하며, **확인 수준을 ●●●·●●○·●○○로 표시**하는 규칙을 공유합니다 — 확인되지 않은 것은 확인되지 않은 대로 남긴다는 원칙에 따른 것입니다.
+
+기획 정리노트(`docs/plan.md`)·로드맵(`docs/roadmap.md`)·선행연구 조사(`docs/literature_review.md`)·파일럿 조사(`docs/pilot1.md`)는 개인 작업 메모라 저장소에는 커밋하지 않고 로컬에만 둡니다(`.gitignore` 참고).
