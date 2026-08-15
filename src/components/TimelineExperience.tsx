@@ -7,7 +7,7 @@ import { MemoField } from "./MemoField";
 import { EventRowControls } from "./EventEditor";
 import { hideEvents } from "@/lib/event-actions";
 import { UnlinkButton } from "./UnlinkButton";
-import { TimelineRuler, TickRelation } from "./TimelineRuler";
+import { TimelineRuler, TickRelation, BAR_HEIGHT as RULER_BAR_HEIGHT } from "./TimelineRuler";
 import { Switch } from "./Switch";
 import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
@@ -259,6 +259,19 @@ export function TimelineExperience({
   return (
     <div className="bg-white">
       {showRuler && <TimelineRuler ticks={ticks} decades={decades} range={rulerRange} />}
+
+      {/* 고른 사건을 다루는 막대는 표 위에 둔다 — 사건이 수백 건이면 표 아래 끝은 사실상 닿지 않는다.
+          바코드 띠를 켠 상태에서는 그 축소 높이만큼 내려 붙여 서로 가리지 않게 한다. */}
+      <CollectionBar
+        mode={mode}
+        count={collection.size}
+        name={collectionName}
+        onNameChange={setCollectionName}
+        onExport={handleExportCsv}
+        onHide={handleBulkHide}
+        onClear={() => setCollection(new Set())}
+        stickyTop={showRuler ? RULER_BAR_HEIGHT : 0}
+      />
 
       {/* 표제부 — 페이지 제목(SiteHeader의 "연표")과 중복되지 않게 기간·통계만 한 줄로 */}
       {showHeadline && (
@@ -522,15 +535,6 @@ export function TimelineExperience({
         )}
       </div>
 
-      <CollectionBar
-        mode={mode}
-        count={collection.size}
-        name={collectionName}
-        onNameChange={setCollectionName}
-        onExport={handleExportCsv}
-        onHide={handleBulkHide}
-        onClear={() => setCollection(new Set())}
-      />
     </div>
   );
 }
@@ -787,6 +791,7 @@ function CollectionBar({
   onExport,
   onHide,
   onClear,
+  stickyTop,
 }: {
   mode: TimelineMode;
   count: number;
@@ -795,6 +800,7 @@ function CollectionBar({
   onExport: () => void;
   onHide: () => Promise<void>;
   onClear: () => void;
+  stickyTop: number;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
@@ -812,7 +818,10 @@ function CollectionBar({
   }
 
   return (
-    <div className="sticky bottom-0 z-30 border-t border-zinc-900 bg-white/95 backdrop-blur-sm">
+    <div
+      className="sticky z-30 border-b border-zinc-900 bg-white/95 backdrop-blur-sm"
+      style={{ top: stickyTop }}
+    >
       {confirming && (
         <div className="border-b border-amber-200 bg-amber-50">
           <div className="page-shell flex flex-wrap items-center gap-3 py-2">
