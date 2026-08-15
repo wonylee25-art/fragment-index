@@ -24,6 +24,7 @@ interface DbTimelineEvent {
   date_value: string | null;
   summary: string | null;
   source_reference: string | null;
+  source_url: string | null;
   has_discrepancy: boolean;
   keywords: string[];
   user_saved: boolean;
@@ -101,7 +102,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
 
   const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: links, error: linksError }] =
     await Promise.all([
-      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, has_discrepancy, keywords, user_saved, user_memo").is("hidden_at", null).order("id"),
+      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, has_discrepancy, keywords, user_saved, user_memo").is("hidden_at", null).order("id"),
       supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url"),
       supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     ]);
@@ -133,6 +134,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
     dateValue: e.date_value ?? "",
     summary: e.summary ?? "",
     sourceReference: e.source_reference ?? "",
+    sourceUrl: e.source_url ?? "",
     places: [], // places/event_places 아직 데이터 없음 (좌표 미확보)
     keywordTags: e.keywords ?? [],
     linkedSegmentIds: segmentIdsByEvent.get(e.id) ?? [],

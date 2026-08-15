@@ -22,6 +22,7 @@ const EMPTY: EventInput = {
   dateValue: "",
   summary: "",
   sourceReference: "",
+  sourceUrl: "",
   keywords: [],
 };
 
@@ -31,6 +32,7 @@ function toInput(event: TimelineEventData): EventInput {
     dateValue: event.dateValue,
     summary: event.summary,
     sourceReference: event.sourceReference,
+    sourceUrl: event.sourceUrl,
     keywords: event.keywordTags,
   };
 }
@@ -109,6 +111,16 @@ function EventForm({
           onChange={(e) => setDraft({ ...draft, sourceReference: e.target.value })}
           placeholder="예: 서울역사박물관 『동대문시장』(2011)"
           className={FIELD_CLASSNAME}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className={LABEL_CLASSNAME}>출처 URL</label>
+        <input
+          value={draft.sourceUrl}
+          onChange={(e) => setDraft({ ...draft, sourceUrl: e.target.value })}
+          placeholder="https://… (비워두면 링크 없음)"
+          className={`${FIELD_CLASSNAME} font-mono`}
         />
       </div>
 

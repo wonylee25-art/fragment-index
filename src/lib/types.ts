@@ -99,6 +99,7 @@ export interface TimelineEventData {
   dateValue: string; // EDTF 형식 (6-3 참고)
   summary: string; // 내용 컬럼 — 사건에 대한 한두 문장 설명
   sourceReference: string; // 출처 문헌
+  sourceUrl: string; // 출처 원문 주소 — 있으면 출처 문헌에 링크를 건다 (없으면 "")
   places: PlaceRef[]; // 인물·장소 태그 중 장소 — 좌표를 가지며 지도로 링크
   keywordTags: string[]; // 지리적 키워드(행정구역 등)도 여기에 포함해 필터·검색에 걸리게 한다
   linkedSegmentIds: string[]; // 그물망 연결(links, link_basis=인물/장소/사건)로 이어진 구술 발췌

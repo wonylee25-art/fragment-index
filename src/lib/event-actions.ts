@@ -17,12 +17,21 @@ export interface EventInput {
   dateValue: string; // EDTF — "1963", "1963-05", "1945~1948", "1960s" 등 (6-3 표기 규칙)
   summary: string;
   sourceReference: string;
+  sourceUrl: string; // 출처 원문 주소 — 비워둘 수 있다
   keywords: string[];
 }
 
 export interface EventHideSummary {
   hiddenMaterials: number; // 사건과 함께 화면에서 빠지는 사료 수
   hiddenSegments: number; // 사건과 함께 화면에서 빠지는 구술 수
+}
+
+// 주소창에서 복사한 주소는 대개 http(s)로 시작하지만, "www.…"만 적어 넣는 경우가 흔하다 —
+// 그대로 두면 상대경로 링크가 되어 사이트 안으로 잘못 이동한다. 붙여서 절대주소로 만든다.
+function normalizeUrl(value: string): string | null {
+  const url = value.trim();
+  if (!url) return null;
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
 // 화면 폼(쉼표로 구분한 키워드 한 줄)을 DB에 넣을 모양으로 다듬는다.
@@ -32,6 +41,7 @@ function normalize(input: EventInput) {
     date_value: input.dateValue.trim() || null,
     summary: input.summary.trim() || null,
     source_reference: input.sourceReference.trim() || null,
+    source_url: normalizeUrl(input.sourceUrl),
     keywords: input.keywords.map((k) => k.trim()).filter(Boolean),
   };
 }

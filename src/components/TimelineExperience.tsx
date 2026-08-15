@@ -395,7 +395,16 @@ function EventEntry({
       <div className="min-w-0">
         <p className="text-[13px] leading-5 text-zinc-600">{event.summary}</p>
         <p className="mt-1 font-mono text-[10px] text-zinc-400">
-          {event.sourceReference.includes("국사편찬위원회") ? (
+          {event.sourceUrl ? (
+            <a
+              href={event.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-dotted underline-offset-4 hover:text-zinc-700"
+            >
+              {event.sourceReference || event.sourceUrl}
+            </a>
+          ) : event.sourceReference.includes("국사편찬위원회") ? (
             <a
               href={HISTORY_TIMELINE_SOURCE.url}
               target="_blank"
