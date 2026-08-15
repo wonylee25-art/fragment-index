@@ -72,7 +72,11 @@ function isManual(id: string) {
 // 이름을 반복하면 이름이 본문만큼 눈에 들어온다.
 function Transcript({ utterances }: { utterances: Utterance[] }) {
   return (
-    <ul className="flex flex-col gap-1 text-[15px] leading-7 text-zinc-800">
+    // 본문은 13px이다. 다른 화면에서 15~16px은 제목 자리(연표 사건명, 연구 동향 논문
+    // 제목, 구술 사업 소제목)이고 본문은 12~13px이라, 여기만 15px이면 구술 목록을 지나
+    // 다른 화면으로 넘어갈 때 글씨가 한 단 작아진 것처럼 보인다. 행간만 연표 요약(leading-5)
+    // 보다 넓게 잡는다 — 구술은 요약 한 줄이 아니라 여러 줄을 이어 읽는 글이다.
+    <ul className="flex flex-col gap-1 text-[13px] leading-6 text-zinc-800">
       {utterances.map((utterance, i) => {
         const previous = utterances[i - 1];
         // 지문은 화자가 없는 줄이라 이름을 달지 않고, 다음 발화의 "바뀌었는가" 판단에서도
