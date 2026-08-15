@@ -17,9 +17,10 @@ export interface RulerDecade {
   labeled: boolean; // 100년 이상 도메인에서는 라벨을 20년마다만 찍어 겹침을 피한다
 }
 
-const FULL_HEIGHT = 132; // 펼쳐진 상태의 전체 높이
 const BAR_HEIGHT = 24; // 스크롤 후 화면 상단에 남는 바코드 띠 높이
 const AXIS_BOTTOM = 14; // 기준선(축)의 바닥으로부터 높이
+const TICK_HEIGHT = 54; // 사건 눈금(바코드)의 세로 길이
+const FULL_HEIGHT = TICK_HEIGHT + AXIS_BOTTOM + 10; // 펼쳐진 상태의 전체 높이 = 눈금 + 축 아래 라벨 자리 + 위 여백
 
 const TICK_STYLE: Record<TickRelation, { className: string; width: number }> = {
   high: { className: "bg-orange-500", width: 3 },
@@ -82,7 +83,7 @@ export function TimelineRuler({
               left: `${t.leftPct}%`,
               bottom: AXIS_BOTTOM,
               width: TICK_STYLE[t.relation].width,
-              height: FULL_HEIGHT - AXIS_BOTTOM - 10,
+              height: TICK_HEIGHT,
             }}
           />
         ))}
