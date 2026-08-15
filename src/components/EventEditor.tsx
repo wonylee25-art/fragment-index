@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TimelineEventData } from "@/lib/types";
+import { ADD_BUTTON_CLASSNAME } from "@/lib/design-tokens";
 import {
   EventInput,
   countEventAttachments,
@@ -300,18 +301,35 @@ export function HiddenEventsPanel({
   );
 }
 
-// "새 사건 추가"를 눌렀을 때 열리는 폼. 여는 버튼은 관리 탭 줄(AdminTabs) 오른쪽 끝에 얹혀 있어
-// 버튼 혼자 한 줄을 차지하지 않는다 — 그래서 버튼과 폼이 여기서 갈라져 있다.
-export function NewEventForm({ onClose }: { onClose: () => void }) {
+// 사건을 새로 만드는 입구. 연표 도구 줄(검색·연도·정렬)의 오른쪽 끝에 붙는 flex 자식이다.
+// 표 아래에 뒀더니 사건이 200건 넘는 화면에서는 사실상 닿지 않는 자리가 됐다.
+// 폼은 줄 안에 들어갈 수 없어 w-full로 다음 줄에 흘려보낸다 — 열렸을 때만 자리를 쓴다.
+export function AddEventPanel() {
+  const [adding, setAdding] = useState(false);
+
+  if (adding) {
+    return (
+      <div className="w-full pt-1">
+        <EventForm
+          initial={EMPTY}
+          submitLabel="사건 추가"
+          onSubmit={async (input) => {
+            await createEvent(input);
+            setAdding(false);
+          }}
+          onCancel={() => setAdding(false)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <EventForm
-      initial={EMPTY}
-      submitLabel="사건 추가"
-      onSubmit={async (input) => {
-        await createEvent(input);
-        onClose();
-      }}
-      onCancel={onClose}
-    />
+    <button
+      type="button"
+      onClick={() => setAdding(true)}
+      className={`ml-auto ${ADD_BUTTON_CLASSNAME}`}
+    >
+      + 사건 추가
+    </button>
   );
 }

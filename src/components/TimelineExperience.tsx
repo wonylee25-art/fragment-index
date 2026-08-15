@@ -4,26 +4,22 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
-import { EventRowControls } from "./EventEditor";
+import { AddEventPanel, EventRowControls } from "./EventEditor";
 import { hideEvents } from "@/lib/event-actions";
 import { UnlinkButton } from "./UnlinkButton";
-import { TimelineRuler, TickRelation, BAR_HEIGHT as RULER_BAR_HEIGHT } from "./TimelineRuler";
-import { Switch } from "./Switch";
 import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
-import { edtfSortKey, edtfYear, edtfYearFloat, formatEdtfToKorean, yearToAxisPercent } from "@/lib/edtf";
+import { edtfSortKey, edtfYearFloat, formatEdtfToKorean } from "@/lib/edtf";
 import { narratorPullQuote } from "@/lib/quotes";
 import { osmUrl } from "@/lib/geo";
 import { downloadCsv, eventsToCsv } from "@/lib/csv";
 import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
 
 type SortDirection = "asc" | "desc";
-type DetailLevel = "full" | "content" | "title";
 
-const DETAIL_LEVELS: { value: DetailLevel; label: string }[] = [
-  { value: "full", label: "전체" },
-  { value: "content", label: "내용만" },
-  { value: "title", label: "제목만" },
+const SORT_OPTIONS: { value: SortDirection; label: string }[] = [
+  { value: "asc", label: "과거순" },
+  { value: "desc", label: "최신순" },
 ];
 
 // 연표가 다루는 전체 기간 — 데이터와 무관하게 고정 (서비스 범위 결정)
@@ -58,24 +54,6 @@ const MATERIAL_HEIGHT: Record<ArchiveItemType, string> = {
   문서: "h-16",
   논문: "h-16",
 };
-
-// 사건-구술 관련도: 검색어가 있으면 텍스트 매칭 강도로, 없으면 그물망 연결 여부로 판단한다.
-// high(주황) = 제목·키워드·장소에 매칭 / 구술과 직접 연결
-// low(파랑)  = 내용·출처에서만 매칭 / 태그가 겹치는 간접 연관
-// none(회색) = 무관
-function relevanceOf(event: TimelineEventData, query: string, segmentTags: Set<string>): TickRelation {
-  const q = query.trim();
-  if (!q) {
-    if (event.linkedSegmentIds.length > 0) return "high";
-    const tags = [...event.places.map((p) => p.name), ...event.keywordTags];
-    return tags.some((t) => segmentTags.has(t)) ? "low" : "none";
-  }
-  const primary = [event.eventName, ...event.keywordTags, ...event.places.map((p) => p.name)];
-  const secondary = [event.summary, event.sourceReference];
-  if (primary.some((t) => t.includes(q))) return "high";
-  if (secondary.some((t) => t.includes(q))) return "low";
-  return "none";
-}
 
 // 연도 범위 필터. 빈 칸은 그쪽 끝을 열어둔다는 뜻이고, 연도 미상 사건은 범위를 지정한 순간
 // 제외한다 — 몇 년인지 모르는 것을 "1950~1960년에 속한다"고 볼 수는 없기 때문.
@@ -119,33 +97,17 @@ export function TimelineExperience({
   mode?: TimelineMode;
 }) {
   const [query, setQuery] = useState("");
-  const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
-  const [relationFilter, setRelationFilter] = useState<TickRelation | "all">("all");
-  const [savedOnly, setSavedOnly] = useState(false);
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [detailLevel, setDetailLevel] = useState<DetailLevel>("full");
   const [collection, setCollection] = useState<Set<string>>(new Set());
   const [collectionName, setCollectionName] = useState("나의 컬렉션");
-
-  // 연표 위쪽 세 겹(눈금·표제부·키워드 칩)을 접을 수 있게 한다 — 표를 넓게 보고 싶을 때
-  // 화면 절반을 차지하던 것들이다. 검색·연도·SCALE 줄은 접히지 않고 늘 위에 남는다.
-  // 접은 상태는 기억하지 않는다 — 새로 열면 늘 펼친 상태다.
-  const [showRuler, setShowRuler] = useState(true);
-  const [showHeadline, setShowHeadline] = useState(true);
-  const [showKeywords, setShowKeywords] = useState(true);
 
   const segmentById = useMemo(() => {
     const map = new Map<string, SegmentCardData>();
     segments.forEach((s) => map.set(s.id, s));
     return map;
   }, [segments]);
-
-  const segmentTags = useMemo(
-    () => new Set(segments.flatMap((s) => [...s.personPlaceTags, ...s.keywordTags])),
-    [segments],
-  );
 
   const sortedAll = useMemo(
     () => [...events].sort((a, b) => edtfSortKey(a.dateValue) - edtfSortKey(b.dateValue)),
@@ -160,67 +122,10 @@ export function TimelineExperience({
   const visible = useMemo(() => {
     const q = query.trim();
     const base = sortedAll.filter(
-      (e) =>
-        (!activeKeyword || e.keywordTags.includes(activeKeyword)) &&
-        matchesQuery(e, q) &&
-        matchesYearRange(e, yearRange.from, yearRange.to) &&
-        (relationFilter === "all" || relevanceOf(e, query, segmentTags) === relationFilter) &&
-        (!savedOnly || e.savedByUser),
+      (e) => matchesQuery(e, q) && matchesYearRange(e, yearRange.from, yearRange.to),
     );
     return sortDirection === "asc" ? base : [...base].reverse();
-  }, [sortedAll, activeKeyword, sortDirection, query, relationFilter, segmentTags, savedOnly, yearRange]);
-
-  const keywords = useMemo(() => {
-    const set = new Set<string>();
-    events.forEach((e) => e.keywordTags.forEach((k) => set.add(k)));
-    return Array.from(set);
-  }, [events]);
-
-  // 눈금 좌표계 — 1900~2026 고정 도메인
-  const toPct = (yearFloat: number) => yearToAxisPercent(yearFloat, TIMELINE_START, TIMELINE_END);
-
-  // 바코드는 검색·필터로 걸러진 목록이 아니라 전체 사건을 대상으로, 관련도만 색으로 표시한다.
-  const ticks = useMemo(
-    () =>
-      sortedAll.map((e) => ({
-        id: e.id,
-        title: `${edtfYear(e.dateValue)} · ${e.eventName}`,
-        leftPct: toPct(edtfYearFloat(e.dateValue)),
-        relation: relevanceOf(e, query, segmentTags),
-      })),
-    [sortedAll, segmentTags, query],
-  );
-
-  // 연도 범위 필터가 걸린 구간을 바코드에도 표시한다 — 범위 밖에 음영을 깐다.
-  // 끝 연도는 그 해를 포함하므로 다음 해 시작(to + 1)까지가 밝은 구간이다.
-  const rulerRange = useMemo(() => {
-    if (yearRange.from === null && yearRange.to === null) return null;
-    const clamp = (pct: number) => Math.min(100, Math.max(0, pct));
-    return {
-      fromPct: yearRange.from === null ? 0 : clamp(toPct(yearRange.from)),
-      toPct: yearRange.to === null ? 100 : clamp(toPct(yearRange.to + 1)),
-    };
-  }, [yearRange]);
-
-  // 눈금선은 10년마다, 연도 라벨은 20년마다 (126년 도메인에서 겹치지 않게)
-  const decades = useMemo(() => {
-    const list = [];
-    for (let y = TIMELINE_START; y <= TIMELINE_END; y += 10) {
-      list.push({ year: y, leftPct: toPct(y), labeled: y % 20 === 0 });
-    }
-    return list;
-  }, []);
-
-  // 표제부에 걸 수 있는 필터들 — 표제부를 접으면 해제 버튼도 같이 사라지므로,
-  // 접힌 상태에서도 "걸려 있음"을 알리고 풀 수 있도록 조건과 해제를 따로 뽑아둔다.
-  const headlineFilterOn = relationFilter !== "all" || savedOnly || Boolean(yearFrom) || Boolean(yearTo);
-
-  function clearHeadlineFilters() {
-    setRelationFilter("all");
-    setSavedOnly(false);
-    setYearFrom("");
-    setYearTo("");
-  }
+  }, [sortedAll, sortDirection, query, yearRange]);
 
   function toggleCollection(id: string) {
     setCollection((prev) => {
@@ -233,6 +138,7 @@ export function TimelineExperience({
 
   // 지금 걸린 검색·필터를 그대로 살려 "보이는 것 전부"를 고른다 — 일괄 숨김의 재료가 된다.
   const allVisibleSelected = visible.length > 0 && visible.every((e) => collection.has(e.id));
+  const someVisibleSelected = visible.some((e) => collection.has(e.id));
 
   function toggleSelectAllVisible() {
     setCollection((prev) => {
@@ -251,242 +157,113 @@ export function TimelineExperience({
     setCollection(new Set());
   }
 
+  // 컬렉션 이름은 CSV를 만들 때만 묻는다 — 늘 떠 있는 입력 칸으로 두면 쓰는 때보다
+  // 자리만 차지하는 때가 훨씬 길다. 취소하면 내려받지 않는다.
   function handleExportCsv() {
     const picked = sortedAll.filter((e) => collection.has(e.id));
-    downloadCsv(collectionName || "연표컬렉션", eventsToCsv(picked));
+    const name = window.prompt(`CSV로 내보낼 ${picked.length}건의 이름`, collectionName);
+    if (name === null) return;
+    const trimmed = name.trim() || "연표컬렉션";
+    setCollectionName(trimmed);
+    downloadCsv(trimmed, eventsToCsv(picked));
   }
 
   return (
     <div className="bg-white">
-      {showRuler && <TimelineRuler ticks={ticks} decades={decades} range={rulerRange} />}
-
-      {/* 고른 사건을 다루는 막대는 표 위에 둔다 — 사건이 수백 건이면 표 아래 끝은 사실상 닿지 않는다.
-          바코드 띠를 켠 상태에서는 그 축소 높이만큼 내려 붙여 서로 가리지 않게 한다. */}
-      <CollectionBar
-        mode={mode}
-        count={collection.size}
-        name={collectionName}
-        onNameChange={setCollectionName}
-        onExport={handleExportCsv}
-        onHide={handleBulkHide}
-        onClear={() => setCollection(new Set())}
-        stickyTop={showRuler ? RULER_BAR_HEIGHT : 0}
-      />
-
-      {/* 표제부 — 페이지 제목(SiteHeader의 "연표")과 중복되지 않게 기간·통계만 한 줄로 */}
-      {showHeadline && (
-      <div className="border-b border-zinc-200">
-        <div className="page-shell flex flex-wrap items-baseline gap-x-5 gap-y-1 py-3">
-          <p className="font-mono text-xs text-zinc-400">
-            {TIMELINE_START}–{TIMELINE_END} · 사건{" "}
-            {visible.length === sortedAll.length ? sortedAll.length : `${visible.length} / ${sortedAll.length}`} · 교차점{" "}
-            {visible.filter((e) => e.linkedSegmentIds.length > 0).length}
-          </p>
-          <div className="ml-auto flex items-center gap-2 font-mono text-[10px]">
-            {/* "저장한 자료만"은 사료 연결에서 골라 저장했거나 직접 만든 사건인지를 묻는 관리용 필터다 */}
-            {mode === "admin" && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setSavedOnly((v) => !v)}
-                  title="사료 연결에서 저장했거나 직접 만든 사건만 보기"
-                  className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
-                    savedOnly ? "bg-emerald-100 text-emerald-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-                  }`}
-                >
-                  <span aria-hidden>✓</span>
-                  저장한 자료만 ({sortedAll.filter((e) => e.savedByUser).length})
-                </button>
-                <span className="h-3 w-px bg-zinc-200" />
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => setRelationFilter(relationFilter === "high" ? "all" : "high")}
-              title="이 항목만 보기"
-              className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
-                relationFilter === "high" ? "bg-orange-100 text-orange-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-              }`}
-            >
-              <span className="inline-block h-2.5 w-[3px] bg-orange-500" />
-              {query.trim() ? "검색어와 관련도 높음" : "구술과 직접 교차"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setRelationFilter(relationFilter === "low" ? "all" : "low")}
-              title="이 항목만 보기"
-              className={`flex items-center gap-1 rounded-sm px-1.5 py-0.5 ${
-                relationFilter === "low" ? "bg-blue-100 text-blue-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-              }`}
-            >
-              <span className="inline-block h-2.5 w-[2px] bg-blue-400" />
-              {query.trim() ? "관련도 낮음" : "간접 연관"}
-            </button>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 text-zinc-300">
-              <span className="inline-block h-2.5 w-[1px] bg-zinc-300" /> 무관
-            </span>
-            {headlineFilterOn && (
-              <button
-                type="button"
-                onClick={clearHeadlineFilters}
-                className="ml-1 text-zinc-400 underline decoration-dotted underline-offset-2 hover:text-zinc-800"
-              >
-                필터 해제
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-      )}
-
       <div className="page-shell pt-5">
-        {/* 검색 + 키워드 필터 + 표시 단위 */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex flex-1 items-center gap-2">
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-400">검색</span>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="사건명, 내용, 장소, 키워드, 출처"
-                className="w-full rounded-sm border border-zinc-300 bg-white px-3 py-1.5 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-orange-400 focus:outline-none"
-              />
-            </label>
-            {/* 연도 범위 — 빈 칸은 그쪽 끝을 열어둔다 */}
-            <div className="flex items-center gap-1.5 font-mono text-[11px]">
-              <span className="text-[10px] uppercase tracking-wider text-zinc-400">연도</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={yearFrom}
-                onChange={(e) => setYearFrom(e.target.value)}
-                placeholder={String(TIMELINE_START)}
-                aria-label="시작 연도"
-                className="w-16 rounded-sm border border-zinc-300 bg-white px-2 py-1.5 text-center text-xs tabular-nums text-zinc-700 placeholder:text-zinc-300 focus:border-orange-400 focus:outline-none"
-              />
-              <span className="text-zinc-400">–</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={yearTo}
-                onChange={(e) => setYearTo(e.target.value)}
-                placeholder={String(TIMELINE_END)}
-                aria-label="끝 연도"
-                className="w-16 rounded-sm border border-zinc-300 bg-white px-2 py-1.5 text-center text-xs tabular-nums text-zinc-700 placeholder:text-zinc-300 focus:border-orange-400 focus:outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-1 font-mono text-[11px]">
-              <span className="mr-1 text-zinc-400">SCALE —</span>
-              {DETAIL_LEVELS.map((level) => (
-                <button
-                  key={level.value}
-                  type="button"
-                  onClick={() => setDetailLevel(level.value)}
-                  className={`rounded-sm px-2 py-1 ${
-                    detailLevel === level.value
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
-                  }`}
-                >
-                  {level.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 위쪽 세 겹을 접었다 펴는 on/off — 검색 줄 오른쪽 끝에 붙인다.
-                접혀도 걸어둔 값은 살아 있다(접기는 보기만 바꾼다). */}
-            <div className="ml-auto flex items-center gap-x-3 font-mono text-[11px]">
-              {(
-                [
-                  { label: "눈금", on: showRuler, toggle: () => setShowRuler((v) => !v) },
-                  { label: "교차점", on: showHeadline, toggle: () => setShowHeadline((v) => !v) },
-                  { label: "키워드", on: showKeywords, toggle: () => setShowKeywords((v) => !v) },
-                ] as const
-              ).map((item) => (
-                <Switch key={item.label} label={item.label} on={item.on} onToggle={item.toggle} />
-              ))}
-            </div>
+        {/* 표 위 도구는 한 줄로 끝낸다 — 검색·연도·정렬. 사건을 고르면 표 헤더 줄이 그대로
+            선택 도구가 되므로, 그때도 겹이 늘지 않는다. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-zinc-200 pb-3">
+          {/* 검색 칸은 한 줄을 다 먹지 않는다 — 넓다고 더 찾아지는 것도 아니고,
+              옆의 연도·정렬이 밀려나면 그것들을 찾느라 다시 눈이 돌아간다. */}
+          <label className="flex items-center gap-2">
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-400">검색</span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="사건명, 장소, 키워드"
+              className="w-52 rounded-sm border border-zinc-300 bg-white px-2.5 py-1 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-orange-400 focus:outline-none"
+            />
+          </label>
+          {/* 연도 범위 — 빈 칸은 그쪽 끝을 열어둔다 */}
+          <div className="flex items-center gap-1.5 font-mono text-[11px]">
+            <span className="text-[10px] uppercase tracking-wider text-zinc-400">연도</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={yearFrom}
+              onChange={(e) => setYearFrom(e.target.value)}
+              placeholder={String(TIMELINE_START)}
+              aria-label="시작 연도"
+              className="w-16 rounded-sm border border-zinc-300 bg-white px-2 py-1 text-center text-xs tabular-nums text-zinc-700 placeholder:text-zinc-300 focus:border-orange-400 focus:outline-none"
+            />
+            <span className="text-zinc-400">–</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={yearTo}
+              onChange={(e) => setYearTo(e.target.value)}
+              placeholder={String(TIMELINE_END)}
+              aria-label="끝 연도"
+              className="w-16 rounded-sm border border-zinc-300 bg-white px-2 py-1 text-center text-xs tabular-nums text-zinc-700 placeholder:text-zinc-300 focus:border-orange-400 focus:outline-none"
+            />
           </div>
-
-          {/* 접힌 줄에 필터가 걸려 있으면 목록이 왜 줄었는지 알 길이 없다 — 여기서 알리고 푼다 */}
-          {((!showHeadline && headlineFilterOn) || (!showKeywords && activeKeyword)) && (
-            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
-              {!showHeadline && headlineFilterOn && (
-                <button
-                  type="button"
-                  onClick={clearHeadlineFilters}
-                  className="rounded-sm bg-orange-100 px-2 py-1 text-orange-700 hover:bg-orange-200"
-                >
-                  교차점 필터 걸림 · 해제
-                </button>
-              )}
-              {!showKeywords && activeKeyword && (
-                <button
-                  type="button"
-                  onClick={() => setActiveKeyword(null)}
-                  className="rounded-sm bg-orange-100 px-2 py-1 text-orange-700 hover:bg-orange-200"
-                >
-                  키워드 “{activeKeyword}” · 해제
-                </button>
-              )}
-            </div>
-          )}
-          <div
-            className={`flex-wrap items-baseline gap-x-4 gap-y-1.5 font-mono text-[11px] ${showKeywords ? "flex" : "hidden"}`}
-          >
-            <span className="text-zinc-400">필터 · 제안 키워드 —</span>
-            <button
-              type="button"
-              onClick={() => setActiveKeyword(null)}
-              className={
-                activeKeyword === null
-                  ? "font-bold text-orange-600 underline underline-offset-4"
-                  : "text-zinc-400 hover:text-zinc-800"
-              }
-            >
-              전체
-            </button>
-            {keywords.map((kw) => (
+          {/* 정렬은 표 헤더의 화살표에만 숨어 있었다 — 연표에서 과거순·최신순은 훑는 방향을
+              정하는 필터에 가까우므로, 검색·연도와 같은 줄에 이름을 달고 나와 있게 한다. */}
+          <div className="flex items-center gap-1 font-mono text-[11px]">
+            <span className="mr-1 text-[10px] uppercase tracking-wider text-zinc-400">정렬</span>
+            {SORT_OPTIONS.map((option) => (
               <button
-                key={kw}
+                key={option.value}
                 type="button"
-                onClick={() => setActiveKeyword(kw === activeKeyword ? null : kw)}
-                className={
-                  activeKeyword === kw
-                    ? "font-bold text-orange-600 underline underline-offset-4"
-                    : "text-zinc-400 hover:text-zinc-800"
-                }
+                onClick={() => setSortDirection(option.value)}
+                className={`rounded-sm px-2 py-1 ${
+                  sortDirection === option.value
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
+                }`}
               >
-                {kw}
+                {option.label}
               </button>
             ))}
           </div>
+          {/* 사건 추가는 도구 줄 오른쪽 끝 — 연표를 훑다 "없네" 싶은 순간 눈이 이미 이 줄에 있다 */}
+          {mode === "admin" && <AddEventPanel />}
         </div>
 
-        {/* 표 헤더 — 사료 · 날짜 · 사건명(키워드) · 내용(출처) · 구술 5단 구성 */}
-        {detailLevel !== "title" && (
-          <div
-            className={`mt-4 hidden gap-x-5 border-b-2 border-zinc-900 pb-1.5 font-mono text-[10px] uppercase tracking-wider text-zinc-500 sm:grid ${
-              detailLevel === "full"
-                ? "sm:grid-cols-[220px_84px_1fr_1fr_280px]"
-                : "sm:grid-cols-[84px_1fr_1fr]"
-            }`}
-          >
-            {detailLevel === "full" && <span>사료</span>}
-            {/* 행마다 붙는 ★와 같은 자리에 "보이는 것 모두" 스위치를 둔다 — 검색·필터로 좁힌
-                다음 여기서 한 번에 고르고, 아래 막대에서 일괄 숨김·CSV로 넘긴다. */}
+        {/* 표 헤더 — 사료 · 날짜 · 사건명(키워드) · 내용(출처) · 구술 5단 구성.
+            고른 사건이 있으면 이 줄이 그대로 선택 도구로 바뀐다 — 새 막대를 얹지 않는다. */}
+        {collection.size > 0 ? (
+          <SelectionHeader
+            mode={mode}
+            count={collection.size}
+            allSelected={allVisibleSelected}
+            someSelected={someVisibleSelected}
+            onToggleAll={toggleSelectAllVisible}
+            onExport={handleExportCsv}
+            onHide={handleBulkHide}
+            onClear={() => setCollection(new Set())}
+          />
+        ) : (
+          <div className="mt-4 hidden grid-cols-[220px_84px_1fr_1fr_280px] gap-x-5 border-b-2 border-zinc-900 pb-1.5 font-mono text-[10px] uppercase tracking-wider text-zinc-500 sm:grid">
+            <span>사료</span>
+            {/* 행마다 붙는 체크박스와 같은 자리에 "보이는 것 모두" 스위치를 둔다 — 검색·필터로 좁힌
+                다음 여기서 한 번에 고르면, 이 줄이 곧바로 선택 도구로 바뀐다. */}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleSelectAllVisible}
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
+                }}
+                onChange={toggleSelectAllVisible}
                 title={allVisibleSelected ? "보이는 사건 선택 해제" : `보이는 ${visible.length}건 모두 선택`}
-                className={`text-xs leading-none ${
-                  allVisibleSelected ? "text-orange-500" : "text-zinc-300 hover:text-orange-400"
-                }`}
-              >
-                {allVisibleSelected ? "★" : "☆"}
-              </button>
+                aria-label={allVisibleSelected ? "보이는 사건 선택 해제" : `보이는 ${visible.length}건 모두 선택`}
+                className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-orange-500"
+              />
+              {/* 정렬은 위 줄에 나와 있지만, 표를 읽다 방향을 바꾸고 싶을 때 손이 가는 곳은
+                  날짜 칸 머리다 — 같은 값을 여기서도 뒤집는다. */}
               <button
                 type="button"
                 onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
@@ -497,19 +274,7 @@ export function TimelineExperience({
             </div>
             <span>사건명</span>
             <span>내용</span>
-            {detailLevel === "full" && <span>구술</span>}
-          </div>
-        )}
-        {detailLevel === "title" && (
-          <div className="mt-4 flex items-center justify-between border-b-2 border-zinc-900 pb-1.5 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-            <button
-              type="button"
-              onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
-              className="hover:text-zinc-900"
-            >
-              날짜 {sortDirection === "asc" ? "▲ 과거순" : "▼ 최신순"}
-            </button>
-            <span>연표</span>
+            <span>구술</span>
           </div>
         )}
 
@@ -524,7 +289,6 @@ export function TimelineExperience({
               key={event.id}
               event={event}
               mode={mode}
-              detailLevel={detailLevel}
               linkedSegments={event.linkedSegmentIds
                 .map((id) => segmentById.get(id))
                 .filter((s): s is SegmentCardData => !!s)}
@@ -568,77 +332,46 @@ function CuratorMemo({ event, mode }: { event: TimelineEventData; mode: Timeline
 function EventEntry({
   event,
   mode,
-  detailLevel,
   linkedSegments,
   inCollection,
   onToggleCollection,
 }: {
   event: TimelineEventData;
   mode: TimelineMode;
-  detailLevel: DetailLevel;
   linkedSegments: SegmentCardData[];
   inCollection: boolean;
   onToggleCollection: () => void;
 }) {
   const hasCrossing = linkedSegments.length > 0;
 
-  if (detailLevel === "title") {
-    return (
-      <div
-        className={`grid grid-cols-[88px_1fr] gap-x-5 border-b border-zinc-200 py-2.5 ${
-          event.savedByUser ? "border-l-2 border-l-emerald-400 pl-2" : ""
-        }`}
-      >
-        <div className="font-mono text-[11px] leading-5 text-zinc-500">
-          {formatEdtfToKorean(event.dateValue)}
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-serif text-[15px] font-semibold leading-snug text-zinc-900">
-            {event.eventName}
-            {mode === "admin" && event.savedByUser && <SavedBadge />}
-          </h3>
-          <CuratorMemo event={event} mode={mode} />
-          {mode === "admin" && <EventRowControls event={event} />}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
-      className={`grid grid-cols-1 gap-x-5 gap-y-3 py-4 ${
-        detailLevel === "full"
-          ? "sm:grid-cols-[220px_84px_1fr_1fr_280px]"
-          : "sm:grid-cols-[84px_1fr_1fr]"
-      } ${hasCrossing ? "border-b border-orange-200 bg-orange-50/40" : "border-b border-zinc-200"} ${
-        event.savedByUser ? "border-l-2 border-l-emerald-400 pl-3" : ""
-      }`}
+      className={`grid grid-cols-1 gap-x-5 gap-y-3 py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
+        hasCrossing ? "border-b border-orange-200 bg-orange-50/40" : "border-b border-zinc-200"
+      } ${event.savedByUser ? "border-l-2 border-l-emerald-400 pl-3" : ""}`}
     >
       {/* 사료 — 다른 아카이브에서 가져온 자료. 다른 컬럼보다 넓게 잡아 이미지가 잘 보이게 한다 */}
-      {detailLevel === "full" && (
-        <div className="flex flex-col gap-2.5">
-          {event.linkedMaterials.length === 0 ? (
-            <span className="font-mono text-[10px] text-zinc-300">—</span>
-          ) : (
-            event.linkedMaterials.map((material) => (
-              <MaterialThumb key={material.id} material={material} eventId={event.id} mode={mode} />
-            ))
-          )}
-        </div>
-      )}
+      <div className="flex flex-col gap-2.5">
+        {event.linkedMaterials.length === 0 ? (
+          <span className="font-mono text-[10px] text-zinc-300">—</span>
+        ) : (
+          event.linkedMaterials.map((material) => (
+            <MaterialThumb key={material.id} material={material} eventId={event.id} mode={mode} />
+          ))
+        )}
+      </div>
 
       {/* 날짜 */}
       <div className="flex items-start gap-2">
-        <button
-          type="button"
-          onClick={onToggleCollection}
+        {/* 체크박스로 둔다 — 별표는 중요도 표시로 읽혀서, 고르는 일과 뜻이 어긋난다. */}
+        <input
+          type="checkbox"
+          checked={inCollection}
+          onChange={onToggleCollection}
           title={inCollection ? "컬렉션에서 빼기" : "컬렉션에 담기"}
-          className={`font-mono text-xs leading-none ${
-            inCollection ? "text-orange-500" : "text-zinc-300 hover:text-orange-400"
-          }`}
-        >
-          {inCollection ? "★" : "☆"}
-        </button>
+          aria-label={`${event.eventName} 고르기`}
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer accent-orange-500"
+        />
         <span className="font-mono text-[11px] leading-5 text-zinc-500">{formatEdtfToKorean(event.dateValue)}</span>
       </div>
 
@@ -679,20 +412,18 @@ function EventEntry({
       </div>
 
       {/* 구술 — 교차하는 구술 인용. 다른 컬럼보다 넓게 잡아 발췌가 잘 읽히게 한다 */}
-      {detailLevel === "full" && (
-        <div className="flex flex-col gap-3">
-          {linkedSegments.length === 0 ? (
-            <span className="font-mono text-[10px] text-zinc-300">—</span>
-          ) : (
-            linkedSegments.map((segment) => (
-              <OralQuote key={segment.id} segment={segment} eventId={event.id} mode={mode} />
-            ))
-          )}
-        </div>
-      )}
+      <div className="flex flex-col gap-3">
+        {linkedSegments.length === 0 ? (
+          <span className="font-mono text-[10px] text-zinc-300">—</span>
+        ) : (
+          linkedSegments.map((segment) => (
+            <OralQuote key={segment.id} segment={segment} eventId={event.id} mode={mode} />
+          ))
+        )}
+      </div>
 
       {/* 메모 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간 너비에만 맞춘다 */}
-      <div className={detailLevel === "full" ? "sm:col-start-2 sm:col-end-5" : "sm:col-span-full"}>
+      <div className="sm:col-start-2 sm:col-end-5">
         <CuratorMemo event={event} mode={mode} />
         {mode === "admin" && <EventRowControls event={event} />}
       </div>
@@ -780,32 +511,31 @@ function OralQuote({
   );
 }
 
-// WWA의 "Create Personal Collections and generate PDF readers"를 참고해,
-// 사건을 골라 담고 CSV로 내보내는 기능. 브라우저 세션 안에서만 유지되는 목업 상태.
-// 관리페이지에서는 같은 선택을 일괄 숨김의 대상으로도 쓴다 — 고르는 행위를 두 벌 만들지 않는다.
-function CollectionBar({
+// WWA의 "Create Personal Collections and generate PDF readers"를 참고해, 사건을 골라 담고
+// CSV로 내보내는 기능. 관리페이지에서는 같은 선택을 일괄 숨김의 대상으로도 쓴다 — 고르는
+// 행위를 두 벌 만들지 않는다. 도구를 담는 자리는 표 헤더 줄 자신이다: 고른 것이 있는 동안
+// 헤더가 이 줄로 바뀌므로 화면에 겹이 하나도 늘지 않고, 표를 따라 내려가도 늘 표 위에 있다.
+function SelectionHeader({
   mode,
   count,
-  name,
-  onNameChange,
+  allSelected,
+  someSelected,
+  onToggleAll,
   onExport,
   onHide,
   onClear,
-  stickyTop,
 }: {
   mode: TimelineMode;
   count: number;
-  name: string;
-  onNameChange: (v: string) => void;
+  allSelected: boolean;
+  someSelected: boolean;
+  onToggleAll: () => void;
   onExport: () => void;
   onHide: () => Promise<void>;
   onClear: () => void;
-  stickyTop: number;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
-
-  if (count === 0) return null;
 
   async function handleHide() {
     setPending(true);
@@ -818,74 +548,59 @@ function CollectionBar({
   }
 
   return (
-    <div
-      className="sticky z-30 border-b border-zinc-900 bg-white/95 backdrop-blur-sm"
-      style={{ top: stickyTop }}
-    >
-      {confirming && (
-        <div className="border-b border-amber-200 bg-amber-50">
-          <div className="page-shell flex flex-wrap items-center gap-3 py-2">
-            <p className="font-mono text-[11px] leading-5 text-zinc-700">
-              선택한 <strong className="font-bold">{count}건</strong>을 연표에서 숨깁니다. DB에서는 아무것도
-              지워지지 않고, 붙어 있던 사료·구술 연결도 그대로 남습니다 — 아래 “숨긴 사건”에서 되돌립니다.
-            </p>
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={pending}
-                className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={handleHide}
-                disabled={pending}
-                className="rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-[11px] text-white hover:bg-zinc-700 disabled:opacity-50"
-              >
-                {pending ? "숨기는 중…" : `${count}건 숨김`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <div className="page-shell flex flex-wrap items-center gap-3 py-2.5">
-        <span className="font-mono text-[11px] text-zinc-500">
-          {mode === "admin" ? "선택" : "컬렉션에"} <span className="font-bold text-orange-600">{count}개</span>{" "}
-          담김
-        </span>
+    <div className="mt-4 hidden grid-cols-[220px_1fr] gap-x-5 border-b-2 border-zinc-900 pb-1.5 sm:grid">
+      {/* 사료 칸은 비워 둔다 — 체크박스가 아래 행들의 체크박스와 같은 세로선에 놓이게 */}
+      <span />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px]">
         <input
-          type="text"
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          placeholder="컬렉션 이름"
-          className="rounded-sm border border-zinc-300 bg-white px-2.5 py-1 font-mono text-xs text-zinc-700 focus:border-orange-400 focus:outline-none"
+          type="checkbox"
+          checked={allSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = !allSelected && someSelected;
+          }}
+          onChange={onToggleAll}
+          title={allSelected ? "보이는 사건 선택 해제" : "보이는 사건 모두 선택"}
+          aria-label={allSelected ? "보이는 사건 선택 해제" : "보이는 사건 모두 선택"}
+          className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-orange-500"
         />
-        <button
-          type="button"
-          onClick={onExport}
-          className="rounded-sm bg-orange-500 px-3 py-1.5 font-mono text-xs font-bold text-white hover:bg-orange-600"
-        >
-          CSV 생성
-        </button>
-        {mode === "admin" && (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            disabled={pending}
-            className="rounded-sm border border-zinc-300 bg-white px-3 py-1.5 font-mono text-xs font-bold text-zinc-700 hover:border-zinc-500 disabled:opacity-50"
-          >
-            {count}건 일괄 숨김
-          </button>
+        {confirming ? (
+          <>
+            <span className="text-zinc-700">
+              {count}건을 연표에서 내립니다 — DB는 그대로고, 아래 “숨긴 사건”에서 되돌립니다
+            </span>
+            <button
+              type="button"
+              onClick={handleHide}
+              disabled={pending}
+              className="ml-auto rounded-sm bg-zinc-900 px-2.5 py-0.5 text-white hover:bg-zinc-700 disabled:opacity-50"
+            >
+              {pending ? "숨기는 중…" : "숨김"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={pending}
+              className="text-zinc-400 hover:text-zinc-800"
+            >
+              취소
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="font-bold text-orange-600">{count}건 선택</span>
+            <button type="button" onClick={onExport} className="text-zinc-500 hover:text-zinc-900">
+              CSV
+            </button>
+            {mode === "admin" && (
+              <button type="button" onClick={() => setConfirming(true)} className="text-zinc-500 hover:text-zinc-900">
+                숨김
+              </button>
+            )}
+            <button type="button" onClick={onClear} className="ml-auto text-zinc-400 hover:text-zinc-800">
+              해제
+            </button>
+          </>
         )}
-        <button
-          type="button"
-          onClick={onClear}
-          className="font-mono text-[11px] text-zinc-400 hover:text-zinc-800"
-        >
-          비우기
-        </button>
       </div>
     </div>
   );

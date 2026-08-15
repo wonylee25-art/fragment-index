@@ -13,7 +13,7 @@ export default async function AdminTimelinePage() {
 
   return (
     <>
-      {/* 사건 추가 입구는 AdminTabs(탭 줄 오른쪽 끝)에 있다 */}
+      {/* 사건 추가 입구는 연표 도구 줄 오른쪽 끝에 있다(TimelineExperience 안) */}
       <TimelineExperience events={chronicleEvents} segments={oralSegments} mode="admin" />
       <HiddenEventsPanel events={hiddenEvents} />
     </>

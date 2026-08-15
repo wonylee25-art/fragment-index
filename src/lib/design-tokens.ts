@@ -25,9 +25,9 @@ export const TAG_CLASSNAME = {
   keyword: "bg-zinc-100 text-zinc-500", // 키워드: 회색 태그
 };
 
-// 구술 목록·연구 동향·관리(연표)의 "+ ○○ 추가" 입구는 자리(목록 위 오른쪽 끝)와 모양을 공유한다.
-// 셋이 같은 성격의 입구라서 화면을 옮겨도 눈이 같은 자리를 찾게 하려는 것 — 새 화면에 추가 입구를
-// 만들 때도 이 상수를 쓰고, 감싸는 줄에 justify-end를 준다.
+// 구술 목록·연구 동향·관리(연표)의 "+ ○○ 추가" 입구는 모양을 공유한다 — 새 화면에 추가 입구를
+// 만들 때도 이 상수를 쓴다. 자리는 목록 위 오른쪽 끝(구술 목록·연구 동향, 감싸는 줄에 justify-end)이
+// 기본이지만, 연표만 목록 아래 왼쪽에 둔다 — 200건이 넘어 "없네" 싶어질 때가 표 끝이라서다.
 export const ADD_BUTTON_CLASSNAME =
   "shrink-0 rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-[11px] text-white hover:bg-zinc-700";
 
