@@ -25,10 +25,16 @@ export interface RelatedItem {
 // 구술자·면담자를 화면에 보이기 위한 최소 정보. 신상기록부에 있는 현주소·연락처·종교·
 // 직계가족 연락처는 DB에 두지 않는다 — persons는 anon 키로 공개 읽기가 열려 있어
 // 넣는 순간 공개되기 때문이다. 사람을 가려낼 만큼(이름 + 소속)만 남긴다.
+// 이름이 그 사람을 가리키는 방식(person-actions.ts에 각 값의 뜻을 적어 두었다).
+// PersonBrief 쪽은 실명일 때 아예 비워 두므로 "실명"이 없다 — 붙일 표시가 없다는 뜻이다.
+export type PersonKind = "실명" | "가명" | "익명" | "미상";
+
 export interface PersonBrief {
   id: string;
   name: string;
-  affiliation?: string; // 예: "ㅇㅇ대학교 문화인류학과 교수"
+  affiliation?: string; // 예: "ㅇㅇ대학교 문화인류학과 교수". 미상·익명이면 출처와 쪽
+  // 가명·익명·미상 표시. subject 배열을 읽어 오는 질의(getPersons)에서만 채워진다.
+  kind?: Exclude<PersonKind, "실명">;
 }
 
 export interface SegmentCardData {

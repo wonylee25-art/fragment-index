@@ -11,6 +11,15 @@ interface DbPerson {
   id: string;
   title: string;
   affiliation?: string | null; // 소속(직위) — 동명이인을 가려내고 면담자를 알아보기 위한 최소 신상
+  // 역할과 속성이 함께 들어간다: ["구술자"], ["구술자", "배우"], ["구술자", "미상"] 등.
+  // 뽑아 쓰는 질의에서만 select에 넣으므로 없을 수 있다.
+  subject?: string[] | null;
+}
+
+const PERSON_KINDS = ["가명", "익명", "미상"] as const;
+
+function personKindOf(person: DbPerson): PersonBrief["kind"] {
+  return PERSON_KINDS.find((k) => person.subject?.includes(k));
 }
 
 interface DbSource {
@@ -350,13 +359,21 @@ export async function getPapers(): Promise<PaperData[]> {
 
 // 구술 추가 화면의 인물 목록. 역할로 미리 가르지 않는다 — 한 사람이 어떤 면담에서는
 // 구술자, 다른 면담에서는 면담자일 수 있고, 역할은 발췌마다 명단에서 정해지기 때문이다.
+//
+// subject까지 읽는 것은 미상·익명을 가려내기 위해서다. 이 화면에서는 같은 이름이 여러 줄
+// 뜨는 게 정상이라(미상은 부를 때마다 새로 만든다), 어느 줄이 미상인지 보이지 않으면
+// 고르는 쪽이 그냥 첫 줄을 누르게 된다.
 export async function getPersons(): Promise<PersonBrief[]> {
-  const { data, error } = await supabase.from("persons").select("id, title, affiliation").order("title");
+  const { data, error } = await supabase
+    .from("persons")
+    .select("id, title, affiliation, subject")
+    .order("title");
   if (error) throw error;
   return ((data as DbPerson[]) ?? []).map((p) => ({
     id: p.id,
     name: p.title,
     affiliation: p.affiliation ?? undefined,
+    kind: personKindOf(p),
   }));
 }
 
@@ -424,7 +441,9 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
         "id, item_title, date_value, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
       )
       .order("id"),
-    supabase.from("persons").select("id, title, affiliation"),
+    // subject까지 읽는다 — 화자가 가명·익명·미상이면 목록에서 그렇게 보여야 한다.
+    // 이름만 내보내면 읽는 쪽은 "김영미"를 실명으로 읽는다.
+    supabase.from("persons").select("id, title, affiliation, subject"),
     supabase.from("sources").select("id, title, identifier"),
     supabase.from("segment_persons").select("segment_id, person_id"),
   ]);
@@ -458,6 +477,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
       id: person.id,
       name: person.title,
       affiliation: person.affiliation ?? undefined,
+      kind: personKindOf(person),
     };
     const bucket = row.role === "면담자" ? interviewersBySegment : narratorsBySegment;
     bucket.set(row.segment_id, [...(bucket.get(row.segment_id) ?? []), brief]);
@@ -476,7 +496,12 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     if (!id) return undefined;
     const person = personRecordById.get(id);
     if (!person) return undefined;
-    return { id: person.id, name: person.title, affiliation: person.affiliation ?? undefined };
+    return {
+      id: person.id,
+      name: person.title,
+      affiliation: person.affiliation ?? undefined,
+      kind: personKindOf(person),
+    };
   }
 
   const personTagsBySegment = new Map<string, string[]>();

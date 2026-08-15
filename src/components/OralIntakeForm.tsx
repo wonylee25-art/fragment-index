@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { addSegment, SpeakerRoleLabel } from "@/lib/segment-actions";
 import { createPerson } from "@/lib/person-actions";
 import { serializeUtterances } from "@/lib/segment-text";
-import { PersonBrief, Utterance } from "@/lib/types";
+import { PersonBrief, PersonKind, Utterance } from "@/lib/types";
 import { SourceOption } from "@/lib/db";
 import { EventOption } from "./EventPicker";
 import { SpeakerOption, UtteranceDraft, UtteranceEditor } from "./UtteranceEditor";
@@ -421,8 +421,50 @@ function EventField({
   );
 }
 
+// 이름을 어떻게 부르는가에 따라 [추가]가 하는 일이 갈린다.
+const KIND_HELP: Record<PersonKind, { name: string; affiliation: string; note: string }> = {
+  실명: {
+    // 역할은 쓰는 쪽에서 채워 넣는다 — 이 칸은 구술자에도 면담자에도 같이 쓰인다
+    name: "{역할} 이름",
+    affiliation: "소속·직위 (예: ㅇㅇ대학교 문화인류학과 교수)",
+    note: "같은 이름이 이미 있으면 그 인물로 이어 붙습니다.",
+  },
+  가명: {
+    name: "자료에 적힌 가명 (예: 김미영)",
+    affiliation: "출처와 쪽 (예: 구술사료 3권 p.112)",
+    note: "부를 때마다 새 전거를 만듭니다. 같은 사람임이 확실하면 아래 후보에서 고르세요.",
+  },
+  익명: {
+    name: "가림 표기 (예: 김○○, A씨)",
+    affiliation: "출처와 쪽 (예: 구술사료 3권 p.112)",
+    note: "부를 때마다 새 전거를 만듭니다. 같은 사람임이 확실하면 아래 후보에서 고르세요.",
+  },
+  미상: {
+    name: "아는 것만 (예: 미상(40대 남성))",
+    affiliation: "출처와 쪽 (예: 구술사료 3권 p.112)",
+    note: "부를 때마다 새 전거를 만듭니다. 같은 사람임이 확실하면 아래 후보에서 고르세요.",
+  },
+};
+
+// 이름으로 이어 붙이는 것은 실명뿐이다. 가명은 지어낸 이름이라 겹친다 — 다른 채록 사업에서
+// 각각 "김미영"을 붙였다고 해서 한 사람이 아니고, 흔한 이름을 고르는 경향까지 있어 오히려
+// 실명보다 잘 겹친다. 익명·미상은 애초에 이름이 가림표나 묘사라 묶을 근거가 없다.
+// 같은 사람임이 확실할 때는 아래 후보 목록에서 직접 고르는 길이 따로 있다.
+const REUSES_BY_NAME: Record<PersonKind, boolean> = {
+  실명: true,
+  가명: false,
+  익명: false,
+  미상: false,
+};
+
+const KIND_ORDER: PersonKind[] = ["실명", "가명", "익명", "미상"];
+
 // 한 역할(구술자 또는 면담자)의 명단. 이름을 직접 치면 되고, 이미 등록된 사람이면
-// 목록에서 골라 같은 인물로 이어 붙는다. 여럿이면 구술자 1, 구술자 2로 쌓인다.
+// 아래 후보에서 골라 같은 인물로 이어 붙는다. 여럿이면 구술자 1, 구술자 2로 쌓인다.
+//
+// 후보를 datalist가 아니라 눈에 보이는 목록으로 깐 것은 미상 때문이다. `미상(40대 남성)`은
+// 여러 줄이 정상이라 이름만으로는 고를 수가 없고, 소속 칸에 적어 둔 출처와 쪽을 나란히
+// 봐야 "지금 적는 그 면담의 그 사람"인지 판단이 선다. datalist는 값만 보여준다.
 function SpeakerField({
   role,
   speakers,
@@ -438,12 +480,35 @@ function SpeakerField({
   onRemove: (id: string) => void;
   onCreated: (person: PersonBrief) => void;
 }) {
+  const [kind, setKind] = useState<PersonKind>("실명");
   const [name, setName] = useState("");
   const [affiliation, setAffiliation] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const listId = `people-${role}`;
+  const help = KIND_HELP[kind];
+
+  // 이름을 치는 동안 걸리는 전거를 아래에 깐다. 이름이 정확히 같은 것을 위로 올린다 —
+  // 미상은 같은 이름이 여러 줄이라 부분 일치까지 섞이면 정작 볼 줄이 아래로 밀린다.
+  const candidates = useMemo(() => {
+    const typed = name.trim();
+    if (!typed) return [];
+    return people
+      .filter((p) => p.name.includes(typed))
+      .sort((a, b) => Number(b.name === typed) - Number(a.name === typed))
+      .slice(0, 6);
+  }, [people, name]);
+
+  function pick(person: PersonBrief) {
+    if (speakers.some((s) => s.id === person.id)) {
+      setError("이미 명단에 있습니다.");
+      return;
+    }
+    setError(null);
+    onAdd({ id: person.id, name: person.name, role });
+    setName("");
+    setAffiliation("");
+  }
 
   async function handleAdd() {
     const typed = name.trim();
@@ -453,22 +518,19 @@ function SpeakerField({
     }
     setError(null);
 
-    // 같은 이름이 이미 전거에 있으면 그 사람으로 잇는다 — 같은 사람을 두 번 만들지 않는다.
-    const existing = people.find((p) => p.name === typed);
-    if (existing) {
-      if (speakers.some((s) => s.id === existing.id)) {
-        setError("이미 명단에 있습니다.");
+    // 실명·가명만 이름으로 이어 붙인다. 미상·익명은 이름이 같아도 늘 새로 만든다 —
+    // 같은 사람임이 확실할 때는 아래 후보에서 직접 고르는 길이 따로 있다.
+    if (REUSES_BY_NAME[kind]) {
+      const existing = people.find((p) => p.name === typed);
+      if (existing) {
+        pick(existing);
         return;
       }
-      onAdd({ id: existing.id, name: existing.name, role });
-      setName("");
-      setAffiliation("");
-      return;
     }
 
     setPending(true);
     try {
-      const person = await createPerson({ name: typed, affiliation, role });
+      const person = await createPerson({ name: typed, affiliation, role, kind });
       onCreated(person);
       onAdd({ id: person.id, name: person.name, role });
       setName("");
@@ -511,11 +573,27 @@ function SpeakerField({
       )}
 
       <div className="flex flex-col gap-1.5">
+        {/* 이름을 어떻게 부르는지 먼저 정한다 — 아래 칸의 뜻과 [추가]의 동작이 여기서 갈린다 */}
+        <div className="flex flex-wrap gap-1">
+          {KIND_ORDER.map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setKind(k)}
+              className={`border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+                kind === k
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-line-strong text-muted-2 hover:text-foreground"
+              }`}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+
         <div className="flex gap-1.5">
-          {/* datalist라 직접 쳐도 되고 등록된 인물에서 골라도 된다 */}
           <input
             type="text"
-            list={listId}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
@@ -524,16 +602,9 @@ function SpeakerField({
                 void handleAdd();
               }
             }}
-            placeholder={`${role} 이름`}
+            placeholder={help.name.replace("{역할}", role)}
             className={`${INPUT_BASE} min-w-0 flex-1`}
           />
-          <datalist id={listId}>
-            {people.map((p) => (
-              <option key={p.id} value={p.name}>
-                {p.affiliation ?? ""}
-              </option>
-            ))}
-          </datalist>
           <button
             type="button"
             onClick={handleAdd}
@@ -548,9 +619,38 @@ function SpeakerField({
           type="text"
           value={affiliation}
           onChange={(e) => setAffiliation(e.target.value)}
-          placeholder="소속·직위 (새 인물일 때만, 예: ㅇㅇ대학교 문화인류학과 교수)"
+          placeholder={`${help.affiliation} — 새 인물일 때만`}
           className={INPUT_CLASSNAME}
         />
+
+        <span className="font-mono text-[10px] leading-snug text-muted-2">{help.note}</span>
+
+        {candidates.length > 0 && (
+          <ul className="border border-line-strong bg-background">
+            <li className="border-b border-line px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-2">
+              이미 있는 전거 — 같은 사람이면 고르세요
+            </li>
+            {candidates.map((p) => (
+              <li key={p.id} className="border-b border-line last:border-b-0">
+                <button
+                  type="button"
+                  onClick={() => pick(p)}
+                  className="flex w-full flex-wrap items-baseline gap-x-2 px-2 py-1.5 text-left hover:bg-surface"
+                >
+                  <span className="text-[12px] font-semibold text-foreground">{p.name}</span>
+                  {p.kind && (
+                    <span className="border border-line-strong px-1 font-mono text-[9px] font-bold text-muted-2">
+                      {p.kind}
+                    </span>
+                  )}
+                  {p.affiliation && (
+                    <span className="font-mono text-[10px] text-muted-2">{p.affiliation}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {error && <span className="font-mono text-[11px] text-flag-attention">{error}</span>}
       </div>

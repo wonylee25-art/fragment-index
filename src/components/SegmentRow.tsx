@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
 import { FlagToggle } from "./FlagToggle";
-import { SegmentCardData, ArchiveItemType } from "@/lib/types";
+import { SegmentCardData, ArchiveItemType, PersonBrief } from "@/lib/types";
 import { saveSegmentMemo } from "@/lib/memo-actions";
 import { toggleSegmentImportant } from "@/lib/flag-actions";
 import {
@@ -15,6 +15,36 @@ import {
   FOCUS_HIGHLIGHT_CLASSNAME,
 } from "@/lib/design-tokens";
 import { formatEdtfToKorean } from "@/lib/edtf";
+
+// 이름이 실명이 아닐 때 그렇다고 말해 주는 표시. 이름 문자열에 "(가명)"을 섞어 넣는 대신
+// 여기서 붙인다 — 그렇게 하면 본문 줄머리와 인용문에까지 괄호가 따라 들어간다.
+const KIND_TITLE: Record<NonNullable<PersonBrief["kind"]>, string> = {
+  가명: "자료에 적힌 가명입니다. 같은 가명이라도 다른 사람일 수 있습니다.",
+  익명: "실명을 가린 표기입니다.",
+  미상: "이름이 알려지지 않은 화자입니다.",
+};
+
+// 화자 이름을 가운뎃점으로 잇되, 실명이 아닌 사람에게는 뒤에 표시를 붙인다.
+function SpeakerNames({ people }: { people: PersonBrief[] }) {
+  return (
+    <>
+      {people.map((person, i) => (
+        <span key={person.id}>
+          {i > 0 && " · "}
+          {person.name}
+          {person.kind && (
+            <span
+              title={KIND_TITLE[person.kind]}
+              className="ml-1 border border-zinc-300 px-1 align-[1px] text-[9px] font-normal text-zinc-400"
+            >
+              {person.kind}
+            </span>
+          )}
+        </span>
+      ))}
+    </>
+  );
+}
 
 // 실제 썸네일(오픈그래프 등)이 붙기 전까지 자료 유형을 구분해 보여주는 placeholder 배경.
 const ITEM_TYPE_THUMBNAIL_BG: Record<ArchiveItemType, string> = {
@@ -70,9 +100,12 @@ export function SegmentRow({
               있으면 그것을 먼저 보이고, 없는 발췌(CSV 동기화분)만 제목으로 되돌아간다. */}
           {data.narrators.length > 0 ? (
             <span className="font-medium text-zinc-600">
-              {data.narrators.map((n) => n.name).join(" · ")}
+              <SpeakerNames people={data.narrators} />
               {data.interviewers.length > 0 && (
-                <span className="text-zinc-400"> ← {data.interviewers.map((i) => i.name).join(" · ")}</span>
+                <span className="text-zinc-400">
+                  {" ← "}
+                  <SpeakerNames people={data.interviewers} />
+                </span>
               )}
             </span>
           ) : (
