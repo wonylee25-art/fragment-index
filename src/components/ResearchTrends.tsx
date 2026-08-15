@@ -180,6 +180,13 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
             <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
               <Switch label="키워드" on={showKeywords} onToggle={() => setShowKeywords((v) => !v)} />
               <span className="mx-1 h-3 w-px bg-zinc-200" />
+              {/* 중요만 보기는 정렬이 아니라 필터다 — 정렬 띠와 붙어 있되 스위치 모양으로 구분한다 */}
+              <Switch
+                label={`★ 중요만 (${importantCount})`}
+                on={importantOnly}
+                onToggle={() => setImportantOnly((v) => !v)}
+              />
+              <span className="mx-1 h-3 w-px bg-zinc-200" />
               {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
                 <button
                   key={mode}
@@ -195,6 +202,16 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                   {SORT_LABELS[mode]}
                 </button>
               ))}
+              <span className="mx-1 h-3 w-px bg-zinc-200" />
+              {!addingPaper && (
+                <button
+                  type="button"
+                  onClick={() => setAddingPaper(true)}
+                  className="rounded-sm bg-zinc-900 px-2.5 py-1 text-white hover:bg-zinc-700"
+                >
+                  + 논문 추가
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -259,32 +276,11 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
       </section>
 
       <section>
+        {/* 중요만·정렬·논문 추가는 모두 오른쪽 상단 띠로 옮겼다 — 여기는 지금 무엇이 걸렸는지만 남긴다 */}
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-xs text-zinc-400">
-              논문 목록 · {scopeLabel ? `${scopeLabel} ${sortedPapers.length}편` : `전체 ${sortedPapers.length}편`}
-            </h2>
-            <button
-              type="button"
-              onClick={() => setImportantOnly((v) => !v)}
-              className={`rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${
-                importantOnly ? "bg-amber-100 text-amber-700" : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200"
-              }`}
-            >
-              {importantOnly ? "★ 중요만" : "☆ 중요만"} ({importantCount})
-            </button>
-            {/* 정렬은 오른쪽 상단 띠로 옮겼다 — 지금 무슨 순서인지만 여기 남긴다 */}
-            <span className="font-mono text-[10px] text-zinc-400">{SORT_LABELS[sortMode]}</span>
-          </div>
-          {!addingPaper && (
-            <button
-              type="button"
-              onClick={() => setAddingPaper(true)}
-              className="rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-xs text-white hover:bg-zinc-700"
-            >
-              + 논문 추가
-            </button>
-          )}
+          <h2 className="font-mono text-xs text-zinc-400">
+            논문 목록 · {scopeLabel ? `${scopeLabel} ${sortedPapers.length}편` : `전체 ${sortedPapers.length}편`}
+          </h2>
         </div>
 
         {addingPaper && <AddPaperForm onClose={() => setAddingPaper(false)} />}
