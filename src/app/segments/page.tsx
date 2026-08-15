@@ -13,7 +13,7 @@ export default async function SegmentsPage({
     <div className="min-h-full">
       <SiteHeader active="/segments" title="구술 목록" />
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="page-shell py-6">
         <SegmentListClient segments={oralSegments} focusId={focus} />
       </main>
     </div>

@@ -8,7 +8,7 @@ export default async function ResearchPage() {
   return (
     <div className="min-h-full bg-white">
       <SiteHeader active="/research" title="연구 동향" />
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="page-shell py-6">
         <ResearchTrends papers={papers} syncedAt={syncedAt} />
       </main>
     </div>

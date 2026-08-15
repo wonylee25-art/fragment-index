@@ -8,7 +8,7 @@ export default async function OralHistoryProjectsPage() {
   return (
     <div className="min-h-full bg-white">
       <SiteHeader active="/oral-history-projects" title="구술채록 사업 지도" />
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="page-shell py-6">
         <OralHistoryDiagram doc={doc} />
       </main>
     </div>

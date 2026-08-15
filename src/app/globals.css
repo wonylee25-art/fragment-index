@@ -47,6 +47,30 @@
   }
 }
 
+/* 모든 화면이 공유하는 가로 틀. 예전에는 max-w-6xl(72rem)로 못 박혀 있어서 넓은 모니터에서
+   양옆이 통째로 비었다 — 연표·논문 목록처럼 열이 많은 표가 정작 좁게 눌렸다.
+   이제 화면 폭을 그대로 쓰되, 초광폭에서 한 줄이 끝없이 길어지지 않게 120rem에서만 멈춘다.
+   여백은 화면이 커질수록 함께 넓어진다. 눈금(TimelineRuler)과 표가 같은 틀을 써야 세로선이
+   맞으므로, 가로 틀은 반드시 이 클래스 하나로만 잡는다. */
+.page-shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 120rem;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .page-shell {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-shell {
+    padding-inline: 2rem;
+  }
+}
+
 html {
   overflow-x: hidden;
 }

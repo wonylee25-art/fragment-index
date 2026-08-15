@@ -52,7 +52,7 @@ export function TimelineRuler({
       className="sticky z-30 overflow-hidden border-b border-zinc-200 bg-white/95 backdrop-blur-sm"
       style={{ height: FULL_HEIGHT, top: BAR_HEIGHT - FULL_HEIGHT }}
     >
-      <div className="relative mx-auto h-full max-w-6xl px-4">
+      <div className="page-shell relative h-full">
         {/* 기준선 */}
         <div className="absolute left-4 right-4 h-px bg-zinc-300" style={{ bottom: AXIS_BOTTOM }} />
 

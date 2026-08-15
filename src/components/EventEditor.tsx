@@ -254,7 +254,7 @@ export function HiddenEventsPanel({
 
   return (
     <div className="border-t border-zinc-200 bg-zinc-50">
-      <div className="mx-auto max-w-6xl px-4 py-3">
+      <div className="page-shell py-3">
         <button
           type="button"
           onClick={() => setOpen(!open)}
@@ -306,7 +306,7 @@ export function NewEventPanel() {
 
   return (
     <div className="border-b border-zinc-200 bg-zinc-50">
-      <div className="mx-auto max-w-6xl px-4 py-3">
+      <div className="page-shell py-3">
         {open ? (
           <EventForm
             initial={EMPTY}

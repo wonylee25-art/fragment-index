@@ -13,7 +13,7 @@ export function AdminTabs() {
 
   return (
     <div className="border-b border-zinc-200 bg-zinc-50">
-      <nav className="mx-auto flex max-w-6xl gap-1 px-4">
+      <nav className="page-shell flex gap-1">
         {ADMIN_TABS.map((tab) => {
           const active = pathname === tab.href;
           return (

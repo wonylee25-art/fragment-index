@@ -242,7 +242,7 @@ export function TimelineExperience({
       {/* 표제부 — 페이지 제목(SiteHeader의 "연표")과 중복되지 않게 기간·통계만 한 줄로 */}
       {showHeadline && (
       <div className="border-b border-zinc-200">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-5 gap-y-1 px-4 py-3">
+        <div className="page-shell flex flex-wrap items-baseline gap-x-5 gap-y-1 py-3">
           <p className="font-mono text-xs text-zinc-400">
             {TIMELINE_START}–{TIMELINE_END} · 사건{" "}
             {visible.length === sortedAll.length ? sortedAll.length : `${visible.length} / ${sortedAll.length}`} · 교차점{" "}
@@ -305,7 +305,7 @@ export function TimelineExperience({
       </div>
       )}
 
-      <div className="mx-auto max-w-6xl px-4 pt-5">
+      <div className="page-shell pt-5">
         {/* 검색 + 키워드 필터 + 표시 단위 */}
         <div className="flex flex-col gap-2.5">
           <div className="flex flex-wrap items-center gap-3">
@@ -757,7 +757,7 @@ function CollectionBar({
   if (count === 0) return null;
   return (
     <div className="sticky bottom-0 z-30 border-t border-zinc-900 bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-2.5">
+      <div className="page-shell flex flex-wrap items-center gap-3 py-2.5">
         <span className="font-mono text-[11px] text-zinc-500">
           컬렉션에 <span className="font-bold text-orange-600">{count}개</span> 담김
         </span>

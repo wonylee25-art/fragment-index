@@ -20,7 +20,7 @@ export function SiteHeader({
 }) {
   return (
     <header className="border-b border-line">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-end justify-between gap-6 px-4 py-6">
+      <div className="page-shell flex flex-wrap items-end justify-between gap-6 py-6">
         <div className="flex flex-col gap-1.5">
           <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-2">
             FRAGMENT INDEX

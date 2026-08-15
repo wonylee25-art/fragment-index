@@ -42,7 +42,7 @@ export default async function ReviewPage({
   }));
 
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8">
+    <main className="page-shell flex flex-col gap-10 py-8">
       <MaterialSearch query={q?.trim() ?? ""} />
       <UnlinkedBoard events={eventOptions} materials={materials} segments={segments} />
     </main>
