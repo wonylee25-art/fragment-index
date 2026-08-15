@@ -300,33 +300,18 @@ export function HiddenEventsPanel({
   );
 }
 
-// 연표 위쪽에 놓는 "새 사건 추가" 입구.
-export function NewEventPanel() {
-  const [open, setOpen] = useState(false);
-
+// "새 사건 추가"를 눌렀을 때 열리는 폼. 여는 버튼은 관리 탭 줄(AdminTabs) 오른쪽 끝에 얹혀 있어
+// 버튼 혼자 한 줄을 차지하지 않는다 — 그래서 버튼과 폼이 여기서 갈라져 있다.
+export function NewEventForm({ onClose }: { onClose: () => void }) {
   return (
-    <div className="border-b border-zinc-200 bg-zinc-50">
-      <div className="page-shell py-3">
-        {open ? (
-          <EventForm
-            initial={EMPTY}
-            submitLabel="사건 추가"
-            onSubmit={async (input) => {
-              await createEvent(input);
-              setOpen(false);
-            }}
-            onCancel={() => setOpen(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="rounded-sm border border-zinc-300 bg-white px-2.5 py-1 font-mono text-[11px] font-bold text-zinc-700 hover:border-zinc-500"
-          >
-            + 새 사건 추가
-          </button>
-        )}
-      </div>
-    </div>
+    <EventForm
+      initial={EMPTY}
+      submitLabel="사건 추가"
+      onSubmit={async (input) => {
+        await createEvent(input);
+        onClose();
+      }}
+      onCancel={onClose}
+    />
   );
 }

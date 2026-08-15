@@ -1,4 +1,4 @@
-import { HiddenEventsPanel, NewEventPanel } from "@/components/EventEditor";
+import { HiddenEventsPanel } from "@/components/EventEditor";
 import { TimelineExperience } from "@/components/TimelineExperience";
 import { getChronicleEvents, getHiddenEvents, getOralSegments } from "@/lib/db";
 
@@ -13,7 +13,7 @@ export default async function AdminTimelinePage() {
 
   return (
     <>
-      <NewEventPanel />
+      {/* 사건 추가 입구는 AdminTabs(탭 줄 오른쪽 끝)에 있다 */}
       <TimelineExperience events={chronicleEvents} segments={oralSegments} mode="admin" />
       <HiddenEventsPanel events={hiddenEvents} />
     </>
