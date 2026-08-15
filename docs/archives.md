@@ -96,6 +96,17 @@
 - **API가 주는 정보 자체가 빈약함** — 안내 문서에 "검색 간략결과(논문명, 출판사, 저자 등)"만 제공한다고 명시됨. `literature_review.md` 작성 때 브라우저로 직접 검색해서 얻은 **초록, KCI 피인용 횟수, 등재 구분** 등은 이 API로는 안 나올 가능성이 높음 — 즉 인증키를 받아 연동해도 지금 브라우저 수동 검색보다 얻는 정보가 더 적을 수 있음.
 - **결론**: 지금 시점엔 연동 실익이 낮음. ①정리노트 §6 스키마에 "2차 학술자료"를 담을 테이블 자체가 없고(로드맵 B3 "웹검색 기반 2차 자료 제안/참고 포스트잇 UI"가 아직 미착수), ②로드맵 A4가 이미 "KCI는 실연동 착수 시점에 확인" 수준으로 낮은 우선순위를 매겨둠. 나중에 실제 착수할 때 위 엔드포인트·인증 절차를 그대로 재사용하면 됨.
 
+### DBpia OpenAPI (api.dbpia.co.kr)
+- **확인일**: 2026-08-16 (문서 페이지만 확인 — 키가 없어 라이브 호출은 못 함)
+- **판정**: ◐ (엔드포인트·파라미터가 문서로 공개된 진짜 REST API지만, 키 발급이 **개인회원 로그인 필수** — KCI와 같은 이유로 대리 진행 불가)
+- 안내 페이지: `https://api.dbpia.co.kr/openApi/about/search.do`(검색 API). 같은 사이트에 시작하기(`/openApi/about/intro.do`)·이용가이드(`/openApi/about/guide.do`)·인기논문 API(`/openApi/about/bestthesis.do`)·비즈니스 API(`/openApi/about/business.do`)가 따로 있고, 키 발급·관리는 `/openApi/key/keyManage.do`("개인회원으로 로그인하셔야 이용이 가능합니다").
+- 검색 호출: `GET http://api.dbpia.co.kr/v2/search/search.xml?key=<인증키>&target=se&searchall=<검색어>` → XML.
+  - `target`: `se`(기본검색) / `se_adv`(상세검색). 상세검색이면 `searchauthor`(저자)·`searchbook`(간행물명)·`searchpublisher`(발행기관)·`itype`(자료유형 1~4)·`collection`(`dbpia`/`krpia`/`bookrail`)·`category`(주제분류 1~9)·`pyear`(발행연도)를 조합.
+  - 페이지네이션은 `pagecount`·`pagenumber`, 정렬은 `sorttype`(1=유사도, 2=발행일, 3=인기도). 결과 건수 제한을 넘기면 `E0017` 에러.
+  - 응답 항목은 제목·저자·출판사·가격·미리보기 여부 등 **서지 수준**.
+- **상업 DB라는 점이 RISS/KCI와 결정적으로 다름** — 누리미디어가 운영하는 유료 구독 서비스라 본문(PDF)은 구독 기관 소속으로 로그인해야 열림. API로 얻을 수 있는 건 서지 메타데이터와 상세페이지 링크뿐이고, `pyear`·`sorttype`(인기도) 같은 필터는 RISS 스크래핑에 없는 장점이지만 초록·피인용 수는 문서상 확인되지 않음.
+- **결론**: KCI와 같은 대기 상태. 지금 `/research`(연구동향)는 `scripts/fetch-riss-papers.mjs`의 RISS 스크래핑(크롤 지연 10초/건)으로 충분히 돌아가고 있어서, DBpia는 "키를 직접 발급받은 뒤에 검토"로 남겨둠 — 발급만 되면 공식 API라 RISS보다 빠르고 안정적일 여지는 있음.
+
 ---
 
 ## 확인함 — 자동화 가능 (신규, 아직 미연동)

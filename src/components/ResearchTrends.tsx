@@ -319,10 +319,21 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
               ) : (
                 <li
                   key={paper.id}
-                  // 왼쪽(서지)과 오른쪽(메모·인용구)을 반씩 나눈다. 오른쪽을 1/3로 두었더니 인용구가
-                  // 열다섯 자에서 꺾여 세로로만 길어졌고, 그만큼 왼쪽에 빈 자리가 생겼다 — 인용구는
-                  // 한 논문에 두세 개가 기본이므로, 행의 높이를 정하는 쪽은 오른쪽 열이다.
-                  className="grid grid-cols-1 gap-4 border-b border-zinc-200 py-3 sm:grid-cols-2"
+                  // 오른쪽 열의 폭은 그 행에 적은 것이 있느냐로 갈린다.
+                  //
+                  // 메모나 인용구가 있으면 반씩 나눈다 — 1/3로 두었더니 인용구가 열다섯 자에서
+                  // 꺾여 세로로만 길어졌고, 그만큼 왼쪽에 빈 자리가 남았다. 인용구는 한 논문에
+                  // 두세 개가 기본이라, 그런 행의 높이를 정하는 쪽은 오른쪽 열이다.
+                  //
+                  // 비어 있으면 오른쪽에 있는 것은 "+ 메모 추가" 같은 입구 세 줄뿐이다. 여기에
+                  // 절반을 내주면 아무것도 없는 자리 때문에 논문 제목만 접힌다 — 입구가 들어갈
+                  // 만큼만 떼어 주고(최소 7rem, 메모를 쓰기 시작하면 입력칸 폭까지 늘어난다)
+                  // 나머지는 제목에 준다. 저장하면 목록이 다시 불려 이 행은 반반으로 바뀐다.
+                  className={`grid grid-cols-1 gap-4 border-b border-zinc-200 py-3 ${
+                    paper.userMemo?.trim() || paper.quotes.length > 0
+                      ? "sm:grid-cols-2"
+                      : "sm:grid-cols-[1fr_minmax(7rem,auto)]"
+                  }`}
                 >
                   <div className="min-w-0">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
