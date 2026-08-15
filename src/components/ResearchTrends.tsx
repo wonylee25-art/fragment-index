@@ -24,6 +24,12 @@ const MIN_MENTIONS = 2; // 노이즈를 줄이기 위해 2회 이상 등장한 �
 const MIN_FONT_PX = 11;
 const MAX_FONT_PX = 27;
 
+// 한 번에 그리는 논문 편수. 460편을 다 펼치면 행마다 붙는 플래그·수정·삭제·키워드·인용구
+// 버튼이 5천 개가 되어, 정렬을 한 번 누를 때마다 그 전부가 다시 그려지고 스크롤도 바닥에
+// 닿지 않는다. 처음에는 한 묶음만 내고 "더 보기"로 늘린다 — 좁히는 조건(주제어·중요만)이나
+// 정렬이 바뀌면 보는 자리가 달라진 것이므로 다시 첫 묶음으로 돌아간다.
+const PAGE_SIZE = 100;
+
 // 발행 시점(최신순·과거순)과 수집 시점(등록순)은 서로 다른 축이다 — 이름으로 구분한다.
 // "등록순"은 논문이 이 DB에 들어온 시각(created_at)이고, 논문이 언제 쓰였는지와는 무관하다.
 type SortMode = "latest" | "oldest" | "registered" | "read" | "important";
@@ -156,6 +162,18 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   }, [papers, activeKeyword, importantOnly]);
 
   const sortedPapers = useMemo(() => sortPapers(filteredPapers, sortMode), [filteredPapers, sortMode]);
+
+  // 좁히는 조건이나 정렬이 바뀌면 첫 묶음으로 되돌린다. 효과(useEffect)로 되돌리면 100편을
+  // 한 번 그린 뒤 다시 그리게 되므로, 렌더 중에 이전 조건과 비교해 바로 맞춘다.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const scopeKey = `${activeKeyword}|${importantOnly}|${sortMode}`;
+  const [prevScopeKey, setPrevScopeKey] = useState(scopeKey);
+  if (prevScopeKey !== scopeKey) {
+    setPrevScopeKey(scopeKey);
+    setVisibleCount(PAGE_SIZE);
+  }
+  const visiblePapers = sortedPapers.slice(0, visibleCount);
+  const remaining = sortedPapers.length - visiblePapers.length;
 
   const scopeLabel = [activeKeyword ? `"${activeKeyword}"` : null, importantOnly ? "★ 중요" : null]
     .filter(Boolean)
@@ -293,7 +311,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           <p className="py-8 text-center font-mono text-xs text-zinc-400">일치하는 논문이 없습니다.</p>
         ) : (
           <ul className="flex flex-col">
-            {sortedPapers.map((paper) =>
+            {visiblePapers.map((paper) =>
               editingId === paper.id ? (
                 <li key={paper.id} className="border-b border-zinc-200 py-3">
                   <AddPaperForm paper={paper} onClose={() => setEditingId(null)} />
@@ -301,7 +319,10 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
               ) : (
                 <li
                   key={paper.id}
-                  className="grid grid-cols-1 gap-3 border-b border-zinc-200 py-3 sm:grid-cols-[2fr_1fr]"
+                  // 왼쪽(서지)과 오른쪽(메모·인용구)을 반씩 나눈다. 오른쪽을 1/3로 두었더니 인용구가
+                  // 열다섯 자에서 꺾여 세로로만 길어졌고, 그만큼 왼쪽에 빈 자리가 생겼다 — 인용구는
+                  // 한 논문에 두세 개가 기본이므로, 행의 높이를 정하는 쪽은 오른쪽 열이다.
+                  className="grid grid-cols-1 gap-4 border-b border-zinc-200 py-3 sm:grid-cols-2"
                 >
                   <div className="min-w-0">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -404,6 +425,22 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
               ),
             )}
           </ul>
+        )}
+
+        {remaining > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-3 py-5 font-mono text-[11px]">
+            <button
+              type="button"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+              className="rounded-sm bg-zinc-100 px-3 py-1.5 text-zinc-600 hover:bg-zinc-200"
+            >
+              + {Math.min(PAGE_SIZE, remaining)}편 더 보기
+            </button>
+            {/* 남은 편수를 적어 둔다 — 목록이 끊긴 것인지 다 본 것인지가 스크롤 끝에서만 갈린다 */}
+            <span className="text-zinc-400">
+              {sortedPapers.length}편 중 {visiblePapers.length}편 표시 · {remaining}편 남음
+            </span>
+          </div>
         )}
       </section>
     </div>
