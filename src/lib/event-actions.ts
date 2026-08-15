@@ -102,6 +102,23 @@ export async function hideEvent(id: string): Promise<EventHideSummary> {
   return hidden;
 }
 
+// 고른 사건을 한꺼번에 숨긴다. 한 건씩 숨기는 것과 결과가 같고, 요청만 한 번으로 줄인다 —
+// 200건 넘는 연표에서 "1963년 이전만" 같은 정리를 하려면 한 건씩은 너무 느리다.
+export async function hideEvents(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+
+  const { error } = await supabaseAdmin
+    .from("timeline_events")
+    .update({ hidden_at: new Date().toISOString() })
+    .in("id", ids);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+  revalidatePath("/admin/review");
+  return ids.length;
+}
+
 export async function unhideEvent(id: string) {
   const { error } = await supabaseAdmin.from("timeline_events").update({ hidden_at: null }).eq("id", id);
   if (error) throw error;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
 import { EventRowControls } from "./EventEditor";
+import { hideEvents } from "@/lib/event-actions";
 import { UnlinkButton } from "./UnlinkButton";
 import { TimelineRuler, TickRelation } from "./TimelineRuler";
 import { Switch } from "./Switch";
@@ -230,6 +231,26 @@ export function TimelineExperience({
     });
   }
 
+  // 지금 걸린 검색·필터를 그대로 살려 "보이는 것 전부"를 고른다 — 일괄 숨김의 재료가 된다.
+  const allVisibleSelected = visible.length > 0 && visible.every((e) => collection.has(e.id));
+
+  function toggleSelectAllVisible() {
+    setCollection((prev) => {
+      const next = new Set(prev);
+      for (const event of visible) {
+        if (allVisibleSelected) next.delete(event.id);
+        else next.add(event.id);
+      }
+      return next;
+    });
+  }
+
+  // 고른 사건을 한꺼번에 숨긴다. 화면에서만 내리는 것이라 되돌리기는 아래 "숨긴 사건" 목록에서.
+  async function handleBulkHide() {
+    await hideEvents([...collection]);
+    setCollection(new Set());
+  }
+
   function handleExportCsv() {
     const picked = sortedAll.filter((e) => collection.has(e.id));
     downloadCsv(collectionName || "연표컬렉션", eventsToCsv(picked));
@@ -440,13 +461,27 @@ export function TimelineExperience({
             }`}
           >
             {detailLevel === "full" && <span>사료</span>}
-            <button
-              type="button"
-              onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
-              className="text-left hover:text-zinc-900"
-            >
-              날짜 {sortDirection === "asc" ? "▲" : "▼"}
-            </button>
+            {/* 행마다 붙는 ★와 같은 자리에 "보이는 것 모두" 스위치를 둔다 — 검색·필터로 좁힌
+                다음 여기서 한 번에 고르고, 아래 막대에서 일괄 숨김·CSV로 넘긴다. */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleSelectAllVisible}
+                title={allVisibleSelected ? "보이는 사건 선택 해제" : `보이는 ${visible.length}건 모두 선택`}
+                className={`text-xs leading-none ${
+                  allVisibleSelected ? "text-orange-500" : "text-zinc-300 hover:text-orange-400"
+                }`}
+              >
+                {allVisibleSelected ? "★" : "☆"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+                className="text-left hover:text-zinc-900"
+              >
+                날짜 {sortDirection === "asc" ? "▲" : "▼"}
+              </button>
+            </div>
             <span>사건명</span>
             <span>내용</span>
             {detailLevel === "full" && <span>구술</span>}
@@ -488,10 +523,12 @@ export function TimelineExperience({
       </div>
 
       <CollectionBar
+        mode={mode}
         count={collection.size}
         name={collectionName}
         onNameChange={setCollectionName}
         onExport={handleExportCsv}
+        onHide={handleBulkHide}
         onClear={() => setCollection(new Set())}
       />
     </div>
@@ -741,25 +778,73 @@ function OralQuote({
 
 // WWA의 "Create Personal Collections and generate PDF readers"를 참고해,
 // 사건을 골라 담고 CSV로 내보내는 기능. 브라우저 세션 안에서만 유지되는 목업 상태.
+// 관리페이지에서는 같은 선택을 일괄 숨김의 대상으로도 쓴다 — 고르는 행위를 두 벌 만들지 않는다.
 function CollectionBar({
+  mode,
   count,
   name,
   onNameChange,
   onExport,
+  onHide,
   onClear,
 }: {
+  mode: TimelineMode;
   count: number;
   name: string;
   onNameChange: (v: string) => void;
   onExport: () => void;
+  onHide: () => Promise<void>;
   onClear: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+
   if (count === 0) return null;
+
+  async function handleHide() {
+    setPending(true);
+    try {
+      await onHide();
+      setConfirming(false);
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <div className="sticky bottom-0 z-30 border-t border-zinc-900 bg-white/95 backdrop-blur-sm">
+      {confirming && (
+        <div className="border-b border-amber-200 bg-amber-50">
+          <div className="page-shell flex flex-wrap items-center gap-3 py-2">
+            <p className="font-mono text-[11px] leading-5 text-zinc-700">
+              선택한 <strong className="font-bold">{count}건</strong>을 연표에서 숨깁니다. DB에서는 아무것도
+              지워지지 않고, 붙어 있던 사료·구술 연결도 그대로 남습니다 — 아래 “숨긴 사건”에서 되돌립니다.
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={pending}
+                className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleHide}
+                disabled={pending}
+                className="rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-[11px] text-white hover:bg-zinc-700 disabled:opacity-50"
+              >
+                {pending ? "숨기는 중…" : `${count}건 숨김`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="page-shell flex flex-wrap items-center gap-3 py-2.5">
         <span className="font-mono text-[11px] text-zinc-500">
-          컬렉션에 <span className="font-bold text-orange-600">{count}개</span> 담김
+          {mode === "admin" ? "선택" : "컬렉션에"} <span className="font-bold text-orange-600">{count}개</span>{" "}
+          담김
         </span>
         <input
           type="text"
@@ -775,6 +860,16 @@ function CollectionBar({
         >
           CSV 생성
         </button>
+        {mode === "admin" && (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            disabled={pending}
+            className="rounded-sm border border-zinc-300 bg-white px-3 py-1.5 font-mono text-xs font-bold text-zinc-700 hover:border-zinc-500 disabled:opacity-50"
+          >
+            {count}건 일괄 숨김
+          </button>
+        )}
         <button
           type="button"
           onClick={onClear}
