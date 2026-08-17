@@ -199,9 +199,41 @@ export async function updateSegment(input: UpdateSegmentInput): Promise<void> {
   revalidatePath("/admin/review");
 }
 
-// 발췌를 지운다. 되돌리는 길은 없다 — 숨김 표시로 남겨 두는 방법도 있지만, 잘못 넣은
-// 발췌를 목록에서 안 보이게만 하고 DB에 남겨 두면 나중에 같은 구술을 다시 넣었을 때
-// 어느 쪽이 진짜인지 가릴 수 없다.
+function revalidateSegmentViews() {
+  revalidatePath("/segments");
+  revalidatePath("/admin/oral");
+  revalidatePath("/admin/review");
+  revalidatePath("/"); // 연표에 걸린 구술 인용
+  revalidatePath("/admin/timeline");
+}
+
+// 보류함에서 고른 구술을 비활성으로 내린다 — 사료(deactivateMaterials)와 같은 규칙이다.
+// 행도 연결선도 그대로 두므로, 되돌리면 붙어 있던 사건으로 함께 돌아온다.
+// 비활성 구술은 구술 목록·연표·연결 화면 어디에도 뜨지 않고 "비활성 구술함"에서만 보인다.
+export async function deactivateSegments(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+
+  const { error } = await supabaseAdmin
+    .from("segments")
+    .update({ hidden_at: new Date().toISOString() })
+    .in("id", ids);
+  if (error) throw error;
+
+  revalidateSegmentViews();
+  return ids.length;
+}
+
+export async function reactivateSegment(id: string) {
+  const { error } = await supabaseAdmin.from("segments").update({ hidden_at: null }).eq("id", id);
+  if (error) throw error;
+
+  revalidateSegmentViews();
+}
+
+// 발췌를 지운다. 되돌리는 길은 없다 — 그래서 이 문은 비활성 구술함 안에서만 열린다.
+// 목록에서 안 보이게만 하고 DB에 남겨 두는 것은 비활성이 맡고, 여기서는 정말로 없앤다:
+// 잘못 넣은 발췌를 영영 남겨 두면 나중에 같은 구술을 다시 넣었을 때 어느 쪽이 진짜인지
+// 가릴 수 없다.
 //
 // 딸린 것들(segment_speakers·segment_notes·segment_persons·segment_places)은 FK가
 // on delete cascade라 함께 사라진다. links만 손으로 지운다 — 사건-자료 연결선은

@@ -11,8 +11,9 @@ import { ArchiveItemType } from "./types";
 // — 직접 찍은 사진, 종이 신문 스크랩, 개인 소장 문서 — 는 넣을 방법이 없었다.
 // 직접 만든 자료는 id에 am_ 접두어를 붙여 출처를 구분한다(사건의 ev_와 같은 규칙).
 //
-// 지우는 길은 보류함에만 둔다 — 사건에 붙은 사료는 연표의 근거라 화면에서 날릴 수 없고,
-// 어디에도 안 붙은 채 쌓인 검색 부스러기는 치우지 않으면 보류함이 못 쓰게 된다.
+// 보류함에서는 비활성으로 내리기만 하고, 지우는 것은 비활성 사료함 안에서만 한다 —
+// 사건에 붙은 사료는 연표의 근거이고, 어디에도 안 붙은 채 쌓인 검색 부스러기는 내려두지
+// 않으면 보류함이 못 쓰게 된다. 두 요구를 한 화면에서 맞추려면 단계를 나누는 수밖에 없다.
 
 export interface MaterialInput {
   itemType: ArchiveItemType;
@@ -63,10 +64,10 @@ function revalidateMaterialViews() {
   revalidatePath("/admin/review");
 }
 
-// 보류함에서 고른 사료를 화면에서만 내린다 — 사건 숨김(hideEvent)과 같은 규칙이다.
+// 보류함에서 고른 사료를 비활성으로 내린다 — 사건 숨김(hideEvent)과 같은 규칙이다.
 // 행도 연결선도 그대로 두므로, 되살리면 붙어 있던 사건에 그대로 돌아온다.
-// 치운 사료는 연표에서도 보류함에서도 빠지고, "치운 사료" 목록에서만 보인다.
-export async function hideMaterials(ids: string[]): Promise<number> {
+// 비활성 사료는 연표에서도 보류함에서도 빠지고, "비활성 사료함"에서만 보인다.
+export async function deactivateMaterials(ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
 
   const { error } = await supabaseAdmin
@@ -79,7 +80,7 @@ export async function hideMaterials(ids: string[]): Promise<number> {
   return ids.length;
 }
 
-export async function unhideMaterial(id: string) {
+export async function reactivateMaterial(id: string) {
   const { error } = await supabaseAdmin
     .from("archive_items")
     .update({ hidden_at: null })
@@ -89,7 +90,7 @@ export async function unhideMaterial(id: string) {
   revalidateMaterialViews();
 }
 
-// 정말로 지운다. 이 길은 "치운 사료" 목록 안에서만 열린다 — 훑어보는 자리(보류함)에서
+// 정말로 지운다. 이 길은 "비활성 사료함" 안에서만 열린다 — 훑어보는 자리(보류함)에서
 // 한 번의 손짓으로 닿을 수 있게 두지 않는다. 되돌릴 수 없으므로 화면에서 confirm을 한 번
 // 더 거친 뒤에만 들어온다.
 // 남아 있을 수 있는 연결선(반려된 것, 숨긴 사건에 매달린 것)을 먼저 끊고 자료를 지운다 —

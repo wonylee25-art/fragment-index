@@ -276,17 +276,41 @@ export async function getHiddenEvents(): Promise<HiddenEventSummary[]> {
   }));
 }
 
-// 보류함 아래에 접어두는 "치운 사료" 목록. 치운 사료는 연표에서도 보류함에서도 빠지므로,
-// 이 목록이 그것들에 닿는 유일한 길이다 — 되살리는 것도, 정말로 지우는 것도 여기서만 한다.
-export async function getHiddenMaterials(): Promise<RelatedItem[]> {
+// 보류함 아래에 접어두는 "비활성 사료함". 비활성으로 내린 사료는 연표에서도 보류함에서도
+// 빠지므로, 이 목록이 그것들에 닿는 유일한 길이다 — 되돌리는 것도, 정말로 지우는 것도
+// 여기서만 한다.
+export async function getInactiveMaterials(): Promise<RelatedItem[]> {
   const { data, error } = await supabase
     .from("archive_items")
     .select("id, item_type, title, source_org, source_url, description, image_url, hidden_at")
     .not("hidden_at", "is", null)
-    .order("hidden_at", { ascending: false }); // 방금 치운 것부터 — 잘못 치웠을 때 바로 보인다
+    .order("hidden_at", { ascending: false }); // 방금 내린 것부터 — 잘못 내렸을 때 바로 보인다
   if (error) throw error;
 
   return ((data as DbArchiveItem[]) ?? []).map(toRelatedItem);
+}
+
+export interface InactiveSegment {
+  id: string;
+  itemTitle: string;
+  dateValue: string;
+}
+
+// 비활성 구술함. 사료와 같은 자리·같은 규칙이되, 지우는 문은 더 좁다 — CSV 동기화로 들어온
+// 발췌는 화면에서 지울 수 없다는 규칙(segment-actions)이 여기에도 그대로 적용된다.
+export async function getInactiveSegments(): Promise<InactiveSegment[]> {
+  const { data, error } = await supabase
+    .from("segments")
+    .select("id, item_title, date_value, hidden_at")
+    .not("hidden_at", "is", null)
+    .order("hidden_at", { ascending: false });
+  if (error) throw error;
+
+  return ((data as { id: string; item_title: string | null; date_value: string | null }[]) ?? []).map((s) => ({
+    id: s.id,
+    itemTitle: s.item_title ?? "",
+    dateValue: s.date_value ?? "",
+  }));
 }
 
 // 사료 연결 ②번 칸 — 연결선이 하나도 안 붙은 자료·구술.
@@ -297,7 +321,7 @@ export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
     await Promise.all([
       // 치운 사료(hidden_at)는 보류함에서 빠진다 — 되돌리는 길은 아래 "치운 사료" 목록이다.
       supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null).order("id"),
-      supabase.from("segments").select("id, item_title, date_value").order("id"),
+      supabase.from("segments").select("id, item_title, date_value").is("hidden_at", null).order("id"),
       // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
       supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
       fetchHiddenEventIds(),
@@ -538,11 +562,13 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     { data: sources, error: sourcesError },
     { data: segmentPersons, error: segmentPersonsError },
   ] = await Promise.all([
+    // 비활성 구술함에 넣은 발췌(hidden_at)는 목록·연표·연결 화면 어디에도 뜨지 않는다.
     supabase
       .from("segments")
       .select(
         "id, item_title, date_value, page, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important, highlights",
       )
+      .is("hidden_at", null)
       .order("id"),
     // subject까지 읽는다 — 화자가 가명·익명·미상이면 목록에서 그렇게 보여야 한다.
     // 이름만 내보내면 읽는 쪽은 "김영미"를 실명으로 읽는다.

@@ -1,8 +1,13 @@
 import { MaterialSearch } from "@/components/MaterialSearch";
 import { UnlinkedBoard, UnlinkedEntry } from "@/components/UnlinkedBoard";
-import { HiddenMaterialsPanel } from "@/components/HiddenMaterialsPanel";
+import { InactiveBoxes } from "@/components/InactiveBoxes";
 import { EventOption } from "@/components/EventPicker";
-import { getChronicleEvents, getHiddenMaterials, getUnlinkedMaterials } from "@/lib/db";
+import {
+  getChronicleEvents,
+  getInactiveMaterials,
+  getInactiveSegments,
+  getUnlinkedMaterials,
+} from "@/lib/db";
 import { edtfSortKey, edtfYear, formatEdtfToKorean } from "@/lib/edtf";
 import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
 
@@ -13,11 +18,12 @@ export default async function ReviewPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const [{ q }, unlinked, events, hiddenMaterials] = await Promise.all([
+  const [{ q }, unlinked, events, inactiveMaterials, inactiveSegments] = await Promise.all([
     searchParams,
     getUnlinkedMaterials(),
     getChronicleEvents(),
-    getHiddenMaterials(),
+    getInactiveMaterials(),
+    getInactiveSegments(),
   ]);
 
   // 보류함은 검색어가 없어 사건 전체가 후보다. 최근 사건부터 보이게 역순으로 둔다.
@@ -48,8 +54,8 @@ export default async function ReviewPage({
       {/* eventOptions는 보류함과 "직접 사료 추가"가 함께 쓴다 — 둘 다 검색어 없이 연표 전체가 후보다 */}
       <MaterialSearch query={q?.trim() ?? ""} allEvents={eventOptions} />
       <UnlinkedBoard events={eventOptions} materials={materials} segments={segments} />
-      {/* 치운 사료는 연표에도 보류함에도 없다 — 이 목록이 그것들에 닿는 유일한 길이다 */}
-      <HiddenMaterialsPanel materials={hiddenMaterials} />
+      {/* 비활성으로 내린 것은 연표에도 보류함에도 없다 — 이 함들이 그것들에 닿는 유일한 길이다 */}
+      <InactiveBoxes materials={inactiveMaterials} segments={inactiveSegments} />
     </main>
   );
 }
