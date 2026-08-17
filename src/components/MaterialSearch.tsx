@@ -12,8 +12,9 @@ import { AddMaterialForm } from "./AddMaterialForm";
 // 기획 정리노트 8-8 "검색창(직접 키워드 입력) 화면". 수집·검토 작업이라 관리(사료 연결) 안에 둔다.
 // 검색 → 내용 확인 → 저장+연결이 한 화면에서 끝나야 하므로, 자료 카드에는 원문을 열지 않고도
 // 판단할 수 있을 만큼(썸네일·설명·크기·공개여부) 싣는다.
-// 연결 후보 사건은 "같은 검색어로 걸린 DB 사건"이다 — 209건 전체를 훑는 것보다 정확하고,
-// 같은 키워드로 잡혔다는 건 애초에 관련도가 높다는 뜻이다.
+// 연결 후보 사건은 DB(연표)의 사건 전체다. 예전에는 "같은 검색어로 걸린 사건"만 후보로 두었는데,
+// 사료의 검색어와 사건명이 겹치는 경우가 드물어 후보가 비고 연결 자체를 못 하는 일이 잦았다.
+// 대신 검색어로 걸린 사건을 목록 맨 위로 올려 관련도 높은 것부터 눈에 들어오게 한다.
 
 async function externalSearch(query: string) {
   const [archives, relics, thEntries, womensOral] = await Promise.allSettled([
@@ -35,8 +36,7 @@ async function externalSearch(query: string) {
   };
 }
 
-// allEvents는 직접 추가 폼의 연결 후보다. 아래 검색 결과 카드가 쓰는 후보(검색어로 걸린 사건)와
-// 달리, 손으로 넣는 자료는 검색어를 거치지 않으므로 연표 전체가 후보가 된다.
+// allEvents는 DB에 있는 사건 전체다 — 직접 추가 폼과 아래 검색 결과 카드가 함께 쓴다.
 export async function MaterialSearch({
   query,
   allEvents,
@@ -53,11 +53,17 @@ export async function MaterialSearch({
     query ? Promise.resolve<string[]>([]) : getSuggestedKeywords(),
   ]);
 
-  const eventOptions: EventOption[] = local.events.map((e) => ({
+  // 검색어로 걸린 사건을 앞에, 나머지 연표 전체를 뒤에. 목록이 길어지므로 좁히기 칸을 함께 쓴다.
+  const matchedIds = new Set(local.events.map((e) => e.id));
+  const matchedOptions: EventOption[] = local.events.map((e) => ({
     id: e.id,
     year: edtfYear(e.dateValue),
     eventName: e.eventName,
   }));
+  const eventOptions: EventOption[] = [
+    ...matchedOptions,
+    ...allEvents.filter((e) => !matchedIds.has(e.id)),
+  ];
 
   // Set은 서버→클라이언트 경계를 넘지 못하므로, 저장 여부는 여기서 판정해 boolean으로 넘긴다.
   const groups: MaterialGroup[] = external

@@ -139,10 +139,12 @@ export function MaterialWorkbench({
         events={events}
         selectedId={selectedId}
         onSelect={setSelectedId}
+        // 후보가 연표 전체(DB 사건)라 목록이 길다 — 보류함과 같이 좁히기 칸을 붙인다.
+        filterable
         emptyHint={
           <>
             <p className="text-[12px] leading-relaxed text-grey">
-              이 검색어로 걸린 사건이 없습니다.
+              연표에 사건이 없습니다.
             </p>
             <a
               href="/admin/timeline"
