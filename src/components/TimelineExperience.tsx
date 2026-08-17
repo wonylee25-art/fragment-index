@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
@@ -13,6 +13,7 @@ import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
 import { edtfSortKey, edtfYearFloat, formatEdtfToKorean } from "@/lib/edtf";
 import { narratorPullQuote } from "@/lib/quotes";
+import { formatEventSource } from "@/lib/citation";
 import { osmUrl } from "@/lib/geo";
 import { downloadCsv, eventsToCsv } from "@/lib/csv";
 import {
@@ -82,6 +83,9 @@ function matchesQuery(event: TimelineEventData, query: string): boolean {
   return (
     event.eventName.includes(query) ||
     event.summary.includes(query) ||
+    // 화면에 보이는 서지(풀린 것)와 적힌 그대로(SRC007) 둘 다에 걸리게 한다 — 눈에 보이는
+    // 글로도, 대장 번호로도 찾을 수 있어야 한다.
+    event.sourceLabel.includes(query) ||
     event.sourceReference.includes(query) ||
     event.keywordTags.some((t) => t.includes(query)) ||
     event.places.some((p) => p.name.includes(query))
@@ -259,7 +263,8 @@ export function TimelineExperience({
             onExport={handleExportCsv}
             onHide={handleBulkHide}
             onHighlight={handleBulkHighlight}
-            highlightLabel={allSelectedHighlighted ? "밑줄 지우기" : "밑줄"}
+            // 한꺼번에 긋는 이 버튼과 행마다의 그것은 같은 일이라 같은 말을 쓴다.
+            highlightLabel={allSelectedHighlighted ? "강조 해제" : "강조"}
             onClear={() => setCollection(new Set())}
           />
         ) : (
@@ -335,15 +340,13 @@ function SavedBadge() {
   );
 }
 
-// 큐레이터 메모. 관리페이지에서는 편집할 수 있고, 사용자뷰에서는 사건 해설로 읽히기만 한다.
-function CuratorMemo({ event, mode }: { event: TimelineEventData; mode: TimelineMode }) {
-  if (mode === "admin") {
-    return <MemoField initialValue={event.userMemo} onSave={(memo) => saveTimelineMemo(event.id, memo)} />;
-  }
-  if (!event.userMemo) return null;
+// 큐레이터 메모를 읽기 전용으로 보여준다 — 사용자뷰에서는 사건 해설로, 편집 화면에서는
+// 도구를 펼치지 않은 행에서 "적어둔 것이 있다"는 표시로 쓰인다. 고치는 것은 도구를 편 뒤.
+function CuratorMemo({ memo }: { memo?: string }) {
+  if (!memo) return null;
   return (
     <p className="mt-1.5 rounded-sm border border-line bg-yellow-tint p-2 font-mono text-xs leading-4 whitespace-pre-wrap text-ink">
-      {event.userMemo}
+      {memo}
     </p>
   );
 }
@@ -369,6 +372,47 @@ function EventEntry({
   // 내가 표시한 행은 바탕을 칠하지 않고 사건명에 밑줄을 긋는다(아래 h3). 행 하나가
   // 다섯 칸에 걸쳐 있어 바탕을 칠하면 사료·구술 칸까지 통째로 물드는데, 표시는 내가
   // 이 사건을 짚었다는 뜻이지 여기 붙은 자료까지 짚었다는 뜻은 아니다.
+  //
+  // 편집 화면에서 손대는 일(메모·수정·숨김)은 사건명을 누르면 그 자리에 뜨는 작은 메뉴로
+  // 고른다 — 구술 형광펜을 눌렀을 때 뜨는 메뉴와 같은 방식이다. 버튼 줄을 행마다 늘
+  // 깔아두면 200여 행이 쓰지 않는 버튼만큼 세로로 늘어지고, 훑어보는 일이 대부분인 표에서
+  // 그 여백은 전부 낭비다. 메뉴는 본문 위에 떠서 행을 밀지 않는다.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [action, setAction] = useState<"memo" | "edit" | "hide" | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 바깥을 누르거나 Esc를 치면 닫는다. 메뉴 안쪽을 눌렀는지는 ref로 직접 확인한다 —
+  // 메뉴에 stopPropagation을 다는 방식은 React가 핸들러를 document에 위임하기 때문에
+  // 통하지 않는다(Transcript.tsx의 형광펜 메뉴에 같은 사정을 적어 두었다).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  function choose(next: "memo" | "edit" | "hide") {
+    setMenuOpen(false);
+    setAction(next);
+  }
+
+  // 강조만은 고른 뒤 펼칠 것이 없다 — 바로 긋고 메뉴를 닫는다. 화면은 저장이 끝난 뒤
+  // 서버가 다시 그려준다(setEventsHighlighted가 이 경로를 revalidate한다).
+  function handleHighlight() {
+    setMenuOpen(false);
+    void setEventsHighlighted([event.id], !event.highlighted);
+  }
+
   return (
     <div
       className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
@@ -386,7 +430,7 @@ function EventEntry({
         )}
       </div>
 
-      {/* 날짜 + 밑줄 스위치 */}
+      {/* 날짜 + 강조 스위치(사용자뷰 전용) */}
       <div className="flex items-start gap-2">
         {/* 체크박스로 둔다 — 별표는 중요도 표시로 읽혀서, 고르는 일과 뜻이 어긋난다. */}
         <input
@@ -401,24 +445,33 @@ function EventEntry({
           <span className="block font-mono text-[11px] leading-5 text-grey">
             {formatEdtfToKorean(event.dateValue)}
           </span>
-          {/* key에 지금 값을 넣는 것은 표 헤더에서 여러 건을 한꺼번에 그었을 때다 —
+          {/* 사용자뷰에서는 날짜 옆의 스위치로 긋는다. 편집 화면에서는 이 자리에 두지 않고
+              사건명 메뉴의 "강조"로 옮겼다 — 손대는 일(메모·수정·숨김)이 모두 그 메뉴에
+              모여 있는데 표시만 따로 떨어져 있으면, 같은 일을 두 곳에서 찾게 된다.
+              key에 지금 값을 넣는 것은 표 헤더에서 여러 건을 한꺼번에 그었을 때다 —
               FlagToggle은 처음 받은 값으로 제 상태를 잡으므로, 값이 바뀌면 새로 태워야
               한꺼번에 그은 행의 스위치도 함께 켜진 채로 다시 그려진다. */}
-          <div className="mt-1">
-            <FlagToggle
-              key={String(event.highlighted)}
-              active={event.highlighted}
-              onToggle={(next) => setEventsHighlighted([event.id], next)}
-              activeLabel="밑줄"
-              inactiveLabel="밑줄"
-              dotClassName={DOT_MINE}
-            />
-          </div>
+          {mode === "read" && (
+            <div className="mt-1">
+              <FlagToggle
+                key={String(event.highlighted)}
+                active={event.highlighted}
+                onToggle={(next) => setEventsHighlighted([event.id], next)}
+                activeLabel="강조"
+                inactiveLabel="강조"
+                dotClassName={DOT_MINE}
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {/* 사건명 + 하단 키워드 */}
       <div className="min-w-0">
+        {/* 메뉴는 사건명 바로 아래에 뜨고 키워드 줄을 덮는다 — 기준 상자를 사건명에만 씌워
+            그 아래로 내려온다. 칸 전체를 기준으로 잡으면 키워드 밑, 다음 행 어름에 떠서
+            어느 사건의 메뉴인지 한눈에 붙지 않는다. 덮인 키워드는 메뉴를 닫으면 돌아온다. */}
+        <div className="relative">
         {/* 사건명은 본문과 같은 고딕(Gothic A1)이다. 여기만 명조로 두었더니 다른 화면의
             제목들(논문 제목·기관명)과 서체가 갈려 사건명만 다른 종류의 글처럼 보였다.
             굵기는 font-bold(700) — layout.tsx가 받는 굵기는 400·500·700·800이라
@@ -431,9 +484,83 @@ function EventEntry({
             event.highlighted ? "underline decoration-yellow-fill decoration-[3px] underline-offset-4" : ""
           }`}
         >
-          {event.eventName}
+          {/* 편집 화면에서는 사건명 자체가 메뉴를 여는 손잡이다. 사건명은 링크가 아니라
+              읽는 이름이라 밑줄·색을 더하지 않는다 — 누를 수 있다는 것은 손이 닿았을 때만
+              알린다(형광펜과 같다). */}
+          {mode === "admin" ? (
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title="눌러서 메뉴 열기"
+              className="cursor-pointer text-left hover:text-green-text"
+            >
+              {event.eventName}
+            </button>
+          ) : (
+            event.eventName
+          )}
           {mode === "admin" && event.savedByUser && <SavedBadge />}
         </h3>
+
+        {/* 사건명 아래에 뜨는 메뉴. 상자 안에 절대배치라 표를 굴려도 제 사건명을 따라간다.
+            고르면 메뉴는 닫히고, 고른 일만 아래 메모·도구 칸에 펼쳐진다. */}
+        {menuOpen && (
+          <div
+            ref={menuRef}
+            role="menu"
+            className="absolute left-0 top-full z-20 mt-0.5 flex overflow-hidden rounded-sm border border-line bg-background shadow-md"
+          >
+            {/* 강조는 메뉴에서 유일하게 그 자리에서 끝나는 일이다 — 아래에 펼칠 것이 없고
+                누르는 즉시 사건명에 밑줄이 그어진다. 켜졌는지는 앞에 점을 두지 않고 말로만
+                알린다(켜져 있으면 "강조 해제") — 메뉴는 지금 상태를 보는 자리가 아니라
+                무엇을 할지 고르는 자리다. */}
+            <button
+              type="button"
+              role="menuitem"
+              autoFocus
+              onClick={handleHighlight}
+              className="px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+            >
+              {event.highlighted ? "강조 해제" : "강조"}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => choose("memo")}
+              className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+            >
+              {event.userMemo ? "메모" : "메모 추가"}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => choose("edit")}
+              className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+            >
+              수정
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => choose("hide")}
+              className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+            >
+              숨김
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+              className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-grey hover:text-ink"
+            >
+              닫기
+            </button>
+          </div>
+        )}
+        </div>
+
         <div className="mt-1.5 flex flex-wrap gap-1">
           {event.places.map((p) => (
             <Tag key={p.name} label={p.name} variant="personPlace" href={osmUrl(p)} />
@@ -447,6 +574,7 @@ function EventEntry({
       {/* 내용 + 하단 출처 */}
       <div className="min-w-0">
         <p className={`${TEXT_BODY_CLASSNAME} leading-5 text-ink`}>{event.summary}</p>
+        {/* 출처 한 줄. 책·학술지·간행물이면 저자와 쪽수가 함께 붙는다(citation.ts) */}
         <p className="mt-1 font-mono text-[10px] text-grey">
           {event.sourceUrl ? (
             <a
@@ -455,9 +583,9 @@ function EventEntry({
               rel="noopener noreferrer"
               className="underline decoration-dotted underline-offset-4 hover:text-ink"
             >
-              {event.sourceReference || event.sourceUrl}
+              {formatEventSource(event) || event.sourceUrl}
             </a>
-          ) : event.sourceReference.includes("국사편찬위원회") ? (
+          ) : event.sourceLabel.includes("국사편찬위원회") ? (
             <a
               href={HISTORY_TIMELINE_SOURCE.url}
               target="_blank"
@@ -465,10 +593,10 @@ function EventEntry({
               title={HISTORY_TIMELINE_SOURCE.title}
               className="underline decoration-dotted underline-offset-4 hover:text-ink"
             >
-              {event.sourceReference}
+              {formatEventSource(event)}
             </a>
           ) : (
-            event.sourceReference
+            formatEventSource(event)
           )}
         </p>
       </div>
@@ -484,11 +612,24 @@ function EventEntry({
         )}
       </div>
 
-      {/* 메모 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간 너비에만 맞춘다 */}
-      <div className="sm:col-start-2 sm:col-end-5">
-        <CuratorMemo event={event} mode={mode} />
-        {mode === "admin" && <EventRowControls event={event} />}
-      </div>
+      {/* 메모·도구 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간
+          너비에만 맞춘다. 보여줄 것이 없으면 칸 자체를 만들지 않는다 — 빈 칸을 두면
+          행마다 gap-y만큼 빈 줄이 하나씩 더 생긴다. */}
+      {(action !== null || event.userMemo) && (
+        <div className="sm:col-start-2 sm:col-end-5">
+          {action === "memo" ? (
+            <MemoField
+              startEditing
+              initialValue={event.userMemo}
+              onSave={(memo) => saveTimelineMemo(event.id, memo)}
+            />
+          ) : action === null ? (
+            <CuratorMemo memo={event.userMemo} />
+          ) : (
+            <EventRowControls event={event} action={action} onClose={() => setAction(null)} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -667,8 +808,8 @@ function SelectionHeader({
         ) : (
           <>
             <span className="font-bold text-green-text">{count}건 선택</span>
-            {/* 밑줄은 숨김과 달리 확인을 묻지 않는다 — 되돌리는 길이 같은 자리에 있다.
-                다시 고르면 라벨이 "밑줄 지우기"로 바뀐다. */}
+            {/* 강조는 숨김과 달리 확인을 묻지 않는다 — 되돌리는 길이 같은 자리에 있다.
+                다시 고르면 라벨이 "강조 해제"로 바뀐다. */}
             <button
               type="button"
               onClick={() => void handleHighlight()}

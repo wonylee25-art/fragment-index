@@ -1,5 +1,6 @@
 import { TimelineEventData } from "./types";
 import { formatEdtfToKorean } from "./edtf";
+import { formatEventSource } from "./citation";
 
 // 셀 안에 쉼표·줄바꿈·큰따옴표가 있으면 CSV 규칙대로 큰따옴표로 감싸고 이스케이프한다.
 function csvCell(value: string): string {
@@ -15,7 +16,8 @@ export function eventsToCsv(events: TimelineEventData[]): string {
       e.eventName,
       e.keywordTags.join(";"),
       e.places.map((p) => p.name).join(";"),
-      e.sourceReference,
+      // 내보내는 파일은 남에게 건네 읽히는 것이라 대장 번호가 아니라 풀린 서지를 싣는다.
+      formatEventSource(e),
       e.summary,
     ].map(csvCell),
   );

@@ -7,11 +7,14 @@ import { useState } from "react";
 export function MemoField({
   initialValue,
   onSave,
+  startEditing = false,
 }: {
   initialValue?: string;
   onSave: (memo: string) => Promise<void>;
+  // 메뉴에서 "메모"를 골라 들어온 경우처럼, 열리자마자 쓸 칸이 떠 있어야 할 때만 참.
+  startEditing?: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(startEditing);
   const [draft, setDraft] = useState(initialValue ?? "");
   const [saved, setSaved] = useState(initialValue ?? "");
   const [pending, setPending] = useState(false);

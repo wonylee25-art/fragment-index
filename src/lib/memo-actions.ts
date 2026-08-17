@@ -15,6 +15,7 @@ export async function saveTimelineMemo(id: string, memo: string) {
     .eq("id", id);
   if (error) throw error;
   revalidatePath("/"); // 연표가 메인화면
+  revalidatePath("/admin/timeline"); // 편집 화면의 접힌 행도 저장한 메모를 그대로 보여야 한다
 }
 
 export async function saveSegmentMemo(id: string, memo: string) {

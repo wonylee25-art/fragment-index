@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TimelineEventData } from "@/lib/types";
 import { ADD_BUTTON_CLASSNAME } from "@/lib/design-tokens";
+import { SOURCE_TYPES, isCited } from "@/lib/citation";
 import {
   EventInput,
   countEventAttachments,
@@ -23,6 +24,9 @@ const EMPTY: EventInput = {
   summary: "",
   sourceReference: "",
   sourceUrl: "",
+  sourceType: "",
+  sourceAuthor: "",
+  sourcePages: "",
   keywords: [],
 };
 
@@ -33,6 +37,9 @@ function toInput(event: TimelineEventData): EventInput {
     summary: event.summary,
     sourceReference: event.sourceReference,
     sourceUrl: event.sourceUrl,
+    sourceType: event.sourceType,
+    sourceAuthor: event.sourceAuthor,
+    sourcePages: event.sourcePages,
     keywords: event.keywordTags,
   };
 }
@@ -114,6 +121,47 @@ function EventForm({
         />
       </div>
 
+      {/* 출처 유형. 책·학술지·간행물은 제목만 적어두면 다시 찾아갈 수 없다 — 저자와 쪽수를
+          이어서 묻는다. 쪽이라는 것이 없는 자료(웹·영상 등)에는 그 칸을 띄우지 않는다. */}
+      <div className="flex flex-col gap-1">
+        <label className={LABEL_CLASSNAME}>출처 유형</label>
+        <select
+          value={draft.sourceType}
+          onChange={(e) => setDraft({ ...draft, sourceType: e.target.value })}
+          className={FIELD_CLASSNAME}
+        >
+          <option value="">(고르지 않음)</option>
+          {SOURCE_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {isCited(draft.sourceType) && (
+        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2">
+          <div className="flex flex-col gap-1">
+            <label className={LABEL_CLASSNAME}>저자</label>
+            <input
+              value={draft.sourceAuthor}
+              onChange={(e) => setDraft({ ...draft, sourceAuthor: e.target.value })}
+              placeholder="예: 김영미 · 서울역사박물관 편"
+              className={FIELD_CLASSNAME}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className={LABEL_CLASSNAME}>쪽수</label>
+            <input
+              value={draft.sourcePages}
+              onChange={(e) => setDraft({ ...draft, sourcePages: e.target.value })}
+              placeholder="112 · 112-118"
+              className={`${FIELD_CLASSNAME} font-mono`}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1">
         <label className={LABEL_CLASSNAME}>출처 URL</label>
         <input
@@ -158,98 +206,92 @@ function EventForm({
   );
 }
 
-// 사건 행마다 붙는 [수정][숨김]. 숨김은 함께 안 보이게 될 연결선 수를 먼저 세어 보여준다.
-export function EventRowControls({ event }: { event: TimelineEventData }) {
-  const [editing, setEditing] = useState(false);
+// 사건 행에서 고른 일(수정·숨김)을 펼친다. 무엇을 할지는 사건명을 눌러 뜨는 메뉴에서
+// 이미 골랐으므로, 여기에는 고르는 버튼을 두지 않는다 — 고른 일만 열고 닫는다.
+// 숨김은 함께 안 보이게 될 연결선 수를 먼저 세어 보여준다.
+export function EventRowControls({
+  event,
+  action,
+  onClose,
+}: {
+  event: TimelineEventData;
+  action: "edit" | "hide";
+  onClose: () => void;
+}) {
   const [confirming, setConfirming] = useState<{
     hiddenMaterials: number;
     hiddenSegments: number;
   } | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function handleAskHide() {
-    setPending(true);
-    try {
-      setConfirming(await countEventAttachments(event.id));
-    } finally {
-      setPending(false);
-    }
-  }
+  // 숨김을 고르면 세는 일부터 시작한다 — "무엇이 함께 빠지는지"를 모르고 누를 수는 없다.
+  useEffect(() => {
+    if (action !== "hide") return;
+    let alive = true;
+    void countEventAttachments(event.id).then((counts) => {
+      if (alive) setConfirming(counts);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [action, event.id]);
 
   async function handleHide() {
     setPending(true);
     try {
       await hideEvent(event.id);
-      setConfirming(null);
+      onClose();
     } finally {
       setPending(false);
     }
   }
 
-  if (editing) {
+  if (action === "edit") {
     return (
       <EventForm
         initial={toInput(event)}
         submitLabel="수정 저장"
         onSubmit={async (input) => {
           await updateEvent(event.id, input);
-          setEditing(false);
+          onClose();
         }}
-        onCancel={() => setEditing(false)}
+        onCancel={onClose}
       />
     );
   }
 
-  if (confirming) {
-    const nothingAttached = confirming.hiddenMaterials + confirming.hiddenSegments === 0;
-    return (
-      <div className="mt-2 rounded-sm border border-line bg-yellow-tint p-2.5">
-        <p className="font-mono text-[11px] leading-5 text-ink">
-          <strong className="font-bold">{event.eventName}</strong> 사건을 연표에서 숨깁니다.
-          <br />
-          {nothingAttached
-            ? "DB에서는 지워지지 않습니다 — 아래 “숨긴 사건”에서 되돌릴 수 있습니다."
-            : `연결된 사료 ${confirming.hiddenMaterials}건 · 구술 ${confirming.hiddenSegments}건도 함께 화면에서 빠집니다. DB에서는 아무것도 지워지지 않고, 되돌리면 연결도 그대로 돌아옵니다.`}
-        </p>
-        <div className="mt-1.5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setConfirming(null)}
-            disabled={pending}
-            className="font-mono text-[11px] text-grey hover:text-ink"
-          >
-            취소
-          </button>
-          <button
-            type="button"
-            onClick={handleHide}
-            disabled={pending}
-            className="rounded-sm bg-ink px-2 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
-          >
-            {pending ? "숨기는 중…" : "숨김"}
-          </button>
-        </div>
-      </div>
-    );
+  if (!confirming) {
+    return <p className="mt-2 font-mono text-[11px] text-grey">세는 중…</p>;
   }
 
+  const nothingAttached = confirming.hiddenMaterials + confirming.hiddenSegments === 0;
   return (
-    <div className="mt-1.5 flex gap-2">
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
-      >
-        수정
-      </button>
-      <button
-        type="button"
-        onClick={handleAskHide}
-        disabled={pending}
-        className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink disabled:opacity-50"
-      >
-        숨김
-      </button>
+    <div className="mt-2 rounded-sm border border-line bg-yellow-tint p-2.5">
+      <p className="font-mono text-[11px] leading-5 text-ink">
+        <strong className="font-bold">{event.eventName}</strong> 사건을 연표에서 숨깁니다.
+        <br />
+        {nothingAttached
+          ? "DB에서는 지워지지 않습니다 — 아래 “숨긴 사건”에서 되돌릴 수 있습니다."
+          : `연결된 사료 ${confirming.hiddenMaterials}건 · 구술 ${confirming.hiddenSegments}건도 함께 화면에서 빠집니다. DB에서는 아무것도 지워지지 않고, 되돌리면 연결도 그대로 돌아옵니다.`}
+      </p>
+      <div className="mt-1.5 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+          className="font-mono text-[11px] text-grey hover:text-ink"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          onClick={handleHide}
+          disabled={pending}
+          className="rounded-sm bg-ink px-2 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
+        >
+          {pending ? "숨기는 중…" : "숨김"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -134,8 +134,17 @@ export interface TimelineEventData {
   eventName: string;
   dateValue: string; // EDTF 형식 (6-3 참고)
   summary: string; // 내용 컬럼 — 사건에 대한 한두 문장 설명
-  sourceReference: string; // 출처 문헌
+  // 출처는 적힌 그대로(sourceReference)와 화면에 내보일 모양(sourceLabel)을 함께 들고 다닌다.
+  // 대장 번호(SRC007)로만 적힌 사건이 많은데, 번호는 고칠 때 지켜야 할 원본이고 읽는 자리에서는
+  // 서지로 풀려야 한다 — 하나로 합치면 수정 폼이 풀린 글을 원본 자리에 다시 써넣어 번호가 사라진다.
+  sourceReference: string; // DB에 적힌 그대로 — 수정 폼이 쓰는 값
+  sourceLabel: string; // 번호를 대장(sources)에서 풀어낸 서지 — 화면이 쓰는 값
   sourceUrl: string; // 출처 원문 주소 — 있으면 출처 문헌에 링크를 건다 (없으면 "")
+  // 출처가 책·학술지·간행물이면 제목만으로는 다시 찾아갈 수 없어 저자와 쪽수를 함께 받는다.
+  // 유형은 그 두 칸을 언제 물을지 정하고, 출처 표기를 어떤 서지 형식으로 조립할지의 근거다.
+  sourceType: string; // "" | 도서 | 학술지 | 간행물 | 웹 | 영상 | 구술자료 …
+  sourceAuthor: string;
+  sourcePages: string; // "112" · "112-118" 처럼 자유롭게 — 권·호 표기가 섞여 들어오기도 한다
   places: PlaceRef[]; // 인물·장소 태그 중 장소 — 좌표를 가지며 지도로 링크
   keywordTags: string[]; // 지리적 키워드(행정구역 등)도 여기에 포함해 필터·검색에 걸리게 한다
   linkedSegmentIds: string[]; // 그물망 연결(links, link_basis=인물/장소/사건)로 이어진 구술 발췌

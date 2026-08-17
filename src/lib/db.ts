@@ -26,6 +26,49 @@ interface DbSource {
   id: string;
   title: string;
   identifier: string | null;
+  type?: string | null;
+  creator?: string | null;
+  publisher?: string | null;
+  date_value?: string | null;
+}
+
+// 연표의 출처 칸에는 CSV 시절의 출처 대장 번호(SRC007)가 그대로 적혀 있는 사건이 많다.
+// 번호만 보고 무슨 자료인지 아는 사람은 이 표를 만든 사람뿐이라, 읽는 자리에서는 대장
+// (sources)을 찾아 실제 서지로 바꿔 보여준다. DB의 값은 그대로 두고 화면에서만 푼다 —
+// CSV 동기화가 다시 번호를 써넣어도 어긋나지 않는다.
+const SOURCE_CODE = /^SRC\d+$/i;
+
+function formatSourceEntry(source: DbSource): string {
+  return [
+    source.creator,
+    `『${source.title}』`,
+    source.publisher,
+    source.date_value ? `(${source.date_value})` : null,
+  ]
+    .filter(Boolean)
+    .join(", ")
+    .replace(", (", " (");
+}
+
+// "SRC005; 근대사 연표(국사편찬위원회, 날짜 일치 확인)"처럼 번호와 메모가 섞여 있는 값도
+// 있어, 세미콜론으로 끊어 번호인 조각만 바꾼다. 링크는 처음 풀린 번호의 것을 쓴다.
+function resolveSourceReference(
+  raw: string,
+  sourceById: Map<string, DbSource>,
+): { reference: string; url: string | null } {
+  if (!raw) return { reference: "", url: null };
+
+  let url: string | null = null;
+  const parts = raw.split(";").map((part) => {
+    const token = part.trim();
+    if (!SOURCE_CODE.test(token)) return token;
+    const source = sourceById.get(token.toUpperCase());
+    if (!source) return token; // 대장에 없는 번호는 지우지 않고 그대로 둔다 — 지우면 단서까지 사라진다
+    if (!url && source.identifier?.startsWith("http")) url = source.identifier;
+    return formatSourceEntry(source);
+  });
+
+  return { reference: parts.filter(Boolean).join("; "), url };
 }
 
 interface DbTimelineEvent {
@@ -35,6 +78,9 @@ interface DbTimelineEvent {
   summary: string | null;
   source_reference: string | null;
   source_url: string | null;
+  source_type: string | null;
+  source_author: string | null;
+  source_pages: string | null;
   has_discrepancy: boolean;
   keywords: string[];
   user_saved: boolean;
@@ -144,15 +190,24 @@ async function fetchHiddenEventIds(): Promise<Set<string>> {
 export async function getChronicleEvents({ includeCandidates = false }: ChronicleOptions = {}): Promise<TimelineEventData[]> {
   const visibleStatuses = includeCandidates ? ["confirmed", "candidate"] : ["confirmed"];
 
-  const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: links, error: linksError }] =
-    await Promise.all([
-      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, has_discrepancy, keywords, user_saved, user_memo, highlighted").is("hidden_at", null).order("id"),
-      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url"),
-      supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
-    ]);
+  const [
+    { data: events, error: eventsError },
+    { data: materials, error: materialsError },
+    { data: links, error: linksError },
+    { data: sources, error: sourcesError },
+  ] = await Promise.all([
+    supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, user_memo, highlighted").is("hidden_at", null).order("id"),
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url"),
+    supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
+    // 출처 대장 — 사건에 번호(SRC007)로만 적혀 있는 출처를 실제 서지로 푸는 데 쓴다.
+    supabase.from("sources").select("id, type, title, creator, publisher, date_value, identifier"),
+  ]);
   if (eventsError) throw eventsError;
   if (materialsError) throw materialsError;
   if (linksError) throw linksError;
+  if (sourcesError) throw sourcesError;
+
+  const sourceById = new Map(((sources as DbSource[]) ?? []).map((s) => [s.id, s]));
 
   const materialById = new Map(((materials as DbArchiveItem[]) ?? []).map((m) => [m.id, m]));
 
@@ -172,21 +227,30 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
     }
   }
 
-  return ((events as DbTimelineEvent[]) ?? []).map((e) => ({
-    id: e.id,
-    eventName: e.event_name,
-    dateValue: e.date_value ?? "",
-    summary: e.summary ?? "",
-    sourceReference: e.source_reference ?? "",
-    sourceUrl: e.source_url ?? "",
-    places: [], // places/event_places 아직 데이터 없음 (좌표 미확보)
-    keywordTags: e.keywords ?? [],
-    linkedSegmentIds: segmentIdsByEvent.get(e.id) ?? [],
-    linkedMaterials: materialsByEvent.get(e.id) ?? [],
-    savedByUser: e.user_saved,
-    userMemo: e.user_memo ?? undefined,
-    highlighted: e.highlighted,
-  }));
+  return ((events as DbTimelineEvent[]) ?? []).map((e) => {
+    // 번호로 적힌 출처는 여기서 서지로 풀린다. 사건에 적어둔 주소가 있으면 그것이 먼저다 —
+    // 대장의 주소는 자료 전체를, 사건의 주소는 이 사건이 실린 자리를 가리킨다.
+    const source = resolveSourceReference(e.source_reference ?? "", sourceById);
+    return {
+      id: e.id,
+      eventName: e.event_name,
+      dateValue: e.date_value ?? "",
+      summary: e.summary ?? "",
+      sourceReference: e.source_reference ?? "",
+      sourceLabel: source.reference,
+      sourceUrl: e.source_url ?? source.url ?? "",
+      sourceType: e.source_type ?? "",
+      sourceAuthor: e.source_author ?? "",
+      sourcePages: e.source_pages ?? "",
+      places: [], // places/event_places 아직 데이터 없음 (좌표 미확보)
+      keywordTags: e.keywords ?? [],
+      linkedSegmentIds: segmentIdsByEvent.get(e.id) ?? [],
+      linkedMaterials: materialsByEvent.get(e.id) ?? [],
+      savedByUser: e.user_saved,
+      userMemo: e.user_memo ?? undefined,
+      highlighted: e.highlighted,
+    };
+  });
 }
 
 export interface HiddenEventSummary {

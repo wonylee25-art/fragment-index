@@ -1,4 +1,29 @@
-import { PaperData } from "./types";
+import { PaperData, TimelineEventData } from "./types";
+
+// 연표 사건의 출처 유형. 책·학술지·간행물은 쪽을 넘겨 찾아가는 자료라 저자·쪽수를 함께 묻고,
+// 나머지(웹·영상 등)는 쪽이라는 것이 없어 묻지 않는다.
+export const CITED_SOURCE_TYPES = ["도서", "학술지", "간행물"] as const;
+export const SOURCE_TYPES = [...CITED_SOURCE_TYPES, "웹", "영상", "구술자료", "기타"] as const;
+
+export function isCited(sourceType: string): boolean {
+  return (CITED_SOURCE_TYPES as readonly string[]).includes(sourceType.trim());
+}
+
+// 연표 출처 칸 한 줄. 한국문화인류학회 형식을 그대로 따르기에는 사건의 출처가 문헌만이
+// 아니라(웹·영상·구술자료도 온다) 무리라, 있는 것만 "저자, 출처, 112쪽"으로 잇는다.
+export function formatEventSource(event: TimelineEventData): string {
+  const pages = event.sourcePages.trim();
+  return [
+    event.sourceAuthor.trim(),
+    // 화면에 내보이는 것은 번호가 풀린 쪽이다 — 원본(sourceReference)은 수정 폼의 몫.
+    event.sourceLabel.trim(),
+    // "112", "112-118"처럼 숫자만 적어둔 경우에만 "쪽"을 붙인다 — "112쪽", "p.112"로 적어
+    // 넣은 값에 또 붙이면 "112쪽쪽"이 된다.
+    pages && /^[\d\s\-–~,]+$/.test(pages) ? `${pages}쪽` : pages,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
 
 // 한국문화인류학회 참고문헌 형식 — https://koanth.org/?page_id=1048
 // 학위논문: 저자, 연도, "제목," 학위수여기관 학위종류.

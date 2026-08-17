@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
+import { isCited } from "./citation";
 
 // 연표 사건의 추가·수정·숨김. 지금까지 사건은 CSV 동기화(D001…)와 오늘의역사 저장(th_…)으로만
 // 들어왔고 사람이 직접 만들 길이 없었다 — 여기서 그 길을 연다.
@@ -18,6 +19,11 @@ export interface EventInput {
   summary: string;
   sourceReference: string;
   sourceUrl: string; // 출처 원문 주소 — 비워둘 수 있다
+  // 책·학술지·간행물처럼 쪽을 넘겨 찾아가야 하는 출처는 제목만으로 되짚을 수 없다.
+  // 유형이 그런 자료일 때만 저자·쪽수를 묻는다(EventEditor).
+  sourceType: string;
+  sourceAuthor: string;
+  sourcePages: string;
   keywords: string[];
 }
 
@@ -42,6 +48,11 @@ function normalize(input: EventInput) {
     summary: input.summary.trim() || null,
     source_reference: input.sourceReference.trim() || null,
     source_url: normalizeUrl(input.sourceUrl),
+    source_type: input.sourceType.trim() || null,
+    // 유형이 쪽을 갖지 않는 자료로 바뀌면 저자·쪽수는 지운다 — 화면에서 안 보이는 칸에
+    // 옛 값이 남아 있으면, 뒤에 유형만 되돌렸을 때 엉뚱한 저자가 되살아난다.
+    source_author: isCited(input.sourceType) ? input.sourceAuthor.trim() || null : null,
+    source_pages: isCited(input.sourceType) ? input.sourcePages.trim() || null : null,
     keywords: input.keywords.map((k) => k.trim()).filter(Boolean),
   };
 }
