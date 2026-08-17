@@ -34,7 +34,7 @@ export function UnlinkButton({
           type="button"
           onClick={handleUnlink}
           disabled={pending}
-          className="rounded-sm bg-red-600 px-1.5 py-0.5 text-white hover:bg-red-700 disabled:opacity-50"
+          className="rounded-sm bg-red-fill px-1.5 py-0.5 text-white hover:opacity-80 disabled:opacity-50"
         >
           {pending ? "끊는 중…" : "정말 끊기"}
         </button>
@@ -42,7 +42,7 @@ export function UnlinkButton({
           type="button"
           onClick={() => setArmed(false)}
           disabled={pending}
-          className="text-zinc-400 hover:text-zinc-700"
+          className="text-grey hover:text-ink"
         >
           취소
         </button>
@@ -55,7 +55,7 @@ export function UnlinkButton({
       type="button"
       onClick={() => setArmed(true)}
       title="이 연결선만 끊습니다 — 자료는 보류함으로 돌아갑니다"
-      className="mt-1 font-mono text-[10px] text-zinc-300 underline decoration-dotted underline-offset-2 hover:text-red-600"
+      className="mt-1 font-mono text-[10px] text-line underline decoration-dotted underline-offset-2 hover:text-red-text"
     >
       연결 끊기
     </button>

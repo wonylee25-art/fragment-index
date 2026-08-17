@@ -1,53 +1,98 @@
 @import "tailwindcss";
 
+/* 이 아카이브는 밝은 화면 하나로만 간다 — 다크 팔레트를 두었다가 걷어냈다.
+   화면을 그리는 색 195개가 zinc-* 고정값으로 박혀 있어서, 껍데기 배경만 검게 뒤집히고
+   그 위의 글씨·선·태그는 밝은 배경용 그대로 남았다. 지원도 미지원도 아닌 상태였다.
+   color-scheme을 light로 못 박아 두는 것은 기기가 어두운 모드일 때 브라우저가 입력칸·
+   체크박스를 제멋대로 어둡게 그리는 것까지 막기 위해서다. */
+/* ── 색 ──────────────────────────────────────────────────────────────────────
+   화면 넷이 서로 다른 색 계열 13개(zinc·orange·amber·blue·emerald·violet·rose·teal·
+   slate·red·stone·indigo·yellow)를 250곳에 흩어 쓰고 있었다. 같은 앰버가 "중요"와
+   "보고서 유형"과 "연관 주제어"와 "메모 배경" 넷을 동시에 가리켰고, 자료 유형 9종은
+   연표와 구술 목록이 아예 다른 색표를 들고 있었다(이미지가 한쪽에선 회색, 한쪽에선 파랑).
+
+   그래서 규칙을 하나로 세웠다 — 색은 사람이 손댄 흔적이고, 자료가 스스로 말하는 것
+   (인물·장소·유형·날짜·출처)은 색을 갖지 않는다. 색이 보이면 내가 개입한 자리다.
+
+   단 이름은 셋뿐이다.
+     -tint  넓은 면 — 행 배경처럼 한 화면에 한 색만 깔리는 자리
+     -mark  중간 면 — 본문 위에 긋는 하이라이트
+     -fill  좁은 면 — 칩 앞의 점, 행 왼쪽 띠, 체크박스
+     -text  글씨 — 초록(링크)과 빨강(경고)에만 있다
+
+   -text가 넷이 아니라 둘뿐인 것은 실수가 아니다. 따뜻한 띠는 양 끝에서 수렴한다 —
+   어둡게 만들면 노랑도 주황도 갈색으로 무너져 서로 안 갈린다(주황↔빨강 ΔE 19.3,
+   "애매"). 색이 살아 있는 구간은 가운데(fill)뿐이라, 노랑·주황은 색면으로만 말하고
+   글씨는 --ink가 받는다. 같은 이유로 fill 위에는 흰 글씨를 올리지 않는다
+   (대비 1.66~4.37로 전부 미달). 활성 버튼이 검정인 것도 그래서다.
+
+   면적이 커지면 같은 색도 훨씬 세 보이므로, 넓은 자리일수록 옅은 단을 쓴다.
+   --yellow-mark가 tint와 fill 사이에 따로 있는 이유가 그것이다 — tint로 그으면 그은
+   티가 안 나고(흰 바탕과 ΔE 15.3), fill로 그으면 한 문단에 서너 군데만 그어도
+   구술 본문이 아니라 노란 덩어리가 먼저 읽힌다.
+
+   초록과 빨강은 적록색약에서 둘 다 올리브로 무너진다(ΔE 1.26). 색 값으로는 못 푸는
+   문제라, 색면에는 반드시 글자나 아이콘을 함께 둔다("✓ 저장됨", "🔍 이견 발견").
+
+   뜻은 여기서 정하지 않는다 — design-tokens.ts의 CHIP_* 상수가 진다. */
 :root {
+  color-scheme: light;
+
+  /* 회색 다섯. 화면의 대부분이 여기 있다. */
   --background: #ffffff;
-  --foreground: #171717;
-  --line: #e2e2df;
-  --line-strong: #c7c7c2;
-  --surface: #f4f4f2;
-  --muted: #6b6b68;
-  --muted-2: #8f8f8b;
-  --flag-attention: #b3502c;
-  --flag-attention-soft: #f0ddd2;
-  --flag-marked: #35607e;
-  --flag-marked-soft: #d8e2e8;
+  --surface: #f4f4f2; /* 태그 배경 · 얼룩말 행 · 입력칸 · 비활성 버튼 */
+  --line: #e2e2df; /* 행 구분선 · 카드 테두리 · 입력칸 테두리 */
+  --grey: #6b6b68; /* 날짜 · 출처 · 개수 · 표 머리 · 지문 — 흰 바탕 5.4:1, 얼룩행 4.9:1 */
+  --ink: #1a1a18; /* 제목 · 본문 · 구술 발화 · 칩 글씨 · 활성 버튼 배경 — 17.4:1 */
+
+  /* 초록 — 확인된 것 · 지금 고른 것 */
+  --green-tint: #eaf3e2;
+  --green-fill: #6aa84f;
+  --green-text: #35632a; /* 흰 바탕 7.1:1 */
+
+  /* 노랑 — 내가 얹은 것 */
+  --yellow-tint: #fdf6d9;
+  --yellow-mark: #f9e58a; /* 구술 하이라이트 — 본문 대비 13.8:1, 얼룩행 위에서도 ΔE 46.3 */
+  --yellow-fill: #e8c72c;
+
+  /* 주황 — 아직 확정 안 됨. 관리 화면에만 나온다 */
+  --orange-tint: #fdeadb;
+  --orange-fill: #ef8129;
+
+  /* 빨강 — 걸리는 것 */
+  --red-tint: #fce3df;
+  --red-fill: #e03a28;
+  --red-text: #8f2116; /* 흰 바탕 8.8:1 */
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
   --color-surface: var(--surface);
-  --color-muted: var(--muted);
-  --color-muted-2: var(--muted-2);
-  --color-flag-attention: var(--flag-attention);
-  --color-flag-attention-soft: var(--flag-attention-soft);
-  --color-flag-marked: var(--flag-marked);
-  --color-flag-marked-soft: var(--flag-marked-soft);
+  --color-line: var(--line);
+  --color-grey: var(--grey);
+  --color-ink: var(--ink);
+
+  --color-green-tint: var(--green-tint);
+  --color-green-fill: var(--green-fill);
+  --color-green-text: var(--green-text);
+
+  --color-yellow-tint: var(--yellow-tint);
+  --color-yellow-mark: var(--yellow-mark);
+  --color-yellow-fill: var(--yellow-fill);
+
+  --color-orange-tint: var(--orange-tint);
+  --color-orange-fill: var(--orange-fill);
+
+  --color-red-tint: var(--red-tint);
+  --color-red-fill: var(--red-fill);
+  --color-red-text: var(--red-text);
+
   --font-sans: var(--font-gothic-a1);
   /* 명조는 내려받지 않고 기기에 있는 것을 쓴다 — 라틴은 ui-serif/Georgia, 한글은 macOS의
      AppleMyungjo·나눔명조, Windows의 바탕이 차례로 잡힌다. 명조가 없는 기기는 serif로 떨어진다.
      next/font/google로 받던 Noto Serif KR을 걷어낸 경위는 layout.tsx 주석 참고. */
   --font-serif: ui-serif, Georgia, "AppleMyungjo", "Nanum Myeongjo", "Batang", 바탕, serif;
   --font-mono: var(--font-plex-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --line: #2a2b2d;
-    --line-strong: #3d3e40;
-    --surface: #17181a;
-    --muted: #a8a8a5;
-    --muted-2: #7d7d7a;
-    --flag-attention: #e08a5c;
-    --flag-attention-soft: #3a2b21;
-    --flag-marked: #7ba7c4;
-    --flag-marked-soft: #1c2b34;
-  }
 }
 
 /* 모든 화면이 공유하는 가로 틀. 예전에는 max-w-6xl(72rem)로 못 박혀 있어서 넓은 모니터에서
@@ -83,5 +128,5 @@ html {
    (바코드 띠도, 선택 막대도 화면에 붙지 않고 그냥 흘러간다). */
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--ink);
 }

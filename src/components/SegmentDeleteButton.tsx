@@ -31,13 +31,13 @@ export function SegmentDeleteButton({
   }
 
   if (error) {
-    return <span className="text-red-600">{error}</span>;
+    return <span className="text-red-text">{error}</span>;
   }
 
   if (armed) {
     return (
       <span className="flex flex-wrap items-center gap-2">
-        <span className="text-zinc-500">
+        <span className="text-grey">
           이 발췌{noteCount > 0 && `와 각주 ${noteCount}개`}, 붙어 있는 사건 연결이 함께
           사라집니다. 되돌릴 수 없습니다.
         </span>
@@ -45,7 +45,7 @@ export function SegmentDeleteButton({
           type="button"
           onClick={handleDelete}
           disabled={pending}
-          className="rounded-sm bg-red-600 px-1.5 py-0.5 text-white hover:bg-red-700 disabled:opacity-50"
+          className="rounded-sm bg-red-fill px-1.5 py-0.5 text-white hover:opacity-80 disabled:opacity-50"
         >
           {pending ? "지우는 중…" : "정말 지우기"}
         </button>
@@ -53,7 +53,7 @@ export function SegmentDeleteButton({
           type="button"
           onClick={() => setArmed(false)}
           disabled={pending}
-          className="text-zinc-400 hover:text-zinc-700"
+          className="text-grey hover:text-ink"
         >
           취소
         </button>
@@ -62,7 +62,7 @@ export function SegmentDeleteButton({
   }
 
   return (
-    <button type="button" onClick={() => setArmed(true)} className="hover:text-red-600">
+    <button type="button" onClick={() => setArmed(true)} className="hover:text-red-text">
       지우기
     </button>
   );

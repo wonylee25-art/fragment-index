@@ -17,12 +17,12 @@ function LogoMark() {
     <svg
       viewBox="0 0 28 28"
       aria-hidden="true"
-      className="h-7 w-7 shrink-0 text-foreground"
+      className="h-7 w-7 shrink-0 text-ink"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"
     >
-      <rect x="1.5" y="1.5" width="25" height="25" rx="2" className="text-line-strong" />
+      <rect x="1.5" y="1.5" width="25" height="25" rx="2" className="text-grey" />
       <path d="M6 8h9M6 14h16M6 20h6" strokeLinecap="square" />
       <rect x="17.5" y="5.5" width="5" height="5" fill="currentColor" stroke="none" />
     </svg>
@@ -42,7 +42,7 @@ export function SiteHeader({
         {/* 좌상단은 페이지마다 바뀌지 않는 고정 표제. 페이지 제목은 화면에 감춰 문서 구조로만 남긴다. */}
         <Link href="/" className="flex items-center gap-3" aria-label="FRAGMENT INDEX 홈">
           <LogoMark />
-          <span className="font-mono text-[13px] font-semibold leading-[1.15] tracking-[0.2em] text-foreground">
+          <span className="font-mono text-[13px] font-semibold leading-[1.15] tracking-[0.2em] text-ink">
             FRAGMENT
             <br />
             INDEX
@@ -54,10 +54,10 @@ export function SiteHeader({
             <Link
               key={item.href}
               href={item.href}
-              className={`border-b-2 px-3 py-1.5 text-sm font-semibold transition-colors ${
+              className={`border-b-2 px-3 py-1.5 text-[13px] font-semibold transition-colors ${
                 active === item.href
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted hover:text-foreground"
+                  ? "border-ink text-ink"
+                  : "border-transparent text-grey hover:text-ink"
               }`}
             >
               {item.label}

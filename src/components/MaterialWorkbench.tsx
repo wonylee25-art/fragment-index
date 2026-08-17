@@ -46,7 +46,7 @@ function MaterialCard({
             className="h-[118px] w-24 shrink-0 border border-line bg-surface object-cover"
           />
         ) : (
-          <div className="flex h-[118px] w-24 shrink-0 items-center justify-center border border-dashed border-line bg-surface text-center font-mono text-[10px] leading-relaxed text-muted-2">
+          <div className="flex h-[118px] w-24 shrink-0 items-center justify-center border border-dashed border-line bg-surface text-center font-mono text-[10px] leading-relaxed text-grey">
             이미지
             <br />
             없음
@@ -54,15 +54,15 @@ function MaterialCard({
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-bold leading-snug text-foreground">{draft.title}</p>
-          <p className="mt-1 font-mono text-[11px] text-muted-2">{metaLine}</p>
+          <p className="text-[14px] font-bold leading-snug text-ink">{draft.title}</p>
+          <p className="mt-1 font-mono text-[11px] text-grey">{metaLine}</p>
 
           {badges.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {badges.map((badge) => (
                 <span
                   key={badge}
-                  className="bg-flag-marked-soft px-1.5 py-0.5 text-[11px] font-bold text-flag-marked"
+                  className="bg-surface px-1.5 py-0.5 text-[11px] font-bold text-ink"
                 >
                   {badge}
                 </span>
@@ -71,14 +71,14 @@ function MaterialCard({
           )}
 
           {draft.description && (
-            <p className="mt-2 border-l-2 border-line-strong pl-2.5 text-[12px] leading-relaxed text-muted">
+            <p className="mt-2 border-l-2 border-line pl-2.5 text-[12px] leading-relaxed text-grey">
               {draft.description}
             </p>
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {saved ? (
-              <span className="font-mono text-[11px] font-semibold text-flag-marked">✓ 저장됨</span>
+              <span className="font-mono text-[11px] font-semibold text-ink">✓ 저장됨</span>
             ) : (
               <>
                 {/* 선택된 사건은 화면 상태라, 폼 제출에 실어 보내려고 hidden으로 함께 넘긴다 */}
@@ -88,7 +88,7 @@ function MaterialCard({
                   name="intent"
                   value="link"
                   disabled={!selected}
-                  className="border border-foreground bg-foreground px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-foreground disabled:border-line disabled:bg-surface disabled:text-muted-2"
+                  className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
                 >
                   {selected
                     ? `${selected.year} ${selected.eventName}에 연결`
@@ -98,7 +98,7 @@ function MaterialCard({
                   type="submit"
                   name="intent"
                   value="hold"
-                  className="border border-line-strong px-2.5 py-1 font-mono text-[11px] font-semibold text-muted hover:border-foreground hover:text-foreground"
+                  className="border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-grey hover:border-ink hover:text-ink"
                 >
                   보류
                 </button>
@@ -109,7 +109,7 @@ function MaterialCard({
                 href={draft.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[11px] text-muted-2 underline decoration-dotted underline-offset-4 hover:text-foreground"
+                className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
               >
                 원문 ↗
               </a>
@@ -141,12 +141,12 @@ export function MaterialWorkbench({
         onSelect={setSelectedId}
         emptyHint={
           <>
-            <p className="text-[12px] leading-relaxed text-muted-2">
+            <p className="text-[12px] leading-relaxed text-grey">
               이 검색어로 걸린 사건이 없습니다.
             </p>
             <a
               href="/admin/timeline"
-              className="mt-2 inline-block font-mono text-[11px] font-semibold text-foreground underline decoration-dotted underline-offset-4"
+              className="mt-2 inline-block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
             >
               연표 관리에서 사건 만들기 →
             </a>
@@ -155,19 +155,19 @@ export function MaterialWorkbench({
       />
 
       <div>
-        <p className="mb-2 font-mono text-[11px] font-semibold text-muted-2">사료 {total}</p>
+        <p className="mb-2 font-mono text-[11px] font-semibold text-grey">사료 {total}</p>
 
         <div className="flex flex-col gap-7">
           {groups.map((group) => (
             <section key={group.label}>
-              <p className="font-mono text-[11px] font-semibold text-muted-2">
+              <p className="font-mono text-[11px] font-semibold text-grey">
                 {group.label} — {group.results.length}건
               </p>
               {group.error && (
-                <p className="mt-1 text-xs text-flag-attention">오류: {group.error}</p>
+                <p className="mt-1 text-xs text-orange-fill">오류: {group.error}</p>
               )}
               {!group.error && group.results.length === 0 ? (
-                <p className="mt-2 border-t border-line pt-3 text-[13px] text-muted-2">결과 없음</p>
+                <p className="mt-2 border-t border-line pt-3 text-[13px] text-grey">결과 없음</p>
               ) : (
                 <ul>
                   {group.results.map((result, i) => (

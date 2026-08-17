@@ -38,8 +38,8 @@ function toInput(event: TimelineEventData): EventInput {
 }
 
 const FIELD_CLASSNAME =
-  "w-full rounded-sm border border-zinc-300 bg-white px-2 py-1 text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none";
-const LABEL_CLASSNAME = "font-mono text-[10px] font-bold tracking-wider text-zinc-500";
+  "w-full rounded-sm border border-line bg-background px-2 py-1 text-[13px] text-ink placeholder:text-grey focus:border-green-text focus:outline-none";
+const LABEL_CLASSNAME = "font-mono text-[10px] font-bold tracking-wider text-grey";
 
 function EventForm({
   initial,
@@ -71,7 +71,7 @@ function EventForm({
   }
 
   return (
-    <div className="mt-2 flex flex-col gap-2 rounded-sm border border-zinc-300 bg-zinc-50 p-3">
+    <div className="mt-2 flex flex-col gap-2 rounded-sm border border-line bg-surface p-3">
       <div className="flex flex-col gap-1">
         <label className={LABEL_CLASSNAME}>사건명</label>
         <input
@@ -134,14 +134,14 @@ function EventForm({
         />
       </div>
 
-      {error && <p className="font-mono text-[11px] text-red-600">{error}</p>}
+      {error && <p className="font-mono text-[11px] text-red-text">{error}</p>}
 
       <div className="flex justify-end gap-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={pending}
-          className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700"
+          className="font-mono text-[11px] text-grey hover:text-ink"
         >
           취소
         </button>
@@ -149,7 +149,7 @@ function EventForm({
           type="button"
           onClick={handleSubmit}
           disabled={pending}
-          className="rounded-sm bg-zinc-900 px-2 py-0.5 font-mono text-[11px] text-white hover:bg-zinc-700 disabled:opacity-50"
+          className="rounded-sm bg-ink px-2 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
         >
           {pending ? "저장 중…" : submitLabel}
         </button>
@@ -203,8 +203,8 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
   if (confirming) {
     const nothingAttached = confirming.hiddenMaterials + confirming.hiddenSegments === 0;
     return (
-      <div className="mt-2 rounded-sm border border-amber-200 bg-amber-50 p-2.5">
-        <p className="font-mono text-[11px] leading-5 text-zinc-700">
+      <div className="mt-2 rounded-sm border border-line bg-yellow-tint p-2.5">
+        <p className="font-mono text-[11px] leading-5 text-ink">
           <strong className="font-bold">{event.eventName}</strong> 사건을 연표에서 숨깁니다.
           <br />
           {nothingAttached
@@ -216,7 +216,7 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
             type="button"
             onClick={() => setConfirming(null)}
             disabled={pending}
-            className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700"
+            className="font-mono text-[11px] text-grey hover:text-ink"
           >
             취소
           </button>
@@ -224,7 +224,7 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
             type="button"
             onClick={handleHide}
             disabled={pending}
-            className="rounded-sm bg-zinc-900 px-2 py-0.5 font-mono text-[11px] text-white hover:bg-zinc-700 disabled:opacity-50"
+            className="rounded-sm bg-ink px-2 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
           >
             {pending ? "숨기는 중…" : "숨김"}
           </button>
@@ -238,7 +238,7 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="font-mono text-[11px] text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-700"
+        className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
       >
         수정
       </button>
@@ -246,7 +246,7 @@ export function EventRowControls({ event }: { event: TimelineEventData }) {
         type="button"
         onClick={handleAskHide}
         disabled={pending}
-        className="font-mono text-[11px] text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-700 disabled:opacity-50"
+        className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink disabled:opacity-50"
       >
         숨김
       </button>
@@ -266,12 +266,12 @@ export function HiddenEventsPanel({
   if (events.length === 0) return null;
 
   return (
-    <div className="border-t border-zinc-200 bg-zinc-50">
+    <div className="border-t border-line bg-surface">
       <div className="page-shell py-3">
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="font-mono text-[11px] font-bold text-zinc-500 hover:text-zinc-800"
+          className="font-mono text-[11px] font-bold text-grey hover:text-ink"
         >
           {open ? "▾" : "▸"} 숨긴 사건 {events.length}건
         </button>
@@ -281,10 +281,10 @@ export function HiddenEventsPanel({
             {events.map((event) => (
               <li
                 key={event.id}
-                className="flex items-baseline justify-between gap-3 border-t border-zinc-200 py-1.5"
+                className="flex items-baseline justify-between gap-3 border-t border-line py-1.5"
               >
-                <span className="text-[13px] text-zinc-500">
-                  <span className="mr-2 font-mono text-[11px] tabular-nums text-zinc-400">
+                <span className="text-[13px] text-grey">
+                  <span className="mr-2 font-mono text-[11px] tabular-nums text-grey">
                     {event.dateValue || "—"}
                   </span>
                   {event.eventName}
@@ -300,7 +300,7 @@ export function HiddenEventsPanel({
                     }
                   }}
                   disabled={pendingId === event.id}
-                  className="shrink-0 rounded-sm border border-zinc-300 bg-white px-2 py-0.5 font-mono text-[11px] text-zinc-700 hover:border-zinc-500 disabled:opacity-50"
+                  className="shrink-0 rounded-sm border border-line bg-background px-2 py-0.5 font-mono text-[11px] text-ink hover:border-green-text disabled:opacity-50"
                 >
                   {pendingId === event.id ? "되돌리는 중…" : "되돌리기"}
                 </button>

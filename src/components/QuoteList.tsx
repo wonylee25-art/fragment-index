@@ -31,7 +31,7 @@ function QuoteEditor({
   }
 
   return (
-    <div className="rounded-sm border border-indigo-200 bg-indigo-50 p-2">
+    <div className="rounded-sm border border-line bg-yellow-tint p-2">
       <textarea
         autoFocus
         onFocus={(e) => e.target.select()}
@@ -39,21 +39,21 @@ function QuoteEditor({
         onChange={(e) => setText(e.target.value)}
         placeholder="인용구를 입력하세요"
         rows={6}
-        className="w-full resize-y bg-transparent font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:outline-none"
+        className="w-full resize-y bg-transparent font-mono text-xs text-ink placeholder:text-grey focus:outline-none"
       />
       <input
         type="text"
         value={page}
         onChange={(e) => setPage(e.target.value)}
         placeholder="페이지 (선택)"
-        className="mt-1 w-24 border-b border-indigo-200 bg-transparent font-mono text-[11px] text-zinc-600 placeholder:text-zinc-400 focus:outline-none"
+        className="mt-1 w-24 border-b border-line bg-transparent font-mono text-[11px] text-ink placeholder:text-grey focus:outline-none"
       />
       <div className="mt-1 flex justify-end gap-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={pending}
-          className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700"
+          className="font-mono text-[11px] text-grey hover:text-ink"
         >
           취소
         </button>
@@ -61,7 +61,7 @@ function QuoteEditor({
           type="button"
           onClick={handleSave}
           disabled={pending || !text.trim()}
-          className="rounded-sm bg-indigo-600 px-2 py-0.5 font-mono text-[11px] text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="rounded-sm bg-ink px-2 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
         >
           {pending ? "저장 중…" : "저장"}
         </button>
@@ -101,18 +101,18 @@ export function QuoteList({
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <div key={q.id} className="flex items-start gap-1.5 rounded-sm border border-indigo-200 bg-indigo-50 p-2">
-            <span aria-hidden className="text-indigo-400">
+          <div key={q.id} className="flex items-start gap-1.5 rounded-sm border border-line bg-yellow-tint p-2">
+            <span aria-hidden className="text-grey">
               “
             </span>
             <div className="flex-1">
-              <p className="font-mono text-xs leading-4 whitespace-pre-wrap text-zinc-700">{q.quoteText}</p>
-              {q.page && <p className="mt-0.5 font-mono text-[10px] text-indigo-400">p.{q.page}</p>}
+              <p className="font-mono text-xs leading-4 whitespace-pre-wrap text-ink">{q.quoteText}</p>
+              {q.page && <p className="mt-0.5 font-mono text-[10px] text-grey">p.{q.page}</p>}
             </div>
             <button
               type="button"
               onClick={() => setEditingId(q.id)}
-              className="font-mono text-[10px] text-indigo-300 hover:text-indigo-600"
+              className="font-mono text-[10px] text-grey hover:text-ink"
             >
               수정
             </button>
@@ -121,7 +121,7 @@ export function QuoteList({
               confirmMessage="이 인용구를 삭제할까요? 되돌릴 수 없습니다."
               label="삭제"
               pendingLabel="삭제 중…"
-              className="font-mono text-[10px] text-indigo-300 hover:text-red-600"
+              className="font-mono text-[10px] text-grey hover:text-red-text"
             />
           </div>
         ),
@@ -139,7 +139,7 @@ export function QuoteList({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="self-start font-mono text-[11px] text-zinc-300 underline decoration-dotted underline-offset-4 hover:text-zinc-600"
+          className="self-start font-mono text-[11px] text-line underline decoration-dotted underline-offset-4 hover:text-ink"
         >
           + 인용구 추가
         </button>

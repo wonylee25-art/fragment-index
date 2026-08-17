@@ -14,7 +14,7 @@ export function AdminTabs() {
   const pathname = usePathname();
 
   return (
-    <div className="border-b border-zinc-200 bg-zinc-50">
+    <div className="border-b border-line bg-surface">
       <div className="page-shell">
         <nav className="flex gap-1">
           {ADMIN_TABS.map((tab) => {
@@ -25,8 +25,8 @@ export function AdminTabs() {
                 href={tab.href}
                 className={`-mb-px border-b-2 px-3 py-2 font-mono text-xs font-bold transition-colors ${
                   active
-                    ? "border-zinc-900 text-zinc-900"
-                    : "border-transparent text-zinc-400 hover:text-zinc-700"
+                    ? "border-ink text-ink"
+                    : "border-transparent text-grey hover:text-ink"
                 }`}
               >
                 {tab.label}

@@ -34,7 +34,7 @@ export function MemoField({
 
   if (editing) {
     return (
-      <div className="mt-1.5 rounded-sm border border-amber-200 bg-amber-50 p-2">
+      <div className="mt-1.5 rounded-sm border border-line bg-yellow-tint p-2">
         <textarea
           autoFocus
           onFocus={(e) => e.target.select()}
@@ -42,14 +42,14 @@ export function MemoField({
           onChange={(e) => setDraft(e.target.value)}
           placeholder="메모를 입력하세요"
           rows={6}
-          className="w-full resize-y bg-transparent font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:outline-none"
+          className="w-full resize-y bg-transparent font-mono text-xs text-ink placeholder:text-grey focus:outline-none"
         />
         <div className="mt-1 flex justify-end gap-2">
           <button
             type="button"
             onClick={handleCancel}
             disabled={pending}
-            className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700"
+            className="font-mono text-[11px] text-grey hover:text-ink"
           >
             취소
           </button>
@@ -57,7 +57,7 @@ export function MemoField({
             type="button"
             onClick={handleSave}
             disabled={pending}
-            className="rounded-sm bg-amber-600 px-2 py-0.5 font-mono text-[11px] text-white hover:bg-amber-700 disabled:opacity-50"
+            className="rounded-sm bg-ink px-2 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
           >
             {pending ? "저장 중…" : "저장"}
           </button>
@@ -71,10 +71,10 @@ export function MemoField({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="mt-1.5 flex w-full items-start gap-1.5 rounded-sm border border-amber-200 bg-amber-50 p-2 text-left hover:bg-amber-100"
+        className="mt-1.5 flex w-full items-start gap-1.5 rounded-sm border border-line bg-yellow-tint p-2 text-left hover:bg-yellow-tint"
       >
         <span aria-hidden>📝</span>
-        <span className="font-mono text-xs leading-4 whitespace-pre-wrap text-zinc-700">{saved}</span>
+        <span className="font-mono text-xs leading-4 whitespace-pre-wrap text-ink">{saved}</span>
       </button>
     );
   }
@@ -83,7 +83,7 @@ export function MemoField({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className="mt-1.5 font-mono text-[11px] text-zinc-300 underline decoration-dotted underline-offset-4 hover:text-zinc-600"
+      className="mt-1.5 font-mono text-[11px] text-line underline decoration-dotted underline-offset-4 hover:text-ink"
     >
       + 메모 추가
     </button>

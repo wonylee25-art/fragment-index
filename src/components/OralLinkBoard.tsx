@@ -38,7 +38,7 @@ export function OralLinkBoard({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-xl font-extrabold tracking-tight text-foreground">구술 연결</h2>
+          <h2 className="text-xl font-extrabold tracking-tight text-ink">구술 연결</h2>
           <div className="flex gap-1 font-mono text-[11px]">
             {(
               [
@@ -52,8 +52,8 @@ export function OralLinkBoard({
                 onClick={() => setFilter(option.value)}
                 className={`px-2 py-1 ${
                   filter === option.value
-                    ? "bg-foreground text-background"
-                    : "text-muted-2 hover:text-foreground"
+                    ? "bg-ink text-background"
+                    : "text-grey hover:text-ink"
                 }`}
               >
                 {option.label}
@@ -61,11 +61,11 @@ export function OralLinkBoard({
             ))}
           </div>
         </div>
-        <p className="text-sm font-medium text-muted">
+        <p className="text-sm font-medium text-grey">
           왼쪽에서 사건을 고른 뒤 구술을 붙이세요. 구술을 새로 넣는 것은{" "}
           <a
             href="/segments"
-            className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+            className="font-semibold text-ink underline decoration-dotted underline-offset-4"
           >
             구술 목록
           </a>
@@ -74,7 +74,7 @@ export function OralLinkBoard({
       </div>
 
       {visible.length === 0 ? (
-        <p className="border border-dashed border-line px-4 py-10 text-center text-sm font-medium text-muted-2">
+        <p className="border border-dashed border-line px-4 py-10 text-center text-sm font-medium text-grey">
           {filter === "unlinked" ? "사건에 안 붙은 구술이 없습니다." : "구술이 없습니다."}
         </p>
       ) : (
@@ -85,7 +85,7 @@ export function OralLinkBoard({
             onSelect={setSelectedId}
             filterable
             emptyHint={
-              <p className="text-[12px] leading-relaxed text-muted-2">연표에 사건이 없습니다.</p>
+              <p className="text-[12px] leading-relaxed text-grey">연표에 사건이 없습니다.</p>
             }
           />
 
@@ -137,30 +137,30 @@ function SegmentLinkCard({
   return (
     <li className="border-t border-line py-3">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="font-mono text-[11px] tabular-nums text-muted-2">
+        <span className="font-mono text-[11px] tabular-nums text-grey">
           {row.dateValue ? formatEdtfToKorean(row.dateValue) : "연도 미상"}
         </span>
         {row.speakers.length > 0 && (
-          <span className="font-mono text-[11px] font-bold text-foreground">
+          <span className="font-mono text-[11px] font-bold text-ink">
             {row.speakers.join(" · ")}
           </span>
         )}
       </div>
 
-      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted">{row.preview}</p>
+      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-grey">{row.preview}</p>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {/* 이미 붙어 있는 사건은 배지로 먼저 보여준다 — 붙일지 말지의 판단이 여기서 갈린다 */}
         {row.linkedEvents.map((e) => (
           <span
             key={e.id}
-            className="bg-flag-marked-soft px-1.5 py-0.5 font-mono text-[10px] font-bold text-flag-marked"
+            className="bg-surface px-1.5 py-0.5 font-mono text-[10px] font-bold text-ink"
           >
             {e.eventName}
           </span>
         ))}
         {linkedNow && (
-          <span className="font-mono text-[11px] font-semibold text-flag-marked">
+          <span className="font-mono text-[11px] font-semibold text-ink">
             ✓ {linkedNow}에 연결됨
           </span>
         )}
@@ -170,7 +170,7 @@ function SegmentLinkCard({
             type="button"
             onClick={handleLink}
             disabled={!selected || pending}
-            className="border border-foreground bg-foreground px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-foreground disabled:border-line disabled:bg-surface disabled:text-muted-2"
+            className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
           >
             {pending
               ? "연결 중…"
@@ -182,12 +182,12 @@ function SegmentLinkCard({
 
         <a
           href={`/segments?focus=${row.id}`}
-          className="font-mono text-[11px] text-muted-2 underline decoration-dotted underline-offset-4 hover:text-foreground"
+          className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
         >
           본문 보기 ↗
         </a>
 
-        {error && <span className="font-mono text-[11px] text-flag-attention">{error}</span>}
+        {error && <span className="font-mono text-[11px] text-orange-fill">{error}</span>}
       </div>
     </li>
   );

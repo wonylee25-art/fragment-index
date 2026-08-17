@@ -55,7 +55,7 @@ function EntryCard({
             className="h-[118px] w-24 shrink-0 border border-line bg-surface object-cover"
           />
         ) : (
-          <div className="flex h-[118px] w-24 shrink-0 items-center justify-center border border-dashed border-line bg-surface text-center font-mono text-[10px] leading-relaxed text-muted-2">
+          <div className="flex h-[118px] w-24 shrink-0 items-center justify-center border border-dashed border-line bg-surface text-center font-mono text-[10px] leading-relaxed text-grey">
             이미지
             <br />
             없음
@@ -63,20 +63,20 @@ function EntryCard({
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-bold leading-snug text-foreground">{entry.title}</p>
-          <p className="mt-1 font-mono text-[11px] text-muted-2">{entry.metaLine}</p>
+          <p className="text-[14px] font-bold leading-snug text-ink">{entry.title}</p>
+          <p className="mt-1 font-mono text-[11px] text-grey">{entry.metaLine}</p>
 
           {entry.description && (
-            <p className="mt-2 border-l-2 border-line-strong pl-2.5 text-[12px] leading-relaxed text-muted">
+            <p className="mt-2 border-l-2 border-line pl-2.5 text-[12px] leading-relaxed text-grey">
               {entry.description}
             </p>
           )}
 
-          {error && <p className="mt-2 font-mono text-[11px] text-flag-attention">{error}</p>}
+          {error && <p className="mt-2 font-mono text-[11px] text-orange-fill">{error}</p>}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {linked ? (
-              <span className="font-mono text-[11px] font-semibold text-flag-marked">
+              <span className="font-mono text-[11px] font-semibold text-ink">
                 ✓ {selected?.eventName}에 연결됨
               </span>
             ) : (
@@ -84,7 +84,7 @@ function EntryCard({
                 type="button"
                 onClick={handleLink}
                 disabled={!selected || pending}
-                className="border border-foreground bg-foreground px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-foreground disabled:border-line disabled:bg-surface disabled:text-muted-2"
+                className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
               >
                 {pending
                   ? "연결 중…"
@@ -98,7 +98,7 @@ function EntryCard({
                 href={entry.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[11px] text-muted-2 underline decoration-dotted underline-offset-4 hover:text-foreground"
+                className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
               >
                 원문 ↗
               </a>
@@ -126,15 +126,15 @@ export function UnlinkedBoard({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-xl font-extrabold tracking-tight text-foreground">보류함</h2>
-        <p className="text-sm font-medium text-muted">
+        <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
+        <p className="text-sm font-medium text-grey">
           어느 사건에도 붙지 않은 자료 {materials.length}건, 구술 {segments.length}건. 왼쪽에서
           사건을 고른 뒤 각 항목을 연결하세요.
         </p>
       </div>
 
       {total === 0 ? (
-        <p className="border border-dashed border-line px-4 py-10 text-center text-sm font-medium text-muted-2">
+        <p className="border border-dashed border-line px-4 py-10 text-center text-sm font-medium text-grey">
           보류 중인 자료가 없습니다.
         </p>
       ) : (
@@ -146,12 +146,12 @@ export function UnlinkedBoard({
             filterable
             emptyHint={
               <>
-                <p className="text-[12px] leading-relaxed text-muted-2">
+                <p className="text-[12px] leading-relaxed text-grey">
                   연표에 사건이 없습니다.
                 </p>
                 <a
                   href="/admin/timeline"
-                  className="mt-2 inline-block font-mono text-[11px] font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                  className="mt-2 inline-block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
                 >
                   연표 관리에서 사건 만들기 →
                 </a>
@@ -162,7 +162,7 @@ export function UnlinkedBoard({
           <div className="flex flex-col gap-7">
             {materials.length > 0 && (
               <section>
-                <p className="font-mono text-[11px] font-semibold text-muted-2">
+                <p className="font-mono text-[11px] font-semibold text-grey">
                   사료 — {materials.length}건
                 </p>
                 <ul>
@@ -175,7 +175,7 @@ export function UnlinkedBoard({
 
             {segments.length > 0 && (
               <section>
-                <p className="font-mono text-[11px] font-semibold text-muted-2">
+                <p className="font-mono text-[11px] font-semibold text-grey">
                   구술 — {segments.length}건
                 </p>
                 <ul>

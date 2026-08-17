@@ -21,15 +21,15 @@ import { SpeakerOption, UtteranceDraft, UtteranceEditor } from "./UtteranceEdito
 // 너비는 쓰는 쪽에서 정한다 — w-full을 기본에 넣어 두면 좁게 쓰고 싶은 칸에서
 // w-24 같은 것을 덧붙여도 어느 쪽이 이길지 알 수 없다(같은 특이도라 순서 문제가 된다).
 const INPUT_BASE =
-  "border border-line-strong bg-background px-2.5 py-1.5 text-[13px] text-foreground placeholder:text-muted-2 focus:border-foreground focus:outline-none";
+  "border border-line bg-background px-2.5 py-1.5 text-[13px] text-ink placeholder:text-grey focus:border-ink focus:outline-none";
 
 const INPUT_CLASSNAME = `w-full ${INPUT_BASE}`;
 
 const LABEL_CLASSNAME =
-  "mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-2";
+  "mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-grey";
 
 const SECTION_TITLE_CLASSNAME =
-  "mb-2 font-mono text-[11px] font-bold uppercase tracking-wider text-foreground";
+  "mb-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink";
 
 const EMPTY_SOURCE = { title: "", creator: "", publisher: "", url: "" };
 
@@ -192,11 +192,11 @@ export function OralIntakeForm({
         e.preventDefault();
         void save(editing ? "update" : eventId ? "link" : "hold");
       }}
-      className="mb-6 flex flex-col gap-7 border border-line-strong bg-surface p-4"
+      className="mb-6 flex flex-col gap-7 border border-line bg-surface p-4"
     >
       {/* ① 어느 사건 이야기인가 — 맨 위에 둔다. 고칠 때는 사건을 다루지 않는다 */}
       {editing ? (
-        <p className="font-mono text-[11px] text-muted-2">
+        <p className="font-mono text-[11px] text-grey">
           구술 고치기 — 사건 연결은 여기서 바꾸지 않습니다. 관리 → 구술 연결에서 붙이고 뗍니다.
         </p>
       ) : (
@@ -210,7 +210,7 @@ export function OralIntakeForm({
           <button
             type="button"
             onClick={() => setSourceMode((m) => (m === "new" ? "existing" : "new"))}
-            className="font-mono text-[10px] text-muted-2 hover:text-foreground"
+            className="font-mono text-[10px] text-grey hover:text-ink"
           >
             {sourceMode === "new" ? "이미 등록된 출처에서 고르기" : "새 출처 적기"}
           </button>
@@ -343,9 +343,9 @@ export function OralIntakeForm({
       {/* ⑤ 각주 — 본문에 박은 번호와 짝이 맞는다 */}
       <NoteList notes={notes} onChange={setNotes} />
 
-      {error && <p className="font-mono text-[11px] text-flag-attention">{error}</p>}
+      {error && <p className="font-mono text-[11px] text-orange-fill">{error}</p>}
       {savedNote && !error && (
-        <p className="font-mono text-[11px] font-semibold text-flag-marked">
+        <p className="font-mono text-[11px] font-semibold text-ink">
           ✓ {savedNote} — 사건·출처·화자는 그대로 두었습니다. 이어서 다음 발췌를 넣으세요.
         </p>
       )}
@@ -354,7 +354,7 @@ export function OralIntakeForm({
         <button
           type="submit"
           disabled={pending || (!editing && !eventId)}
-          className="border border-foreground bg-foreground px-3 py-1.5 font-mono text-[12px] font-bold text-background hover:bg-surface hover:text-foreground disabled:border-line disabled:bg-surface disabled:text-muted-2"
+          className="border border-ink bg-ink px-3 py-1.5 font-mono text-[12px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
         >
           {pending
             ? "저장 중…"
@@ -369,7 +369,7 @@ export function OralIntakeForm({
             type="button"
             onClick={() => void save("hold")}
             disabled={pending}
-            className="border border-line-strong px-3 py-1.5 font-mono text-[12px] font-semibold text-muted hover:border-foreground hover:text-foreground disabled:text-muted-2"
+            className="border border-line px-3 py-1.5 font-mono text-[12px] font-semibold text-grey hover:border-ink hover:text-ink disabled:text-grey"
           >
             보류
           </button>
@@ -378,7 +378,7 @@ export function OralIntakeForm({
           type="button"
           onClick={onClose}
           disabled={pending}
-          className="font-mono text-[11px] text-muted-2 hover:text-foreground"
+          className="font-mono text-[11px] text-grey hover:text-ink"
         >
           닫기
         </button>
@@ -413,7 +413,7 @@ function EventField({
       <section>
         <h3 className={SECTION_TITLE_CLASSNAME}>사건 연결</h3>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-2 bg-foreground px-2.5 py-1 font-mono text-[12px] font-bold text-background">
+          <span className="flex items-center gap-2 bg-ink px-2.5 py-1 font-mono text-[12px] font-bold text-background">
             <span className="tabular-nums opacity-70">{selected.year}</span>
             {selected.eventName}
             <button
@@ -449,9 +449,9 @@ function EventField({
       />
 
       {open && (
-        <ul className="mt-1 max-w-lg border border-line-strong bg-background">
+        <ul className="mt-1 max-w-lg border border-line bg-background">
           {matches.length === 0 ? (
-            <li className="px-2.5 py-2 font-mono text-[11px] text-muted-2">걸리는 사건이 없습니다.</li>
+            <li className="px-2.5 py-2 font-mono text-[11px] text-grey">걸리는 사건이 없습니다.</li>
           ) : (
             matches.map((event) => (
               <li key={event.id} className="border-b border-line last:border-b-0">
@@ -463,8 +463,8 @@ function EventField({
                   }}
                   className="flex w-full items-baseline gap-2 px-2.5 py-1.5 text-left hover:bg-surface"
                 >
-                  <span className="font-mono text-[10px] tabular-nums text-muted-2">{event.year}</span>
-                  <span className="text-[12px] font-semibold text-foreground">{event.eventName}</span>
+                  <span className="font-mono text-[10px] tabular-nums text-grey">{event.year}</span>
+                  <span className="text-[12px] font-semibold text-ink">{event.eventName}</span>
                 </button>
               </li>
             ))
@@ -472,7 +472,7 @@ function EventField({
         </ul>
       )}
 
-      <p className="mt-1 text-[11px] text-muted-2">
+      <p className="mt-1 text-[11px] text-grey">
         고르지 않고 [보류]로 저장하면 사료 연결 화면의 보류함에 쌓입니다.
       </p>
     </section>
@@ -610,7 +610,7 @@ function SpeakerField({
             <li
               key={s.id}
               className={`flex items-center gap-1.5 px-2 py-0.5 font-mono text-[11px] font-bold ${
-                role === "면담자" ? "bg-emerald-600 text-white" : "bg-foreground text-background"
+                role === "면담자" ? "bg-green-fill text-white" : "bg-ink text-background"
               }`}
             >
               <span className="opacity-70">
@@ -640,8 +640,8 @@ function SpeakerField({
               onClick={() => setKind(k)}
               className={`border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
                 kind === k
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-line-strong text-muted-2 hover:text-foreground"
+                  ? "border-ink bg-ink text-background"
+                  : "border-line text-grey hover:text-ink"
               }`}
             >
               {k}
@@ -667,7 +667,7 @@ function SpeakerField({
             type="button"
             onClick={handleAdd}
             disabled={pending}
-            className="shrink-0 border border-line-strong px-2.5 py-1.5 font-mono text-[11px] font-semibold text-foreground hover:bg-foreground hover:text-background disabled:text-muted-2"
+            className="shrink-0 border border-line px-2.5 py-1.5 font-mono text-[11px] font-semibold text-ink hover:bg-ink hover:text-background disabled:text-grey"
           >
             {pending ? "…" : "추가"}
           </button>
@@ -681,11 +681,11 @@ function SpeakerField({
           className={INPUT_CLASSNAME}
         />
 
-        <span className="font-mono text-[10px] leading-snug text-muted-2">{help.note}</span>
+        <span className="font-mono text-[10px] leading-snug text-grey">{help.note}</span>
 
         {candidates.length > 0 && (
-          <ul className="border border-line-strong bg-background">
-            <li className="border-b border-line px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-2">
+          <ul className="border border-line bg-background">
+            <li className="border-b border-line px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-grey">
               이미 있는 전거 — 같은 사람이면 고르세요
             </li>
             {candidates.map((p) => (
@@ -695,14 +695,14 @@ function SpeakerField({
                   onClick={() => pick(p)}
                   className="flex w-full flex-wrap items-baseline gap-x-2 px-2 py-1.5 text-left hover:bg-surface"
                 >
-                  <span className="text-[12px] font-semibold text-foreground">{p.name}</span>
+                  <span className="text-[12px] font-semibold text-ink">{p.name}</span>
                   {p.kind && (
-                    <span className="border border-line-strong px-1 font-mono text-[9px] font-bold text-muted-2">
+                    <span className="border border-line px-1 font-mono text-[9px] font-bold text-grey">
                       {p.kind}
                     </span>
                   )}
                   {p.affiliation && (
-                    <span className="font-mono text-[10px] text-muted-2">{p.affiliation}</span>
+                    <span className="font-mono text-[10px] text-grey">{p.affiliation}</span>
                   )}
                 </button>
               </li>
@@ -710,7 +710,7 @@ function SpeakerField({
           </ul>
         )}
 
-        {error && <span className="font-mono text-[11px] text-flag-attention">{error}</span>}
+        {error && <span className="font-mono text-[11px] text-orange-fill">{error}</span>}
       </div>
     </section>
   );
@@ -724,7 +724,7 @@ function NoteList({ notes, onChange }: { notes: string[]; onChange: (next: strin
     return (
       <section>
         <h3 className={SECTION_TITLE_CLASSNAME}>각주</h3>
-        <p className="border border-dashed border-line px-3 py-4 text-center text-[12px] text-muted-2">
+        <p className="border border-dashed border-line px-3 py-4 text-center text-[12px] text-grey">
           본문에서 각주를 달 자리에 커서를 두고 [+ 각주 표시]를 누르면 “1)”이 박히고 여기에
           칸이 생깁니다.
         </p>
@@ -738,7 +738,7 @@ function NoteList({ notes, onChange }: { notes: string[]; onChange: (next: strin
       <ul className="flex flex-col gap-1.5">
         {notes.map((note, i) => (
           <li key={i} className="flex items-start gap-2">
-            <span className="mt-2 w-5 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted-2">
+            <span className="mt-2 w-5 shrink-0 text-right font-mono text-[11px] tabular-nums text-grey">
               {i + 1})
             </span>
             <textarea
@@ -753,7 +753,7 @@ function NoteList({ notes, onChange }: { notes: string[]; onChange: (next: strin
                 type="button"
                 onClick={() => onChange(notes.slice(0, -1))}
                 title="마지막 각주 지우기 (본문의 표시도 지우세요)"
-                className="mt-2 shrink-0 font-mono text-[11px] text-muted-2 hover:text-flag-attention"
+                className="mt-2 shrink-0 font-mono text-[11px] text-grey hover:text-orange-fill"
               >
                 ×
               </button>

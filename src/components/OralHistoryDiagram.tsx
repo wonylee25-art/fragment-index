@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { TEXT_SUBHEAD_CLASSNAME, TEXT_DENSE_CLASSNAME } from "@/lib/design-tokens";
+import { INPUT_CLASSNAME, TEXT_SUBHEAD_CLASSNAME, TEXT_DENSE_CLASSNAME } from "@/lib/design-tokens";
 import { Inline } from "@/lib/inline-markdown";
 import {
   ConfirmationLevel,
@@ -18,25 +18,18 @@ import {
 // (columns)으로 캔버스 위에 벽돌쌓기처럼 배치돼, 항목이 많은 카테고리는 자연히
 // 더 큰 덩어리로 보인다. 자세한 5W1H는 카드를 클릭하면 아래 상세 패널에 펼쳐진다.
 
-const CATEGORY_STYLE: Record<
-  string,
-  { panelBg: string; headerBg: string; text: string; border: string; dot: string }
-> = {
-  "1": { panelBg: "bg-zinc-50/60", headerBg: "bg-zinc-200", text: "text-zinc-700", border: "border-zinc-300", dot: "bg-zinc-400" },
-  "2": { panelBg: "bg-violet-50/50", headerBg: "bg-violet-100", text: "text-violet-800", border: "border-violet-300", dot: "bg-violet-400" },
-  "3": { panelBg: "bg-rose-50/50", headerBg: "bg-rose-100", text: "text-rose-800", border: "border-rose-300", dot: "bg-rose-400" },
-  "4": { panelBg: "bg-amber-50/50", headerBg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300", dot: "bg-amber-400" },
-  "5": { panelBg: "bg-blue-50/50", headerBg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300", dot: "bg-blue-400" },
-  "6": { panelBg: "bg-orange-50/50", headerBg: "bg-orange-100", text: "text-orange-800", border: "border-orange-300", dot: "bg-orange-400" },
-  "7": { panelBg: "bg-emerald-50/50", headerBg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", dot: "bg-emerald-400" },
-  // A. 구술채록 수행기관 — 주제별 사업과 축이 다르므로 번호가 아니라 글자를 쓰고, 색도 무채색으로 뗀다.
-  A: { panelBg: "bg-slate-50/60", headerBg: "bg-slate-200", text: "text-slate-700", border: "border-slate-400", dot: "bg-slate-500" },
-};
+// 카테고리마다 색을 하나씩 주어 여덟 벌(패널 배경·머리띠·글씨·테두리·점)을 들고 있었다.
+// 걷어낸다 — 색은 사람이 손댄 흔적을 가리키는 자리이고, 사업의 갈래는 자료가 스스로
+// 말하는 것이다. 게다가 그 여덟 색 중에 주황·초록이 섞여 있어, 다른 화면에서 "확정"과
+// "아직 확정 안 됨"을 뜻하던 색이 여기서만 갈래 이름으로 쓰이고 있었다.
+// 덩어리 구분은 테두리·머리띠·건수가 이미 하고 있고, 이름은 번호가 가른다(1~7, A).
 
+// 확인 수준. 초록·파랑·회색 세 색이었는데, 확실성은 색상이 아니라 진하기로 읽힌다 —
+// 다 확인된 것만 "확인된 것"의 초록을 쓰고, 나머지는 회색이 옅어지며 물러난다.
 const LEVEL_DOT_CLASSNAME: Record<ConfirmationLevel, string> = {
-  "●●●": "text-emerald-600",
-  "●●○": "text-blue-500",
-  "●○○": "text-zinc-400",
+  "●●●": "text-green-fill",
+  "●●○": "text-grey",
+  "●○○": "text-line",
 };
 
 // 정렬 순서(연도순)에 기대지 않는 안정적인 키 — 카테고리 안에서 기관+사업명 조합은
@@ -98,16 +91,16 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
 
       {/* 범례 + 검색 */}
       <section className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[11px] text-zinc-500">
-          <span className="text-zinc-400">확인 수준 —</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[11px] text-grey">
+          <span className="text-grey">확인 수준 —</span>
           {doc.levelLegend.map((l) => (
             <span key={l.level} title={l.description} className="flex items-center gap-1">
               <span className={LEVEL_DOT_CLASSNAME[l.level]}>{l.level}</span>
               {l.label}
             </span>
           ))}
-          <span className="h-3 w-px bg-zinc-200" />
-          <span className="text-zinc-400">
+          <span className="h-3 w-px bg-line" />
+          <span className="text-grey">
             카테고리 {doc.categories.length}개 · 사업 {doc.totalEntries}건
           </span>
         </div>
@@ -116,7 +109,7 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="기관·사업명·구술 대상 검색"
-          className="w-56 rounded-sm border border-zinc-300 bg-white px-2.5 py-1 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-orange-400 focus:outline-none"
+          className={`w-56 ${INPUT_CLASSNAME}`}
         />
       </section>
 
@@ -140,20 +133,20 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
 
       {/* 확인 필요 목록 */}
       {doc.unresolvedSubsections.length > 0 && (
-        <details className="mt-8 rounded-sm border border-zinc-200 p-3">
-          <summary className="cursor-pointer font-mono text-xs text-zinc-500">
+        <details className="mt-8 rounded-sm border border-line p-3">
+          <summary className="cursor-pointer font-mono text-xs text-grey">
             {doc.unresolvedTitle} — 존재는 확인했지만 5W1H를 못 채운 기관 목록 펼치기
           </summary>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {doc.unresolvedSubsections.map((sub) => (
               <div key={sub.id}>
-                <h4 className="mb-1 font-mono text-[11px] font-bold text-zinc-500">
+                <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">
                   {sub.id}. {sub.title}
                 </h4>
                 <ul className="space-y-1">
                   {sub.items.map((item, i) => (
-                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-zinc-600`}>
-                      {item.isBullet && <span className="mr-1 text-zinc-300">·</span>}
+                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
+                      {item.isBullet && <span className="mr-1 text-line">·</span>}
                       <Inline text={item.text} />
                     </li>
                   ))}
@@ -166,15 +159,15 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
 
       {/* 다음으로 고려할 것 */}
       {doc.planGroups.length > 0 && (
-        <details className="mt-3 rounded-sm border border-zinc-200 p-3">
-          <summary className="cursor-pointer font-mono text-xs text-zinc-500">{doc.planTitle} 펼치기</summary>
+        <details className="mt-3 rounded-sm border border-line p-3">
+          <summary className="cursor-pointer font-mono text-xs text-grey">{doc.planTitle} 펼치기</summary>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {doc.planGroups.map((g) => (
               <div key={g.title}>
-                <h4 className="mb-1 font-mono text-[11px] font-bold text-zinc-500">{g.title}</h4>
+                <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">{g.title}</h4>
                 <ol className="list-decimal space-y-1 pl-4">
                   {g.items.map((item, i) => (
-                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-zinc-600`}>
+                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
                       <Inline text={item} />
                     </li>
                   ))}
@@ -199,7 +192,6 @@ function CategoryPanel({
   selectedKey: string | null;
   onSelect: (key: string | null) => void;
 }) {
-  const style = CATEGORY_STYLE[category.label] ?? CATEGORY_STYLE["1"];
   const matchCount = category.entries.filter((e) => matchesFilter(e, query)).length;
 
   // 하위구분(문서의 "- **하위구분**:" 필드)이 있으면 문서에 처음 등장하는 순서대로
@@ -218,16 +210,15 @@ function CategoryPanel({
 
   return (
     <div
-      className={`rounded-sm border-2 ${style.border} ${style.panelBg} p-2.5 ${
+      className={`rounded-sm border border-line p-2.5 ${
         query.trim() && matchCount === 0 ? "opacity-30" : ""
       }`}
     >
-      <div className={`mb-2.5 flex items-center justify-between rounded-sm px-2 py-1.5 ${style.headerBg}`}>
-        <span className={`flex items-center gap-1.5 font-mono ${TEXT_DENSE_CLASSNAME} font-bold ${style.text}`}>
-          <span className={`inline-block h-2.5 w-2.5 rounded-full ${style.dot}`} />
+      <div className="mb-2.5 flex items-center justify-between rounded-sm bg-surface px-2 py-1.5">
+        <span className={`font-mono ${TEXT_DENSE_CLASSNAME} font-bold text-ink`}>
           {category.label}. {category.title}
         </span>
-        <span className={`font-mono text-[10px] ${style.text} opacity-70`}>
+        <span className="font-mono text-[10px] text-grey">
           {query.trim() ? `${matchCount}/${category.entries.length}건` : `${category.entries.length}건`}
         </span>
       </div>
@@ -235,7 +226,7 @@ function CategoryPanel({
         {groups.map((g) => (
           <div key={g.subgroup ?? "_"}>
             {g.subgroup && (
-              <p className={`mb-1 font-mono text-[10px] font-semibold ${style.text} opacity-80`}>
+              <p className="mb-1 font-mono text-[10px] font-semibold text-grey">
                 {g.subgroup} · {g.entries.length}건
               </p>
             )}
@@ -283,20 +274,20 @@ function EntryCard({
       type="button"
       onClick={onClick}
       title={`${entry.institution} — ${entry.projectName}`}
-      className={`w-[280px] rounded-sm border bg-white px-2.5 py-2 text-left shadow-sm transition-all hover:shadow-md ${
-        active ? "border-orange-400 ring-1 ring-orange-300" : "border-zinc-200"
+      className={`w-[280px] rounded-sm border bg-background px-2.5 py-2 text-left shadow-sm transition-all hover:shadow-md ${
+        active ? "border-green-fill ring-1 ring-green-fill" : "border-line"
       } ${dimmed ? "opacity-25" : ""} ${entry.yearApprox ? "border-dashed" : ""}`}
     >
-      <div className="flex items-center gap-1 font-mono text-[9px] text-zinc-400">
+      <div className="flex items-center gap-1 font-mono text-[9px] text-grey">
         <span className={LEVEL_DOT_CLASSNAME[entry.confirmationLevel]}>{entry.confirmationLevel}</span>
         <span>
           {entry.year ?? "미상"}
           {entry.yearApprox && entry.year !== null ? "경" : ""}
         </span>
       </div>
-      <p className={`truncate mt-1 ${TEXT_DENSE_CLASSNAME} font-semibold leading-4 text-zinc-900`}>{entry.institution}</p>
+      <p className={`truncate mt-1 ${TEXT_DENSE_CLASSNAME} font-semibold leading-4 text-ink`}>{entry.institution}</p>
       {entry.projectName && (
-        <p className="truncate mt-0.5 text-[11px] leading-4 text-zinc-500">{entry.projectName}</p>
+        <p className="truncate mt-0.5 text-[11px] leading-4 text-grey">{entry.projectName}</p>
       )}
     </button>
   );
@@ -306,8 +297,8 @@ function Row({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
     <div className={`grid grid-cols-[56px_1fr] gap-2 py-1 ${TEXT_DENSE_CLASSNAME} leading-5`}>
-      <dt className="font-mono text-[10px] text-zinc-400">{label}</dt>
-      <dd className="text-zinc-700">
+      <dt className="font-mono text-[10px] text-grey">{label}</dt>
+      <dd className="text-ink">
         <Inline text={value} />
       </dd>
     </div>
@@ -323,21 +314,20 @@ function DetailPanel({
   entry: OralHistoryEntry;
   onClose: () => void;
 }) {
-  const style = CATEGORY_STYLE[category.label] ?? CATEGORY_STYLE["1"];
   return (
-    <div className="mt-1 w-full rounded-sm border border-zinc-200 bg-zinc-50/60 p-4">
+    <div className="mt-1 w-full rounded-sm border border-line bg-surface p-4">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <span
-            className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${style.headerBg} ${style.text}`}
+            className="inline-flex items-center gap-1 rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey"
           >
             {category.label}. {category.title}
           </span>
-          <h3 className={`mt-1.5 ${TEXT_SUBHEAD_CLASSNAME} font-semibold text-zinc-900`}>
+          <h3 className={`mt-1.5 ${TEXT_SUBHEAD_CLASSNAME} font-semibold text-ink`}>
             {entry.institution}
-            {entry.projectName && <span className="text-zinc-500"> — {entry.projectName}</span>}
+            {entry.projectName && <span className="text-grey"> — {entry.projectName}</span>}
           </h3>
-          <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
+          <p className="mt-0.5 font-mono text-[11px] text-grey">
             <span className={LEVEL_DOT_CLASSNAME[entry.confirmationLevel]}>{entry.confirmationLevel}</span>{" "}
             {entry.confirmationNote && <Inline text={entry.confirmationNote} />}
           </p>
@@ -345,7 +335,7 @@ function DetailPanel({
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-sm bg-zinc-100 px-2 py-1 font-mono text-[11px] text-zinc-500 hover:bg-zinc-200"
+          className="shrink-0 rounded-sm bg-surface px-2 py-1 font-mono text-[11px] text-grey hover:bg-line"
         >
           닫기 ×
         </button>
@@ -356,7 +346,7 @@ function DetailPanel({
         {entry.whenSubItems.length > 0 && (
           <ul className="ml-[64px] mb-1 list-disc space-y-0.5 pl-4">
             {entry.whenSubItems.map((s, i) => (
-              <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-zinc-600`}>
+              <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
                 <Inline text={s} />
               </li>
             ))}
@@ -370,7 +360,7 @@ function DetailPanel({
       </dl>
 
       {entry.notes.map((note, i) => (
-        <div key={i} className={`mt-2 rounded-sm bg-amber-50 p-2 ${TEXT_DENSE_CLASSNAME} leading-5 text-amber-900`}>
+        <div key={i} className={`mt-2 rounded-sm bg-yellow-tint p-2 ${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
           <strong className="font-semibold">{note.label}</strong>
           {note.value && (
             <>
@@ -390,7 +380,7 @@ function DetailPanel({
       ))}
 
       {entry.sources && (
-        <p className="mt-2 border-t border-zinc-200 pt-2 font-mono text-[11px] text-zinc-400">
+        <p className="mt-2 border-t border-line pt-2 font-mono text-[11px] text-grey">
           <Inline text={entry.sources} />
         </p>
       )}

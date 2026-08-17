@@ -23,9 +23,9 @@ const EMPTY_FORM = {
 };
 
 const INPUT_CLASSNAME =
-  "w-full border border-line-strong bg-background px-2.5 py-1.5 text-[13px] text-foreground placeholder:text-muted-2 focus:border-foreground focus:outline-none";
+  "w-full border border-line bg-background px-2.5 py-1.5 text-[13px] text-ink placeholder:text-grey focus:border-ink focus:outline-none";
 
-const LABEL_CLASSNAME = "mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-2";
+const LABEL_CLASSNAME = "mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-grey";
 
 export function AddMaterialForm({ events }: { events: EventOption[] }) {
   const [open, setOpen] = useState(false);
@@ -35,7 +35,7 @@ export function AddMaterialForm({ events }: { events: EventOption[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="shrink-0 border border-line-strong px-2.5 py-1 font-mono text-[11px] font-semibold text-foreground hover:bg-foreground hover:text-background"
+        className="shrink-0 border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-ink hover:bg-ink hover:text-background"
       >
         + 사료 추가
       </button>
@@ -83,7 +83,7 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
   }
 
   return (
-    <div className="mt-6 w-full border border-line-strong bg-surface p-4">
+    <div className="mt-6 w-full border border-line bg-surface p-4">
       <div className="grid gap-6 md:grid-cols-[210px_minmax(0,1fr)]">
         <EventPicker
           events={events}
@@ -92,10 +92,10 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
           filterable
           emptyHint={
             <>
-              <p className="text-[12px] leading-relaxed text-muted-2">연표에 사건이 없습니다.</p>
+              <p className="text-[12px] leading-relaxed text-grey">연표에 사건이 없습니다.</p>
               <a
                 href="/admin/timeline"
-                className="mt-2 inline-block font-mono text-[11px] font-semibold text-foreground underline decoration-dotted underline-offset-4"
+                className="mt-2 inline-block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
               >
                 연표 관리에서 사건 만들기 →
               </a>
@@ -193,9 +193,9 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
             />
           )}
 
-          {error && <p className="mt-3 font-mono text-[11px] text-flag-attention">{error}</p>}
+          {error && <p className="mt-3 font-mono text-[11px] text-orange-fill">{error}</p>}
           {savedNote && !error && (
-            <p className="mt-3 font-mono text-[11px] font-semibold text-flag-marked">
+            <p className="mt-3 font-mono text-[11px] font-semibold text-ink">
               ✓ {savedNote} — 이어서 더 넣을 수 있습니다
             </p>
           )}
@@ -204,7 +204,7 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
             <button
               type="submit"
               disabled={pending || !selected}
-              className="border border-foreground bg-foreground px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-foreground disabled:border-line disabled:bg-surface disabled:text-muted-2"
+              className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
             >
               {pending
                 ? "저장 중…"
@@ -216,7 +216,7 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
               type="button"
               onClick={() => void save("hold")}
               disabled={pending}
-              className="border border-line-strong px-2.5 py-1 font-mono text-[11px] font-semibold text-muted hover:border-foreground hover:text-foreground disabled:text-muted-2"
+              className="border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-grey hover:border-ink hover:text-ink disabled:text-grey"
             >
               보류
             </button>
@@ -224,7 +224,7 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
               type="button"
               onClick={onClose}
               disabled={pending}
-              className="font-mono text-[11px] text-muted-2 hover:text-foreground"
+              className="font-mono text-[11px] text-grey hover:text-ink"
             >
               닫기
             </button>

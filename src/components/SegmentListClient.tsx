@@ -7,7 +7,13 @@ import { EventOption } from "./EventPicker";
 import { SourceOption } from "@/lib/db";
 import { PersonBrief, SegmentCardData } from "@/lib/types";
 import { edtfSortKey } from "@/lib/edtf";
-import { ADD_BUTTON_CLASSNAME } from "@/lib/design-tokens";
+import {
+  ADD_BUTTON_CLASSNAME,
+  INPUT_CLASSNAME,
+  TOGGLE_BUTTON_CLASSNAME,
+  TOGGLE_OFF_CLASSNAME,
+  TOGGLE_ON_CLASSNAME,
+} from "@/lib/design-tokens";
 
 type SortDirection = "asc" | "desc";
 
@@ -76,10 +82,10 @@ export function SegmentListClient({
           같은 모양으로 줄였고, 두 목록이 다른 규칙으로 열려 있을 이유가 없다.
           키워드는 개수가 정해져 있지 않아 이 줄 아래로 내린다 — 한 줄에 끼워 넣으면
           키워드가 늘어난 날 검색칸과 정렬이 어디로 밀릴지 알 수 없다. */}
-      <div className="mb-3 flex flex-col gap-2 border-b border-zinc-200 pb-3">
+      <div className="mb-3 flex flex-col gap-2 border-b border-line pb-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <label className="flex items-center gap-2">
-            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-grey">
               검색
             </span>
             <input
@@ -87,23 +93,21 @@ export function SegmentListClient({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="인물, 장소, 본문"
-              className="w-52 rounded-sm border border-zinc-300 bg-white px-2.5 py-1 font-mono text-xs text-zinc-700 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none"
+              className={`w-52 ${INPUT_CLASSNAME}`}
             />
           </label>
 
           {/* 정렬은 표 헤더의 화살표에만 숨어 있었다 — 과거순·최신순은 훑는 방향을 정하는
               것이라 이름을 달고 나와 있어야 한다(연표에서 같은 판단을 이미 했다). */}
           <div className="flex items-center gap-1 font-mono text-[11px]">
-            <span className="mr-1 text-[10px] uppercase tracking-wider text-zinc-400">정렬</span>
+            <span className="mr-1 text-[10px] uppercase tracking-wider text-grey">정렬</span>
             {SORT_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setSortDirection(option.value)}
-                className={`rounded-sm px-2 py-1 ${
-                  sortDirection === option.value
-                    ? "bg-zinc-900 text-white"
-                    : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
+                className={`${TOGGLE_BUTTON_CLASSNAME} ${
+                  sortDirection === option.value ? TOGGLE_ON_CLASSNAME : TOGGLE_OFF_CLASSNAME
                 }`}
               >
                 {option.label}
@@ -124,14 +128,14 @@ export function SegmentListClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+          <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-grey">
             키워드
           </span>
           <button
             type="button"
             onClick={() => setActiveKeyword(null)}
-            className={`rounded-sm px-2 py-0.5 font-mono text-[11px] ${
-              activeKeyword === null ? "bg-zinc-900 text-white" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
+            className={`px-2 py-0.5 font-mono text-[11px] ${TOGGLE_BUTTON_CLASSNAME} ${
+              activeKeyword === null ? TOGGLE_ON_CLASSNAME : TOGGLE_OFF_CLASSNAME
             }`}
           >
             전체
@@ -141,8 +145,8 @@ export function SegmentListClient({
               key={kw}
               type="button"
               onClick={() => setActiveKeyword(kw === activeKeyword ? null : kw)}
-              className={`rounded-sm px-2 py-0.5 font-mono text-[11px] ${
-                activeKeyword === kw ? "bg-zinc-900 text-white" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
+              className={`px-2 py-0.5 font-mono text-[11px] ${TOGGLE_BUTTON_CLASSNAME} ${
+                activeKeyword === kw ? TOGGLE_ON_CLASSNAME : TOGGLE_OFF_CLASSNAME
               }`}
             >
               {kw}
@@ -160,9 +164,9 @@ export function SegmentListClient({
         />
       )}
 
-      <div className="border-t border-zinc-200">
+      <div className="border-t border-line">
         {filtered.length === 0 ? (
-          <p className="py-8 text-center font-mono text-xs text-zinc-400">
+          <p className="py-8 text-center font-mono text-xs text-grey">
             일치하는 구술 발췌가 없습니다.
           </p>
         ) : (

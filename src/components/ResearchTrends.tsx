@@ -1,9 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PaperData, PaperType } from "@/lib/types";
+import { PaperData } from "@/lib/types";
 import {
   ADD_BUTTON_CLASSNAME,
+  DOT_CONFIRMED,
+  DOT_MINE,
+  TOGGLE_BUTTON_CLASSNAME,
+  TOGGLE_OFF_CLASSNAME,
+  TOGGLE_ON_CLASSNAME,
   TAG_CLASSNAME,
   TEXT_SUBHEAD_CLASSNAME,
 } from "@/lib/design-tokens";
@@ -70,12 +75,10 @@ function sortPapers(papers: PaperData[], mode: SortMode): PaperData[] {
   return sorted;
 }
 
-const PAPER_TYPE_CLASSNAME: Record<PaperType, string> = {
-  학위논문: "bg-violet-100 text-violet-700",
-  학술논문: "bg-blue-100 text-blue-800",
-  단행본: "bg-teal-100 text-teal-700",
-  보고서: "bg-amber-100 text-amber-800",
-};
+// 유형 넷을 보라·파랑·청록·앰버로 갈라 두었었다. 논문의 갈래는 자료가 스스로 말하는 것이라
+// 색을 주지 않는다 — 글자가 이미 "학위논문"이라고 적혀 있어서, 색은 뜻을 더하지 않고
+// "이 배지가 무슨 색이었더라"만 늘렸다. 넷 다 같은 회색 칩으로 두고 글자로 읽는다.
+const PAPER_TYPE_CLASSNAME = "bg-surface text-grey";
 
 function buildFrequency(papers: PaperData[]) {
   const freq = new Map<string, number>();
@@ -183,48 +186,44 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
     <div>
       <section className="mb-8">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <h2 className="font-mono text-xs text-zinc-400">
+          <h2 className="font-mono text-xs text-grey">
             주제어 {cloudKeywords.length}개 · 논문 {papers.length}편 (RISS, 국내 구술사·구술생애사 연구)
           </h2>
           {/* 오른쪽 상단 — 최신화 줄 아래에 보기 스위치와 정렬 띠를 모아 둔다 */}
-          <div className="flex flex-col items-end gap-1.5 font-mono text-[11px] text-zinc-400">
+          <div className="flex flex-col items-end gap-1.5 font-mono text-[11px] text-grey">
             <div className="flex items-center gap-2">
               <span>최신화: {formatSyncedAt(syncedAt)} 기준</span>
               <button
                 type="button"
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="rounded-sm bg-zinc-100 px-2 py-0.5 text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
+                className="rounded-sm bg-surface px-2 py-0.5 text-ink hover:bg-line disabled:opacity-50"
               >
                 {refreshing ? "시작하는 중…" : "🔄 새로고침"}
               </button>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
               <Switch label="키워드" on={showKeywords} onToggle={() => setShowKeywords((v) => !v)} />
-              <span className="mx-1 h-3 w-px bg-zinc-200" />
+              <span className="mx-1 h-3 w-px bg-line" />
               {/* 중요만 보기는 정렬이 아니라 필터다 — 정렬 띠와 붙어 있되 스위치 모양으로 구분한다 */}
               <Switch
                 label={`★ 중요만 (${importantCount})`}
                 on={importantOnly}
                 onToggle={() => setImportantOnly((v) => !v)}
               />
-              <span className="mx-1 h-3 w-px bg-zinc-200" />
+              <span className="mx-1 h-3 w-px bg-line" />
               {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setSortMode(mode)}
                   aria-pressed={sortMode === mode}
-                  className={`rounded-sm px-2 py-1 ${
-                    sortMode === mode
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800"
-                  }`}
+                  className={`${TOGGLE_BUTTON_CLASSNAME} ${sortMode === mode ? TOGGLE_ON_CLASSNAME : TOGGLE_OFF_CLASSNAME}`}
                 >
                   {SORT_LABELS[mode]}
                 </button>
               ))}
-              <span className="mx-1 h-3 w-px bg-zinc-200" />
+              <span className="mx-1 h-3 w-px bg-line" />
               {!addingPaper && (
                 <button
                   type="button"
@@ -238,10 +237,10 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           </div>
         </div>
 
-        {refreshMessage && <p className="mb-2 text-xs text-emerald-700">{refreshMessage}</p>}
+        {refreshMessage && <p className="mb-2 text-xs text-green-text">{refreshMessage}</p>}
 
         {showKeywords && (
-          <p className="mb-3 text-xs text-zinc-500">
+          <p className="mb-3 text-xs text-grey">
             자주 등장한 주제어일수록 크게 표시됩니다. 클릭하면 같은 논문에 함께 등장한 연관 주제어가 강조되고,
             아래 목록이 해당 주제어로 좁혀집니다.
           </p>
@@ -252,19 +251,19 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           <button
             type="button"
             onClick={() => setActiveKeyword(null)}
-            className="mb-3 rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-xs text-white hover:bg-zinc-700"
+            className="mb-3 rounded-sm bg-ink px-2.5 py-1 font-mono text-xs text-white hover:opacity-80"
           >
             × &ldquo;{activeKeyword}&rdquo; 선택 해제
           </button>
         )}
 
         <div
-          className={`flex-wrap items-baseline gap-x-2.5 gap-y-1.5 rounded-sm border border-zinc-200 bg-zinc-50/60 p-4 ${
+          className={`flex-wrap items-baseline gap-x-2.5 gap-y-1.5 rounded-sm border border-line bg-surface p-4 ${
             showKeywords ? "flex" : "hidden"
           }`}
         >
           {cloudKeywords.length === 0 ? (
-            <p className="font-mono text-xs text-zinc-400">데이터가 아직 없습니다.</p>
+            <p className="font-mono text-xs text-grey">데이터가 아직 없습니다.</p>
           ) : (
             cloudKeywords.map(([keyword, count]) => {
               const fontSize = MIN_FONT_PX + (MAX_FONT_PX - MIN_FONT_PX) * Math.sqrt(count / maxCount);
@@ -282,14 +281,16 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                   title={`${count}편에 등장`}
                   className={`rounded-sm px-1.5 py-0.5 leading-none transition-all duration-150 ${
                     isActive
-                      ? "bg-zinc-900 text-white"
+                      ? "bg-ink text-white"
                       : isRelated
-                        ? "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-300"
-                        : "text-zinc-600 hover:bg-zinc-200/70"
+                        ? // 고른 주제어와 함께 등장한 것 — 내가 지금 고른 것에서 파생된 상태라 초록이다.
+                          // 예전엔 앰버였는데, 앰버(노랑)는 내가 얹은 것(메모·중요)의 색이 되었다.
+                          "bg-green-tint text-green-text ring-1 ring-inset ring-green-fill"
+                        : "text-ink hover:bg-line"
                   } ${isDimmed ? "opacity-30" : ""}`}
                 >
                   {keyword}
-                  {isRelated && <span className="ml-1 align-super text-[9px] text-amber-600">{coCount}</span>}
+                  {isRelated && <span className="ml-1 align-super text-[9px] text-green-text">{coCount}</span>}
                 </button>
               );
             })
@@ -299,8 +300,8 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
 
       <section>
         {/* 중요만·정렬·논문 추가는 모두 오른쪽 상단 띠로 옮겼다 — 여기는 지금 무엇이 걸렸는지만 남긴다 */}
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2">
-          <h2 className="font-mono text-xs text-zinc-400">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
+          <h2 className="font-mono text-xs text-grey">
             논문 목록 · {scopeLabel ? `${scopeLabel} ${sortedPapers.length}편` : `전체 ${sortedPapers.length}편`}
           </h2>
         </div>
@@ -308,12 +309,12 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
         {addingPaper && <AddPaperForm onClose={() => setAddingPaper(false)} />}
 
         {sortedPapers.length === 0 ? (
-          <p className="py-8 text-center font-mono text-xs text-zinc-400">일치하는 논문이 없습니다.</p>
+          <p className="py-8 text-center font-mono text-xs text-grey">일치하는 논문이 없습니다.</p>
         ) : (
           <ul className="flex flex-col">
             {visiblePapers.map((paper) =>
               editingId === paper.id ? (
-                <li key={paper.id} className="border-b border-zinc-200 py-3">
+                <li key={paper.id} className="border-b border-line py-3">
                   <AddPaperForm paper={paper} onClose={() => setEditingId(null)} />
                 </li>
               ) : (
@@ -329,7 +330,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                   // 절반을 내주면 아무것도 없는 자리 때문에 논문 제목만 접힌다 — 입구가 들어갈
                   // 만큼만 떼어 주고(최소 7rem, 메모를 쓰기 시작하면 입력칸 폭까지 늘어난다)
                   // 나머지는 제목에 준다. 저장하면 목록이 다시 불려 이 행은 반반으로 바뀐다.
-                  className={`grid grid-cols-1 gap-4 border-b border-zinc-200 py-3 ${
+                  className={`grid grid-cols-1 gap-4 border-b border-line py-3 ${
                     paper.userMemo?.trim() || paper.quotes.length > 0
                       ? "sm:grid-cols-2"
                       : "sm:grid-cols-[1fr_minmax(7rem,auto)]"
@@ -337,28 +338,28 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                 >
                   <div className="min-w-0">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className={`rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${PAPER_TYPE_CLASSNAME[paper.paperType]}`}>
+                      <span className={`rounded-sm px-1.5 py-0.5 font-mono text-[10px] ${PAPER_TYPE_CLASSNAME}`}>
                         {paper.paperType}
                       </span>
-                      <span className="font-mono text-[11px] text-zinc-400">{paper.year ?? "연도 미상"}</span>
+                      <span className="font-mono text-[11px] text-grey">{paper.year ?? "연도 미상"}</span>
                       <FlagToggle
                         active={paper.isImportant}
                         onToggle={(next) => togglePaperImportant(paper.id, next)}
-                        activeLabel="★ 중요"
-                        inactiveLabel="☆ 중요"
-                        activeClassName="bg-amber-100 text-amber-700"
+                        activeLabel="중요"
+                        inactiveLabel="중요"
+                        dotClassName={DOT_MINE}
                       />
                       <FlagToggle
                         active={paper.isRead}
                         onToggle={(next) => togglePaperRead(paper.id, next)}
-                        activeLabel="✓ 읽음"
+                        activeLabel="읽음"
                         inactiveLabel="안 읽음"
-                        activeClassName="bg-emerald-100 text-emerald-700"
+                        dotClassName={DOT_CONFIRMED}
                       />
                       <button
                         type="button"
                         onClick={() => setEditingId(paper.id)}
-                        className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+                        className="rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey hover:bg-line hover:text-ink"
                       >
                         수정
                       </button>
@@ -367,7 +368,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                         confirmMessage={`"${paper.title}"을(를) 삭제할까요? 되돌릴 수 없습니다.`}
                         label="삭제"
                         pendingLabel="삭제 중…"
-                        className="rounded-sm bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
+                        className="rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey hover:bg-red-tint hover:text-red-text disabled:opacity-50"
                       />
                     </div>
 
@@ -379,15 +380,15 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                         href={paper.rissUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`${TEXT_SUBHEAD_CLASSNAME} leading-6 text-zinc-800 underline decoration-dotted underline-offset-4 hover:text-zinc-950`}
+                        className={`${TEXT_SUBHEAD_CLASSNAME} leading-6 text-ink underline decoration-dotted underline-offset-4 hover:text-ink`}
                       >
-                        {paper.title} <span className="text-zinc-300">↗</span>
+                        {paper.title} <span className="text-line">↗</span>
                       </a>
                     ) : (
-                      <p className={`${TEXT_SUBHEAD_CLASSNAME} leading-6 text-zinc-700`}>{paper.title}</p>
+                      <p className={`${TEXT_SUBHEAD_CLASSNAME} leading-6 text-ink`}>{paper.title}</p>
                     )}
 
-                    <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
+                    <p className="mt-0.5 font-mono text-[11px] text-grey">
                       {paper.author}
                       {paper.translator && ` (${paper.translator} 역)`}
                       {paper.author && " · "}
@@ -408,7 +409,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                             type="button"
                             onClick={() => setActiveKeyword(k === activeKeyword ? null : k)}
                             className={`inline-flex items-center rounded-sm px-1.5 py-0.5 font-mono text-[11px] ${
-                              k === activeKeyword ? "bg-zinc-900 text-white" : TAG_CLASSNAME.keyword
+                              k === activeKeyword ? "bg-ink text-white" : TAG_CLASSNAME.keyword
                             } hover:brightness-95`}
                           >
                             {k}
@@ -418,7 +419,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                     )}
 
                     {paper.paperType === "보고서" && paper.researchSummary && (
-                      <p className="mt-1.5 text-xs leading-5 text-zinc-500">{paper.researchSummary}</p>
+                      <p className="mt-1.5 text-xs leading-5 text-grey">{paper.researchSummary}</p>
                     )}
                   </div>
 
@@ -443,12 +444,12 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
             <button
               type="button"
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              className="rounded-sm bg-zinc-100 px-3 py-1.5 text-zinc-600 hover:bg-zinc-200"
+              className="rounded-sm bg-surface px-3 py-1.5 text-ink hover:bg-line"
             >
               + {Math.min(PAGE_SIZE, remaining)}편 더 보기
             </button>
             {/* 남은 편수를 적어 둔다 — 목록이 끊긴 것인지 다 본 것인지가 스크롤 끝에서만 갈린다 */}
-            <span className="text-zinc-400">
+            <span className="text-grey">
               {sortedPapers.length}편 중 {visiblePapers.length}편 표시 · {remaining}편 남음
             </span>
           </div>

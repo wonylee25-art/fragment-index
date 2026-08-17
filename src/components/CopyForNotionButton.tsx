@@ -19,7 +19,7 @@ export function CopyForNotionButton({ paper }: { paper: PaperData }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="mt-1 font-mono text-[11px] text-zinc-300 underline decoration-dotted underline-offset-4 hover:text-zinc-600"
+      className="mt-1 font-mono text-[11px] text-line underline decoration-dotted underline-offset-4 hover:text-ink"
     >
       {copied ? "복사됨 ✓" : "노션에 복사"}
     </button>

@@ -145,20 +145,20 @@ export function UtteranceEditor({
   }
 
   return (
-    <div className="border border-line-strong bg-background">
+    <div className="border border-line bg-background">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-2.5 py-1.5">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-2">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-grey">
           구술 본문
         </span>
         <span className="flex items-center gap-3">
-          <span className="font-mono text-[10px] text-muted-2">
+          <span className="font-mono text-[10px] text-grey">
             Enter 다음 발화 · Shift+Enter 줄바꿈 · Tab 화자 바꾸기
           </span>
           <button
             type="button"
             onClick={insertFootnoteMarker}
             title="커서 자리에 각주 번호를 넣습니다"
-            className="border border-line-strong px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground hover:bg-foreground hover:text-background"
+            className="border border-line px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink hover:bg-ink hover:text-background"
           >
             + 각주 표시
           </button>
@@ -166,7 +166,7 @@ export function UtteranceEditor({
       </div>
 
       {speakers.length === 0 && (
-        <p className="border-b border-line px-2.5 py-2 font-mono text-[11px] text-muted-2">
+        <p className="border-b border-line px-2.5 py-2 font-mono text-[11px] text-grey">
           위에서 구술자와 면담자를 먼저 정하면 줄마다 이름이 붙습니다. 정하지 않고 적으면
           “구술자 / 면담자”로 저장됩니다.
         </p>
@@ -187,10 +187,10 @@ export function UtteranceEditor({
                 title="화자 바꾸기 (Tab)"
                 className={`${CHIP_BASE} ${
                   role === "면담자"
-                    ? "bg-emerald-600 text-white"
+                    ? "bg-green-fill text-white"
                     : role === "구술자"
-                      ? "bg-foreground text-background"
-                      : "border border-line-strong bg-surface text-muted-2"
+                      ? "bg-ink text-background"
+                      : "border border-line bg-surface text-grey"
                 }`}
               >
                 {speaker ? speaker.name : "지문"}
@@ -216,12 +216,12 @@ export function UtteranceEditor({
                 onBlur={(e) => recordCaret(i, e.currentTarget)}
                 rows={1}
                 placeholder={speaker ? "말한 내용" : "(웃음), (자료를 꺼내며)"}
-                className={`min-h-[24px] w-full resize-none bg-transparent text-[13px] leading-relaxed placeholder:not-italic placeholder:text-muted-2 focus:outline-none ${
+                className={`min-h-[24px] w-full resize-none bg-transparent text-[13px] leading-relaxed placeholder:not-italic placeholder:text-grey focus:outline-none ${
                   role === "면담자"
-                    ? "italic text-emerald-700"
+                    ? "italic text-green-text"
                     : role === "구술자"
-                      ? "text-foreground"
-                      : "italic text-muted-2"
+                      ? "text-ink"
+                      : "italic text-grey"
                 }`}
               />
 
@@ -230,7 +230,7 @@ export function UtteranceEditor({
                   type="button"
                   onClick={() => removeAt(i)}
                   title="이 발화 지우기"
-                  className="mt-[3px] shrink-0 font-mono text-[11px] text-muted-2 hover:text-flag-attention"
+                  className="mt-[3px] shrink-0 font-mono text-[11px] text-grey hover:text-orange-fill"
                 >
                   ×
                 </button>

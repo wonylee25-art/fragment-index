@@ -45,7 +45,7 @@ function formFromPaper(paper: PaperData): typeof EMPTY_FORM {
 }
 
 const INPUT_CLASSNAME =
-  "w-full rounded-sm border border-zinc-300 px-2 py-1.5 text-sm focus:border-zinc-500 focus:outline-none";
+  "w-full rounded-sm border border-line px-2 py-1.5 text-sm focus:border-green-text focus:outline-none";
 
 // RISS 자동 수집(scripts/fetch-riss-papers.mjs) 범위 밖의 논문을 이용자가 직접 등록·수정하는 폼.
 // paper가 주어지면 수정 모드(기존 값으로 채워서 updatePaper 호출), 없으면 신규 등록 모드(addPaper).
@@ -107,7 +107,7 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-3 flex flex-col gap-2 rounded-sm border border-zinc-200 bg-zinc-50/60 p-3"
+      className="mb-3 flex flex-col gap-2 rounded-sm border border-line bg-surface p-3"
     >
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <select
@@ -257,7 +257,7 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
         className={INPUT_CLASSNAME}
       />
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-text">{error}</p>}
 
       <div className="flex justify-end gap-2">
         <button
@@ -267,14 +267,14 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
             onClose();
           }}
           disabled={pending}
-          className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700"
+          className="font-mono text-[11px] text-grey hover:text-ink"
         >
           취소
         </button>
         <button
           type="submit"
           disabled={pending}
-          className="rounded-sm bg-zinc-900 px-2.5 py-1 font-mono text-xs text-white hover:bg-zinc-700 disabled:opacity-50"
+          className="rounded-sm bg-ink px-2.5 py-1 font-mono text-xs text-white hover:opacity-80 disabled:opacity-50"
         >
           {pending ? (isEdit ? "저장 중…" : "추가 중…") : isEdit ? "저장" : "추가"}
         </button>

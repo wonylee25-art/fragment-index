@@ -4,17 +4,18 @@ import { useState } from "react";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
 import { FlagToggle } from "./FlagToggle";
+import { Transcript } from "./Transcript";
 import { SegmentDeleteButton } from "./SegmentDeleteButton";
-import { SegmentCardData, ArchiveItemType, PersonBrief, Utterance } from "@/lib/types";
+import { SegmentCardData, PersonBrief } from "@/lib/types";
 import { saveSegmentMemo } from "@/lib/memo-actions";
 import { toggleSegmentImportant } from "@/lib/flag-actions";
 import {
   ARCHIVE_ITEM_ICON,
+  DOT_MINE,
+  MATERIAL_THUMB_CLASSNAME,
   DISCREPANCY_LABEL_CLASSNAME,
   DISCREPANCY_ROW_CLASSNAME,
   FOCUS_HIGHLIGHT_CLASSNAME,
-  SPEAKER_CLASSNAME,
-  TEXT_BODY_CLASSNAME,
 } from "@/lib/design-tokens";
 import { formatEdtfToKorean } from "@/lib/edtf";
 
@@ -37,7 +38,7 @@ function SpeakerNames({ people }: { people: PersonBrief[] }) {
           {person.kind && (
             <span
               title={KIND_TITLE[person.kind]}
-              className="ml-1 border border-zinc-300 px-1 align-[1px] text-[9px] font-normal text-zinc-400"
+              className="ml-1 border border-line px-1 align-[1px] text-[9px] font-normal text-grey"
             >
               {person.kind}
             </span>
@@ -48,61 +49,10 @@ function SpeakerNames({ people }: { people: PersonBrief[] }) {
   );
 }
 
-// 실제 썸네일(오픈그래프 등)이 붙기 전까지 자료 유형을 구분해 보여주는 placeholder 배경.
-const ITEM_TYPE_THUMBNAIL_BG: Record<ArchiveItemType, string> = {
-  구술: "bg-amber-50",
-  신문: "bg-zinc-100",
-  문서: "bg-stone-100",
-  이미지: "bg-blue-50",
-  학술: "bg-violet-50",
-  지도: "bg-emerald-50",
-  박물: "bg-rose-50",
-  음원: "bg-teal-50",
-  영상: "bg-indigo-50",
-};
-
 // 화면에서 직접 넣은 발췌는 id가 "manual-"로 시작한다(segment-actions.ts). CSV
 // 동기화분은 CSV의 segment_id를 그대로 쓰므로 이 접두어가 둘을 가른다.
 function isManual(id: string) {
   return id.startsWith("manual-");
-}
-
-// 구술 본문. 발화를 한 문단에 이어 붙이면 색깔만으로 화자가 바뀐 것을 알아채야 하는데,
-// 면담자의 짧은 물음이 구술자의 긴 답 사이에 끼면 그 초록색이 인용이나 강조로 읽힌다.
-// 발화마다 줄을 주고, 화자가 바뀌는 줄에만 이름을 붙인다 — 같은 사람이 이어 말할 때
-// 이름을 반복하면 이름이 본문만큼 눈에 들어온다.
-function Transcript({ utterances }: { utterances: Utterance[] }) {
-  return (
-    // 크기는 본문 한 단(design-tokens.ts). 행간만 연표 요약(leading-5)보다 넓게 잡는다 —
-    // 구술은 요약 한 줄이 아니라 여러 줄을 이어 읽는 글이다.
-    <ul className={`flex flex-col gap-1 ${TEXT_BODY_CLASSNAME} leading-6 text-zinc-800`}>
-      {utterances.map((utterance, i) => {
-        const previous = utterances[i - 1];
-        // 지문은 화자가 없는 줄이라 이름을 달지 않고, 다음 발화의 "바뀌었는가" 판단에서도
-        // 건너뛴다 — 지문이 끼었다고 같은 사람의 이름을 다시 적을 이유는 없다.
-        const label =
-          utterance.role === "stage"
-            ? null
-            : utterance.speaker ?? (utterance.role === "interviewer" ? "면담자" : "구술자");
-        const previousLabel =
-          previous && previous.role !== "stage"
-            ? previous.speaker ?? (previous.role === "interviewer" ? "면담자" : "구술자")
-            : undefined;
-        const showLabel = label !== null && label !== previousLabel;
-
-        return (
-          <li key={i} className={utterance.role === "stage" ? "pl-3" : undefined}>
-            {showLabel && (
-              <span className="mr-1.5 font-mono text-[10px] text-zinc-400">{label}</span>
-            )}
-            <span className={SPEAKER_CLASSNAME[utterance.role]}>
-              {utterance.role === "stage" ? `[${utterance.text}]` : utterance.text}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 export function SegmentRow({
@@ -121,36 +71,36 @@ export function SegmentRow({
   return (
     <div
       id={`segment-${data.id}`}
-      className={`grid scroll-mt-6 grid-cols-[64px_1fr] gap-4 border-b border-zinc-200 px-1 py-4 transition-colors duration-500 sm:grid-cols-[88px_2fr_1fr] ${
+      className={`grid scroll-mt-6 grid-cols-[64px_1fr] gap-4 border-b border-line px-1 py-4 transition-colors duration-500 sm:grid-cols-[88px_2fr_1fr] ${
         highlighted
           ? FOCUS_HIGHLIGHT_CLASSNAME
           : data.hasDiscrepancy
             ? DISCREPANCY_ROW_CLASSNAME
             : zebra
-              ? "bg-zinc-50/70"
-              : "bg-white"
+              ? "bg-surface"
+              : "bg-background"
       }`}
     >
-      <div className="pt-0.5 font-mono text-xs text-zinc-400">
+      <div className="pt-0.5 font-mono text-xs text-grey">
         {formatEdtfToKorean(data.dateValue)}
       </div>
 
       <div className="min-w-0">
-        <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-zinc-400">
+        <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-grey">
           <FlagToggle
             active={data.isImportant}
             onToggle={(next) => toggleSegmentImportant(data.id, next)}
-            activeLabel="★ 중요"
-            inactiveLabel="☆ 중요"
-            activeClassName="bg-amber-100 text-amber-700"
+            activeLabel="중요"
+            inactiveLabel="중요"
+            dotClassName={DOT_MINE}
           />
           {/* 구술을 알아보는 가장 빠른 단서는 제목이 아니라 누가 말했는가다. 화자가 적혀
               있으면 그것을 먼저 보이고, 없는 발췌(CSV 동기화분)만 제목으로 되돌아간다. */}
           {data.narrators.length > 0 ? (
-            <span className="font-medium text-zinc-600">
+            <span className="font-medium text-ink">
               <SpeakerNames people={data.narrators} />
               {data.interviewers.length > 0 && (
-                <span className="text-zinc-400">
+                <span className="text-grey">
                   {" ← "}
                   <SpeakerNames people={data.interviewers} />
                 </span>
@@ -166,7 +116,7 @@ export function SegmentRow({
           )}
           {data.notes && (
             <span
-              className="cursor-help underline decoration-dotted underline-offset-4 text-zinc-400 hover:text-zinc-700"
+              className="cursor-help underline decoration-dotted underline-offset-4 text-grey hover:text-ink"
               title={data.notes}
             >
               📝 원문 각주
@@ -175,7 +125,7 @@ export function SegmentRow({
           {/* 각주가 여럿이면 번호를 붙여 보여준다 — 몇 개인지가 곧 원본이 얼마나 손질됐는지다 */}
           {data.noteList.length > 0 && (
             <span
-              className="cursor-help underline decoration-dotted underline-offset-4 text-zinc-400 hover:text-zinc-700"
+              className="cursor-help underline decoration-dotted underline-offset-4 text-grey hover:text-ink"
               title={data.noteList.map((n, i) => `${i + 1}. ${n}`).join("\n")}
             >
               📝 각주 {data.noteList.length}
@@ -183,7 +133,7 @@ export function SegmentRow({
           )}
         </div>
 
-        <Transcript utterances={data.utterances} />
+        <Transcript segmentId={data.id} utterances={data.utterances} highlights={data.highlights} />
 
         <div className="flex flex-wrap items-center gap-1.5">
           {data.personPlaceTags.map((tag) => (
@@ -197,7 +147,7 @@ export function SegmentRow({
         {/* 행의 아랫줄 — 왼쪽은 이 발췌가 어디서 왔는지, 오른쪽은 이 발췌를 손보는 일.
             읽는 데 필요한 것은 위(화자·이견·각주)에 두고, 손대는 것은 여기로 모은다. */}
         {(data.sourceRef || isManual(data.id)) && (
-          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-400">
+          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-mono text-[11px] text-grey">
             <span className="min-w-0">
               {data.sourceRef &&
                 (data.sourceRef.url ? (
@@ -205,7 +155,7 @@ export function SegmentRow({
                     href={data.sourceRef.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline decoration-dotted underline-offset-4 hover:text-zinc-800"
+                    className="underline decoration-dotted underline-offset-4 hover:text-ink"
                   >
                     {data.sourceRef.title} ↗
                   </a>
@@ -221,7 +171,7 @@ export function SegmentRow({
             {isManual(data.id) && (
               <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
                 {onEdit && (
-                  <button type="button" onClick={onEdit} className="hover:text-zinc-900">
+                  <button type="button" onClick={onEdit} className="hover:text-ink">
                     고치기
                   </button>
                 )}
@@ -237,7 +187,7 @@ export function SegmentRow({
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="font-mono text-[11px] text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800 sm:hidden"
+              className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink sm:hidden"
             >
               관련자료 {data.relatedItems.length} {expanded ? "▲" : "▼"}
             </button>
@@ -250,7 +200,7 @@ export function SegmentRow({
         </div>
 
         {expanded && (
-          <ul className="mt-3 flex flex-col gap-1 border-t border-zinc-200/70 pt-2">
+          <ul className="mt-3 flex flex-col gap-1 border-t border-line/70 pt-2">
             {data.relatedItems.map((item) => (
               <li key={item.id} className="group relative w-fit">
                 <a
@@ -260,28 +210,28 @@ export function SegmentRow({
                   className="flex items-center gap-2 py-1 font-mono text-xs"
                 >
                   <span aria-hidden>{ARCHIVE_ITEM_ICON[item.type]}</span>
-                  <span className="text-zinc-700 underline decoration-dotted underline-offset-4 group-hover:text-zinc-950">
+                  <span className="text-ink underline decoration-dotted underline-offset-4 group-hover:text-ink">
                     {item.title}
                   </span>
-                  <span className="text-zinc-400">— {item.sourceOrg}</span>
-                  <span aria-hidden className="text-zinc-300">
+                  <span className="text-grey">— {item.sourceOrg}</span>
+                  <span aria-hidden className="text-line">
                     ↗
                   </span>
                 </a>
 
                 {/* 호버 미리보기: 8-1의 "썸네일을 크게" 방향 참고, 실제 이미지는 자료 등록 시 오픈그래프로 대체될 자리 */}
-                <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 w-64 origin-top-left rounded-md border border-zinc-200 bg-white p-3 opacity-0 shadow-lg transition duration-150 group-hover:opacity-100">
+                <div className="pointer-events-none absolute left-0 top-full z-10 mt-2 w-64 origin-top-left rounded-md border border-line bg-background p-3 opacity-0 shadow-lg transition duration-150 group-hover:opacity-100">
                   <div
-                    className={`mb-2 flex h-24 items-center justify-center rounded-sm text-3xl ${ITEM_TYPE_THUMBNAIL_BG[item.type]}`}
+                    className={`mb-2 flex h-24 items-center justify-center rounded-sm text-3xl ${MATERIAL_THUMB_CLASSNAME}`}
                   >
                     {ARCHIVE_ITEM_ICON[item.type]}
                   </div>
-                  <p className="mb-1 font-mono text-[11px] text-zinc-400">
+                  <p className="mb-1 font-mono text-[11px] text-grey">
                     {item.type} · {item.sourceOrg}
                   </p>
-                  <p className="text-xs font-medium text-zinc-800">{item.title}</p>
+                  <p className="text-xs font-medium text-ink">{item.title}</p>
                   {item.description && (
-                    <p className="mt-1 text-[11px] leading-4 text-zinc-500">{item.description}</p>
+                    <p className="mt-1 text-[11px] leading-4 text-grey">{item.description}</p>
                   )}
                 </div>
               </li>
@@ -300,7 +250,7 @@ export function SegmentRow({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="font-mono text-xs text-zinc-400 underline decoration-dotted underline-offset-4 hover:text-zinc-800"
+            className="font-mono text-xs text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
           >
             관련자료 {data.relatedItems.length} {expanded ? "▲" : "▼"}
           </button>

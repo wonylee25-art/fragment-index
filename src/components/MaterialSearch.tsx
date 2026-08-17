@@ -126,8 +126,8 @@ export async function MaterialSearch({
     <section className="border-b border-line pb-10">
       {/* 폼이 열리면 이 줄의 w-full 자식으로 흘러 다음 줄을 차지한다(연표의 AddEventPanel과 같은 방식) */}
       <div className="mb-7 flex flex-wrap items-baseline gap-3">
-        <h2 className="mr-auto text-xl font-extrabold tracking-tight text-foreground">사료 검색</h2>
-        <span className="text-sm font-medium text-muted-2">
+        <h2 className="mr-auto text-xl font-extrabold tracking-tight text-ink">사료 검색</h2>
+        <span className="text-sm font-medium text-grey">
           DB · 국가기록원 · 국립중앙박물관 · 국사편찬위 · 여성사전시관
         </span>
         {/* 이 목록에 없는 자료 — 직접 찍은 사진, 종이 스크랩 — 는 여기서 손으로 넣는다 */}
@@ -140,11 +140,11 @@ export async function MaterialSearch({
           name="q"
           defaultValue={query}
           placeholder="인물, 사건, 키워드로 검색"
-          className="w-full border border-line-strong bg-background px-3.5 py-2.5 text-[15px] text-foreground placeholder:text-muted-2 focus:border-foreground focus:outline-none"
+          className="w-full border border-line bg-background px-3.5 py-2.5 text-[15px] text-ink placeholder:text-grey focus:border-ink focus:outline-none"
         />
         <button
           type="submit"
-          className="shrink-0 border border-foreground bg-foreground px-5 py-2.5 text-sm font-bold text-background transition-colors hover:bg-surface hover:text-foreground"
+          className="shrink-0 border border-ink bg-ink px-5 py-2.5 text-sm font-bold text-background transition-colors hover:bg-surface hover:text-ink"
         >
           검색
         </button>
@@ -152,18 +152,18 @@ export async function MaterialSearch({
 
       {!query && (
         <div className="mt-5">
-          <p className="mb-2.5 text-[13px] text-muted">
+          <p className="mb-2.5 text-[13px] text-grey">
             검색어를 입력하거나, 아래 키워드로 둘러보세요.
           </p>
           {suggestedKeywords.length === 0 ? (
-            <p className="text-[13px] text-muted-2">아직 등록된 키워드가 없습니다.</p>
+            <p className="text-[13px] text-grey">아직 등록된 키워드가 없습니다.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {suggestedKeywords.map((kw) => (
                 <Link
                   key={kw}
                   href={`/admin/review?q=${encodeURIComponent(kw)}`}
-                  className="border border-line px-2 py-0.5 font-mono text-xs font-medium text-muted transition-colors hover:border-foreground hover:text-foreground"
+                  className="border border-line px-2 py-0.5 font-mono text-xs font-medium text-grey transition-colors hover:border-ink hover:text-ink"
                 >
                   {kw}
                 </Link>
@@ -179,11 +179,11 @@ export async function MaterialSearch({
 
           {/* 오늘의역사는 사료가 아니라 사건 후보다 — 연결 대상이 아니라 연표에 편입된다 */}
           <section>
-            <p className="mb-1 font-mono text-[11px] font-semibold text-muted-2">
+            <p className="mb-1 font-mono text-[11px] font-semibold text-grey">
               국사편찬위원회 오늘의역사 (사건 후보) — {external.thEntries.length}건
             </p>
             {external.thError && (
-              <p className="mt-1 text-xs text-flag-attention">오류: {external.thError}</p>
+              <p className="mt-1 text-xs text-orange-fill">오류: {external.thError}</p>
             )}
             <ul>
               {external.thEntries.map((t, i) => (
@@ -191,21 +191,21 @@ export async function MaterialSearch({
                   key={`${t.id}-${i}`}
                   className="flex items-start justify-between gap-3 border-t border-line py-2"
                 >
-                  <span className="text-[13px] leading-relaxed text-muted">
-                    <span className="mr-2 font-mono text-xs tabular-nums text-muted-2">
+                  <span className="text-[13px] leading-relaxed text-grey">
+                    <span className="mr-2 font-mono text-xs tabular-nums text-grey">
                       {formatEdtfToKorean(t.dateValue)}
                     </span>
                     {t.title}
                   </span>
                   <form action={saveThEvent.bind(null, t)}>
                     {saved.eventIds.has(t.id) ? (
-                      <span className="font-mono text-[11px] font-semibold text-flag-marked">
+                      <span className="font-mono text-[11px] font-semibold text-ink">
                         ✓ 저장됨
                       </span>
                     ) : (
                       <button
                         type="submit"
-                        className="shrink-0 border border-line-strong px-2 py-0.5 font-mono text-[11px] font-semibold text-foreground hover:bg-foreground hover:text-background"
+                        className="shrink-0 border border-line px-2 py-0.5 font-mono text-[11px] font-semibold text-ink hover:bg-ink hover:text-background"
                       >
                         사건으로 저장
                       </button>
@@ -219,7 +219,7 @@ export async function MaterialSearch({
           {/* 검색어로 걸린 구술 — 연결 대상 사건 목록(왼쪽)과 짝이 되는 참고 정보 */}
           {local.segments.length > 0 && (
             <section>
-              <p className="mb-1 font-mono text-[11px] font-semibold text-muted-2">
+              <p className="mb-1 font-mono text-[11px] font-semibold text-grey">
                 DB 구술 — {local.segments.length}건
               </p>
               <ul>
@@ -227,9 +227,9 @@ export async function MaterialSearch({
                   <li key={s.id} className="border-t border-line">
                     <Link
                       href={`/segments?focus=${s.id}`}
-                      className="flex items-baseline gap-2.5 py-2 text-[13px] text-foreground hover:bg-surface"
+                      className="flex items-baseline gap-2.5 py-2 text-[13px] text-ink hover:bg-surface"
                     >
-                      <span className="font-mono text-xs tabular-nums text-muted-2">
+                      <span className="font-mono text-xs tabular-nums text-grey">
                         {formatEdtfToKorean(s.dateValue)}
                       </span>
                       <span className="font-semibold">{s.itemTitle}</span>

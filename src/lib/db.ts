@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
-import { ArchiveItemType, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials } from "./types";
+import { ArchiveItemType, Highlight, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -66,6 +66,27 @@ interface DbSegment {
   keywords: string[];
   user_memo: string | null;
   is_important: boolean;
+  highlights: unknown;
+}
+
+// jsonb 컬럼이라 스키마가 강제되지 않는다 — 손으로 넣은 값이든 옛 형식이든 그대로 들어온다.
+// 화면은 이 배열을 믿고 문자열을 자르므로(Transcript), 모양이 어긋난 항목은 그리기 전에 버린다.
+// 뒤집힌 범위(start >= end)와 음수도 함께 걸러낸다 — 자르면 빈 문자열이 되어 조용히 사라지는데,
+// 그러면 "그었는데 안 보인다"가 되고 원인을 찾을 단서가 남지 않는다.
+function sanitizeHighlights(value: unknown): Highlight[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((h): h is Highlight => {
+    if (!h || typeof h !== "object") return false;
+    const { line, start, end } = h as Record<string, unknown>;
+    return (
+      Number.isInteger(line) &&
+      Number.isInteger(start) &&
+      Number.isInteger(end) &&
+      (line as number) >= 0 &&
+      (start as number) >= 0 &&
+      (end as number) > (start as number)
+    );
+  });
 }
 
 // 사건과 자료(사료·구술)를 잇는 "연결선". 사건 자체는 항상 확정이고,
@@ -439,7 +460,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     supabase
       .from("segments")
       .select(
-        "id, item_title, date_value, page, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important",
+        "id, item_title, date_value, page, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important, highlights",
       )
       .order("id"),
     // subject까지 읽는다 — 화자가 가명·익명·미상이면 목록에서 그렇게 보여야 한다.
@@ -538,6 +559,8 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
       relatedItems: [], // 자료는 사건을 거쳐서만 붙는다 — 사건 쪽 linkedMaterials를 본다
       userMemo: s.user_memo ?? undefined,
       isImportant: s.is_important,
+      // jsonb라 무엇이든 들어올 수 있다 — 화면이 믿고 쓰기 전에 여기서 한 번 거른다.
+      highlights: sanitizeHighlights(s.highlights),
     };
   });
 }

@@ -31,13 +31,13 @@ export function Inline({ text }: { text: string }): ReactNode {
     switch (t.type) {
       case "bold":
         return (
-          <strong key={i} className="font-semibold text-zinc-900">
+          <strong key={i} className="font-semibold text-ink">
             {t.value}
           </strong>
         );
       case "code":
         return (
-          <code key={i} className="rounded-sm bg-zinc-100 px-1 py-0.5 font-mono text-[0.9em] text-zinc-700">
+          <code key={i} className="rounded-sm bg-surface px-1 py-0.5 font-mono text-[0.9em] text-ink">
             {t.value}
           </code>
         );
@@ -48,10 +48,10 @@ export function Inline({ text }: { text: string }): ReactNode {
             href={t.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-zinc-700 underline decoration-dotted underline-offset-2 hover:text-zinc-950"
+            className="text-ink underline decoration-dotted underline-offset-2 hover:text-ink"
           >
             {t.value}
-            <span aria-hidden className="text-[9px] text-zinc-300">
+            <span aria-hidden className="text-[9px] text-line">
               {" "}
               ↗
             </span>

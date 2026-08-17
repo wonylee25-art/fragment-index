@@ -36,7 +36,7 @@ export function EventPicker({
 
   return (
     <div className="md:sticky md:top-4">
-      <p className="mb-2 font-mono text-[11px] font-semibold text-muted-2">
+      <p className="mb-2 font-mono text-[11px] font-semibold text-grey">
         연결 대상 사건 · {filter.trim() ? `${visible.length} / ${events.length}` : events.length}
       </p>
 
@@ -46,14 +46,14 @@ export function EventPicker({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="사건 좁히기"
-          className="mb-1.5 w-full border border-line-strong bg-background px-2 py-1 text-[12px] text-foreground placeholder:text-muted-2 focus:border-foreground focus:outline-none"
+          className="mb-1.5 w-full border border-line bg-background px-2 py-1 text-[12px] text-ink placeholder:text-grey focus:border-ink focus:outline-none"
         />
       )}
 
       {events.length === 0 ? (
         <div className="border border-dashed border-line px-3 py-6 text-center">{emptyHint}</div>
       ) : visible.length === 0 ? (
-        <p className="border border-dashed border-line px-3 py-6 text-center text-[12px] text-muted-2">
+        <p className="border border-dashed border-line px-3 py-6 text-center text-[12px] text-grey">
           좁히기에 걸린 사건이 없습니다.
         </p>
       ) : (
@@ -66,7 +66,7 @@ export function EventPicker({
                   type="button"
                   onClick={() => onSelect(event.id)}
                   className={`flex w-full items-start gap-2 px-2.5 py-2 text-left transition-colors ${
-                    active ? "bg-foreground text-background" : "hover:bg-surface"
+                    active ? "bg-ink text-background" : "hover:bg-surface"
                   }`}
                 >
                   <span className="mt-[3px] font-mono text-[10px] leading-none">
@@ -75,7 +75,7 @@ export function EventPicker({
                   <span className="min-w-0">
                     <span
                       className={`block font-mono text-[10px] tabular-nums ${
-                        active ? "text-background" : "text-muted-2"
+                        active ? "text-background" : "text-grey"
                       }`}
                     >
                       {event.year}

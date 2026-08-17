@@ -10,6 +10,16 @@ export interface Utterance {
   speaker?: string; // 말한 사람 이름. 구술자가 둘 이상인 면담에서 누구의 말인지 가른다
 }
 
+// 구술 본문에 그은 형광펜 한 줄기. 발췌 전체에 붙는 표시(isImportant)나 자유 메모와 달리
+// 본문 안 특정 구절을 가리킨다 — 셋 다 "내가 얹은 것"이라 화면에서는 같은 노랑을 쓴다.
+// line은 utterances 배열의 인덱스이고, start·end는 그 발화 text 안의 문자 위치다
+// (줄머리를 떼어낸 뒤 기준이라 화면 글자와 그대로 대응한다).
+export interface Highlight {
+  line: number;
+  start: number;
+  end: number;
+}
+
 export type ArchiveItemType = "구술" | "신문" | "문서" | "이미지" | "학술" | "지도" | "박물" | "음원" | "영상";
 
 export interface RelatedItem {
@@ -64,6 +74,7 @@ export interface SegmentCardData {
   // 이용자가 화면에서 직접 적는 개인 메모 — 원본 자료에 딸려온 notes(각주)와 달리 순수 개인 작업용.
   userMemo?: string;
   isImportant: boolean; // 이용자가 "중요"로 표시했는지 — 연표의 저장됨 배지와 같은 성격
+  highlights: Highlight[]; // 본문에 그은 형광펜. 그은 것이 없으면 빈 배열.
 }
 
 // 장소 전거 — 좌표가 있으면 지도(OpenStreetMap)로 바로 연결할 수 있다.

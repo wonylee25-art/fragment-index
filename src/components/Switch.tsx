@@ -20,14 +20,14 @@ export function Switch({
       onClick={onToggle}
       className="group flex items-center gap-1.5"
     >
-      <span className={on ? "text-zinc-700" : "text-zinc-400 group-hover:text-zinc-600"}>{label}</span>
+      <span className={on ? "text-ink" : "text-grey group-hover:text-ink"}>{label}</span>
       <span
         className={`relative inline-flex h-3.5 w-7 shrink-0 items-center rounded-full transition-colors ${
-          on ? "bg-zinc-900" : "bg-zinc-200 group-hover:bg-zinc-300"
+          on ? "bg-ink" : "bg-line group-hover:bg-line"
         }`}
       >
         <span
-          className={`inline-block h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-transform ${
+          className={`inline-block h-2.5 w-2.5 rounded-full bg-background shadow-sm transition-transform ${
             on ? "translate-x-[15px]" : "translate-x-[3px]"
           }`}
         />
