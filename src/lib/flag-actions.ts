@@ -19,6 +19,20 @@ export async function togglePaperImportant(id: string, value: boolean) {
   revalidatePath("/research");
 }
 
+// 연표 사건명에 긋는 밑줄 — 위의 "중요"와 같은 갈래(내가 얹은 표시)지만
+// 한 건씩만이 아니라 골라 둔 여러 건을 한꺼번에 긋는 길(표 헤더의 선택 도구)도 있어
+// id를 배열로 받는다. 빈 배열이면 DB에 손대지 않는다.
+export async function setEventsHighlighted(ids: string[], value: boolean) {
+  if (ids.length === 0) return;
+  const { error } = await supabaseAdmin
+    .from("timeline_events")
+    .update({ highlighted: value })
+    .in("id", ids);
+  if (error) throw error;
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+}
+
 export async function togglePaperRead(id: string, value: boolean) {
   const { error } = await supabaseAdmin.from("papers").update({ is_read: value }).eq("id", id);
   if (error) throw error;

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Tag } from "./Tag";
 import { MemoField } from "./MemoField";
 import { AddEventPanel, EventRowControls } from "./EventEditor";
+import { FlagToggle } from "./FlagToggle";
 import { hideEvents } from "@/lib/event-actions";
+import { setEventsHighlighted } from "@/lib/flag-actions";
 import { UnlinkButton } from "./UnlinkButton";
 import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
@@ -17,6 +19,7 @@ import {
   ARCHIVE_ITEM_ICON,
   CHIP_CLASSNAME,
   DOT_CONFIRMED,
+  DOT_MINE,
   INPUT_CLASSNAME,
   MATERIAL_THUMB_CLASSNAME,
   TEXT_BODY_CLASSNAME,
@@ -161,6 +164,16 @@ export function TimelineExperience({
     setCollection(new Set());
   }
 
+  // 고른 사건에 한꺼번에 밑줄을 긋거나 지운다. 고른 것이 전부 이미 그어져 있으면 지우는
+  // 쪽으로 뒤집는다 — 같은 자리에서 긋고 지울 수 있어야 잘못 그은 뒤 되돌아갈 데가 있다.
+  const allSelectedHighlighted =
+    collection.size > 0 && sortedAll.filter((e) => collection.has(e.id)).every((e) => e.highlighted);
+
+  async function handleBulkHighlight() {
+    await setEventsHighlighted([...collection], !allSelectedHighlighted);
+    setCollection(new Set());
+  }
+
   // 컬렉션 이름은 CSV를 만들 때만 묻는다 — 늘 떠 있는 입력 칸으로 두면 쓰는 때보다
   // 자리만 차지하는 때가 훨씬 길다. 취소하면 내려받지 않는다.
   function handleExportCsv() {
@@ -245,6 +258,8 @@ export function TimelineExperience({
             onToggleAll={toggleSelectAllVisible}
             onExport={handleExportCsv}
             onHide={handleBulkHide}
+            onHighlight={handleBulkHighlight}
+            highlightLabel={allSelectedHighlighted ? "밑줄 지우기" : "밑줄"}
             onClear={() => setCollection(new Set())}
           />
         ) : (
@@ -346,13 +361,19 @@ function EventEntry({
   inCollection: boolean;
   onToggleCollection: () => void;
 }) {
-  const hasCrossing = linkedSegments.length > 0;
-
+  // 예전에는 구술이 붙은 사건 행에 초록 바탕이 자동으로 깔렸다. 데이터가 스스로 정하는
+  // 음영이라 훑으면서 고를 수가 없었고, 이미 칠해진 색 위에서는 정작 내가 표시한 것이
+  // 묻힌다 — 걷어냈다. 구술이 붙어 있다는 사실은 오른쪽 구술 칸에 인용이 실제로 실려
+  // 있는 것으로 이미 보인다.
+  //
+  // 내가 표시한 행은 바탕을 칠하지 않고 사건명에 밑줄을 긋는다(아래 h3). 행 하나가
+  // 다섯 칸에 걸쳐 있어 바탕을 칠하면 사료·구술 칸까지 통째로 물드는데, 표시는 내가
+  // 이 사건을 짚었다는 뜻이지 여기 붙은 자료까지 짚었다는 뜻은 아니다.
   return (
     <div
-      className={`grid grid-cols-1 gap-x-5 gap-y-3 py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
-        hasCrossing ? "border-b border-line bg-green-tint" : "border-b border-line"
-      } ${event.savedByUser ? "border-l-2 border-l-green-fill pl-3" : ""}`}
+      className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
+        event.savedByUser ? "border-l-2 border-l-green-fill pl-3" : ""
+      }`}
     >
       {/* 사료 — 다른 아카이브에서 가져온 자료. 다른 컬럼보다 넓게 잡아 이미지가 잘 보이게 한다 */}
       <div className="flex flex-col gap-2.5">
@@ -365,7 +386,7 @@ function EventEntry({
         )}
       </div>
 
-      {/* 날짜 */}
+      {/* 날짜 + 밑줄 스위치 */}
       <div className="flex items-start gap-2">
         {/* 체크박스로 둔다 — 별표는 중요도 표시로 읽혀서, 고르는 일과 뜻이 어긋난다. */}
         <input
@@ -376,7 +397,24 @@ function EventEntry({
           aria-label={`${event.eventName} 고르기`}
           className="mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
         />
-        <span className="font-mono text-[11px] leading-5 text-grey">{formatEdtfToKorean(event.dateValue)}</span>
+        <div className="min-w-0">
+          <span className="block font-mono text-[11px] leading-5 text-grey">
+            {formatEdtfToKorean(event.dateValue)}
+          </span>
+          {/* key에 지금 값을 넣는 것은 표 헤더에서 여러 건을 한꺼번에 그었을 때다 —
+              FlagToggle은 처음 받은 값으로 제 상태를 잡으므로, 값이 바뀌면 새로 태워야
+              한꺼번에 그은 행의 스위치도 함께 켜진 채로 다시 그려진다. */}
+          <div className="mt-1">
+            <FlagToggle
+              key={String(event.highlighted)}
+              active={event.highlighted}
+              onToggle={(next) => setEventsHighlighted([event.id], next)}
+              activeLabel="밑줄"
+              inactiveLabel="밑줄"
+              dotClassName={DOT_MINE}
+            />
+          </div>
+        </div>
       </div>
 
       {/* 사건명 + 하단 키워드 */}
@@ -385,7 +423,14 @@ function EventEntry({
             제목들(논문 제목·기관명)과 서체가 갈려 사건명만 다른 종류의 글처럼 보였다.
             굵기는 font-bold(700) — layout.tsx가 받는 굵기는 400·500·700·800이라
             font-semibold(600)로 적으면 브라우저가 알아서 700으로 바꿔 그린다. */}
-        <h3 className={`${TEXT_SUBHEAD_CLASSNAME} font-bold leading-snug text-ink`}>
+        {/* 내가 그은 밑줄. 링크의 밑줄(초록 점선)과 겹치지 않게 노란 실선으로, 두껍게
+            긋는다 — 얇으면 표를 훑는 눈에 걸리지 않고, 이 표에서 사건명은 링크가 아니라
+            읽는 이름이라 점선과 뜻이 갈린다. 밑줄과 글자 사이를 벌려 받침이 잘리지 않게 한다. */}
+        <h3
+          className={`${TEXT_SUBHEAD_CLASSNAME} font-bold leading-snug text-ink ${
+            event.highlighted ? "underline decoration-yellow-fill decoration-[3px] underline-offset-4" : ""
+          }`}
+        >
           {event.eventName}
           {mode === "admin" && event.savedByUser && <SavedBadge />}
         </h3>
@@ -540,6 +585,8 @@ function SelectionHeader({
   onToggleAll,
   onExport,
   onHide,
+  onHighlight,
+  highlightLabel,
   onClear,
 }: {
   mode: TimelineMode;
@@ -549,10 +596,22 @@ function SelectionHeader({
   onToggleAll: () => void;
   onExport: () => void;
   onHide: () => Promise<void>;
+  onHighlight: () => Promise<void>;
+  highlightLabel: string;
   onClear: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  const [highlighting, setHighlighting] = useState(false);
+
+  async function handleHighlight() {
+    setHighlighting(true);
+    try {
+      await onHighlight();
+    } finally {
+      setHighlighting(false);
+    }
+  }
 
   async function handleHide() {
     setPending(true);
@@ -608,6 +667,16 @@ function SelectionHeader({
         ) : (
           <>
             <span className="font-bold text-green-text">{count}건 선택</span>
+            {/* 밑줄은 숨김과 달리 확인을 묻지 않는다 — 되돌리는 길이 같은 자리에 있다.
+                다시 고르면 라벨이 "밑줄 지우기"로 바뀐다. */}
+            <button
+              type="button"
+              onClick={() => void handleHighlight()}
+              disabled={highlighting}
+              className="text-grey hover:text-ink disabled:opacity-50"
+            >
+              {highlighting ? "긋는 중…" : highlightLabel}
+            </button>
             <button type="button" onClick={onExport} className="text-grey hover:text-ink">
               CSV
             </button>

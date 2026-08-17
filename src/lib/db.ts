@@ -39,6 +39,7 @@ interface DbTimelineEvent {
   keywords: string[];
   user_saved: boolean;
   user_memo: string | null;
+  highlighted: boolean;
 }
 
 interface DbArchiveItem {
@@ -145,7 +146,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
 
   const [{ data: events, error: eventsError }, { data: materials, error: materialsError }, { data: links, error: linksError }] =
     await Promise.all([
-      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, has_discrepancy, keywords, user_saved, user_memo").is("hidden_at", null).order("id"),
+      supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, has_discrepancy, keywords, user_saved, user_memo, highlighted").is("hidden_at", null).order("id"),
       supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url"),
       supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     ]);
@@ -184,6 +185,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
     linkedMaterials: materialsByEvent.get(e.id) ?? [],
     savedByUser: e.user_saved,
     userMemo: e.user_memo ?? undefined,
+    highlighted: e.highlighted,
   }));
 }
 

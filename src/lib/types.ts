@@ -142,4 +142,7 @@ export interface TimelineEventData {
   linkedMaterials: RelatedItem[]; // 같은 연결에서 딸려오는 사료(이미지/신문/지도 등) — 교차 블록에 이미지로 노출
   savedByUser: boolean; // 사료 연결 "사료 검색"에서 사람이 직접 저장했거나 직접 만든 사건인지 — 연표에서 강조 표시
   userMemo?: string; // 이용자가 이 사건에 대해 직접 적는 개인 메모
+  // 이용자가 이 사건에 그은 밑줄 — 사건명 아래 노란 실선으로 그려진다. 구술의 isImportant와
+  // 같은 성격(발췌/사건 하나를 통째로 표시)이고, 본문 안 구절을 가리키는 Highlight와는 다르다.
+  highlighted: boolean;
 }
