@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { EventOption, EventPicker } from "./EventPicker";
-import { LinkTargetType, linkTargetToEvent } from "@/lib/link-actions";
+import { useState } from "react";
+import { EventOption } from "./EventPicker";
+import { EventAttach } from "./EventAttach";
+import { LinkTargetType, linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
+import { LinkedEventRef } from "@/lib/types";
 import { deactivateMaterials } from "@/lib/material-actions";
 import { deactivateSegments } from "@/lib/segment-actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 // 보류함. 저장은 됐지만 아직 어느 사건에도 붙지 않은 자료·구술이 쌓이는 곳.
-// 사료 검색과 같은 조작을 쓴다 — 왼쪽에서 사건을 한 번 고르고, 각 항목의 버튼 한 번으로 연결.
-// 다른 점은 검색어가 없어 사건 전체가 후보라는 것뿐이라, 목록에 좁히기 칸을 붙였다.
+// 사건은 항목마다 따로 붙인다(EventAttach) — 화면 하나에 사건 하나를 골라두고 모든 항목에
+// 같이 먹이던 방식은, 열 건을 각각 다른 사건에 붙이려면 왼쪽을 열 번 다시 골라야 했다.
 //
 // 붙이는 것만으로는 보류함이 줄지 않는다 — 검색으로 저장했다가 결국 안 쓰는 것이 계속
 // 남기 때문에, 골라서 한꺼번에 내리는 길을 함께 둔다(연표 일괄 숨김과 같은 조작).
@@ -25,37 +27,22 @@ export interface UnlinkedEntry {
   description?: string;
   imageUrl?: string;
   sourceUrl?: string;
+  // 숨긴 사건에만 붙어 있어서 보류함으로 내려온 경우, 그 사건들. 비어 있으면 정말로
+  // 어디에도 안 붙은 것이다(db.getUnlinkedMaterials 주석 참고).
+  hiddenLinks?: LinkedEventRef[];
 }
 
 function EntryCard({
   entry,
-  selected,
+  events,
   picked,
   onPick,
 }: {
   entry: UnlinkedEntry;
-  selected: EventOption | null;
-  // picked/onPick이 있으면 일괄 삭제 대상으로 고를 수 있는 항목이다(사료만).
+  events: EventOption[];
   picked?: boolean;
   onPick?: (id: string, next: boolean) => void;
 }) {
-  const [pending, startTransition] = useTransition();
-  const [linked, setLinked] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function handleLink() {
-    if (!selected) return;
-    setError(null);
-    startTransition(async () => {
-      try {
-        await linkTargetToEvent(selected.id, entry.targetType, entry.id, "keyword");
-        setLinked(true);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      }
-    });
-  }
-
   return (
     <li className="border-t border-line py-4">
       <div className="flex gap-4">
@@ -95,33 +82,34 @@ function EntryCard({
             </p>
           )}
 
-          {error && <p className="mt-2 font-mono text-[11px] text-orange-fill">{error}</p>}
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {linked ? (
-              <span className="font-mono text-[11px] font-semibold text-ink">
-                ✓ {selected?.eventName}에 연결됨
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={handleLink}
-                disabled={!selected || pending}
-                className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
-              >
-                {pending
-                  ? "연결 중…"
-                  : selected
-                    ? `${selected.year} ${selected.eventName}에 연결`
-                    : "왼쪽에서 사건을 고르세요"}
-              </button>
-            )}
+          <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
+            <EventAttach
+              events={events}
+              linked={entry.hiddenLinks}
+              onPick={(event) =>
+                linkTargetToEvent(event.id, entry.targetType, entry.id, "keyword")
+              }
+              onUnlink={(eventId) =>
+                unlinkTargetFromEvent(eventId, entry.targetType, entry.id)
+              }
+              emptyHint={
+                <>
+                  연표에 사건이 없습니다.
+                  <a
+                    href="/admin/timeline"
+                    className="mt-2 block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
+                  >
+                    연표 관리에서 사건 만들기 →
+                  </a>
+                </>
+              }
+            />
             {entry.sourceUrl && (
               <a
                 href={entry.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
+                className="pb-1 font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
               >
                 원문 ↗
               </a>
@@ -139,7 +127,7 @@ function PickSection({
   label,
   boxName,
   entries,
-  selected,
+  events,
   picked,
   setPicked,
   onDeactivate,
@@ -147,7 +135,7 @@ function PickSection({
   label: string;
   boxName: string;
   entries: UnlinkedEntry[];
-  selected: EventOption | null;
+  events: EventOption[];
   picked: Set<string>;
   setPicked: (next: Set<string>) => void;
   onDeactivate: (ids: string[]) => Promise<number>;
@@ -209,7 +197,7 @@ function PickSection({
           <EntryCard
             key={entry.id}
             entry={entry}
-            selected={selected}
+            events={events}
             picked={picked.has(entry.id)}
             onPick={togglePick}
           />
@@ -228,9 +216,6 @@ export function UnlinkedBoard({
   materials: UnlinkedEntry[];
   segments: UnlinkedEntry[];
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = events.find((e) => e.id === selectedId) ?? null;
-
   // 내린 것을 화면에서 빼는 일은 서버가 맡는다(deactivate…가 이 경로를 revalidate한다).
   // 처음에는 여기서 내린 id를 따로 들고 걸러냈는데, 그러면 비활성함에서 되돌린 것이
   // 목록에 돌아왔는데도 그 기억에 걸려 계속 숨겨졌다 — 한쪽만 아는 상태가 둘로 갈린다.
@@ -246,8 +231,8 @@ export function UnlinkedBoard({
       <div className="flex flex-col gap-1.5">
         <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
         <p className="text-sm font-medium text-grey">
-          어느 사건에도 붙지 않은 자료 {materials.length}건, 구술 {segments.length}건. 왼쪽에서
-          사건을 고른 뒤 각 항목을 연결하세요. 쓰지 않을 것은 골라서 비활성으로 내릴 수
+          어느 사건에도 붙지 않은 자료 {materials.length}건, 구술 {segments.length}건. 항목마다
+          “+ 사건 붙이기”로 각자의 사건에 붙이세요. 쓰지 않을 것은 골라서 비활성으로 내릴 수
           있습니다 — DB에서 지워지지 않고 아래 비활성함에서 되돌립니다.
         </p>
       </div>
@@ -257,47 +242,25 @@ export function UnlinkedBoard({
           보류 중인 자료가 없습니다.
         </p>
       ) : (
-        <div className="grid gap-6 md:grid-cols-[210px_minmax(0,1fr)]">
-          <EventPicker
+        <div className="flex flex-col gap-7">
+          <PickSection
+            label="사료"
+            boxName="비활성 사료함"
+            entries={materials}
             events={events}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            filterable
-            emptyHint={
-              <>
-                <p className="text-[12px] leading-relaxed text-grey">
-                  연표에 사건이 없습니다.
-                </p>
-                <a
-                  href="/admin/timeline"
-                  className="mt-2 inline-block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
-                >
-                  연표 관리에서 사건 만들기 →
-                </a>
-              </>
-            }
+            picked={pickedMaterials}
+            setPicked={setPickedMaterials}
+            onDeactivate={deactivateMaterials}
           />
-
-          <div className="flex flex-col gap-7">
-            <PickSection
-              label="사료"
-              boxName="비활성 사료함"
-              entries={materials}
-              selected={selected}
-              picked={pickedMaterials}
-              setPicked={setPickedMaterials}
-              onDeactivate={deactivateMaterials}
-            />
-            <PickSection
-              label="구술"
-              boxName="비활성 구술함"
-              entries={segments}
-              selected={selected}
-              picked={pickedSegments}
-              setPicked={setPickedSegments}
-              onDeactivate={deactivateSegments}
-            />
-          </div>
+          <PickSection
+            label="구술"
+            boxName="비활성 구술함"
+            entries={segments}
+            events={events}
+            picked={pickedSegments}
+            setPicked={setPickedSegments}
+            onDeactivate={deactivateSegments}
+          />
         </div>
       )}
     </div>

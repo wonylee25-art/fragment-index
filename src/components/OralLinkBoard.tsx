@@ -1,17 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { linkTargetToEvent } from "@/lib/link-actions";
+import { linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { SegmentLinkRow } from "@/lib/db";
 import { formatEdtfToKorean } from "@/lib/edtf";
-import { EventOption, EventPicker } from "./EventPicker";
+import { EventOption } from "./EventPicker";
+import { EventAttach } from "./EventAttach";
 
 // 관리 "구술 연결". 구술을 넣는 일은 구술 목록에서 하고, 여기서는 넣어 둔 구술을 사건에
 // 붙이는 일만 한다 — 관리 화면이 하는 일은 자료를 모으는 게 아니라 그물망을 짜는 것이다.
 //
-// 사료 연결의 보류함과 조작은 같다(왼쪽에서 사건을 한 번 고르고, 각 항목의 버튼 한 번으로 연결).
-// 다른 점은 이미 붙은 구술도 함께 보여준다는 것이다 — 어느 사건에 매여 있는지 모르면
-// 같은 구술을 두 번 붙이거나, 엉뚱한 사건에 붙은 것을 영영 못 찾는다.
+// 사료 연결의 보류함과 조작은 같다 — 구술 하나하나가 제 "+ 사건 붙이기"를 가지고, 붙인
+// 사건은 그 줄 안에 배지로 선다. 어느 사건에 매여 있는지 모르면 같은 구술을 두 번 붙이거나,
+// 엉뚱한 사건에 붙은 것을 영영 못 찾는다.
+//
+// 숨긴 사건에 붙어 있는 구술도 그렇게 보여준다(배지에 "숨김"). 예전에는 연결선을 사건
+// 목록에서 거꾸로 훑느라 숨긴 사건이 통째로 빠졌고, 그래서 멀쩡히 붙어 있는 구술이
+// "안 붙은 구술"로 세어졌다.
 
 type Filter = "all" | "unlinked";
 
@@ -22,12 +27,9 @@ export function OralLinkBoard({
   rows: SegmentLinkRow[];
   events: EventOption[];
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("unlinked");
-  const [justLinked, setJustLinked] = useState<Record<string, string>>({});
 
-  const selected = events.find((e) => e.id === selectedId) ?? null;
-  const unlinkedCount = rows.filter((r) => r.linkedEvents.length === 0 && !justLinked[r.id]).length;
+  const unlinkedCount = rows.filter((r) => r.linkedEvents.length === 0).length;
 
   const visible = useMemo(
     () => (filter === "all" ? rows : rows.filter((r) => r.linkedEvents.length === 0)),
@@ -62,7 +64,7 @@ export function OralLinkBoard({
           </div>
         </div>
         <p className="text-sm font-medium text-grey">
-          왼쪽에서 사건을 고른 뒤 구술을 붙이세요. 구술을 새로 넣는 것은{" "}
+          구술마다 “+ 사건 붙이기”로 각자의 사건에 붙이세요. 구술을 새로 넣는 것은{" "}
           <a
             href="/segments"
             className="font-semibold text-ink underline decoration-dotted underline-offset-4"
@@ -78,29 +80,11 @@ export function OralLinkBoard({
           {filter === "unlinked" ? "사건에 안 붙은 구술이 없습니다." : "구술이 없습니다."}
         </p>
       ) : (
-        <div className="grid gap-6 md:grid-cols-[210px_minmax(0,1fr)]">
-          <EventPicker
-            events={events}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            filterable
-            emptyHint={
-              <p className="text-[12px] leading-relaxed text-grey">연표에 사건이 없습니다.</p>
-            }
-          />
-
-          <ul>
-            {visible.map((row) => (
-              <SegmentLinkCard
-                key={row.id}
-                row={row}
-                selected={selected}
-                linkedNow={justLinked[row.id]}
-                onLinked={(eventName) => setJustLinked((prev) => ({ ...prev, [row.id]: eventName }))}
-              />
-            ))}
-          </ul>
-        </div>
+        <ul>
+          {visible.map((row) => (
+            <SegmentLinkCard key={row.id} row={row} events={events} />
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -108,32 +92,11 @@ export function OralLinkBoard({
 
 function SegmentLinkCard({
   row,
-  selected,
-  linkedNow,
-  onLinked,
+  events,
 }: {
   row: SegmentLinkRow;
-  selected: EventOption | null;
-  linkedNow?: string;
-  onLinked: (eventName: string) => void;
+  events: EventOption[];
 }) {
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleLink() {
-    if (!selected) return;
-    setPending(true);
-    setError(null);
-    try {
-      await linkTargetToEvent(selected.id, "segment", row.id, null);
-      onLinked(selected.eventName);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setPending(false);
-    }
-  }
-
   return (
     <li className="border-t border-line py-3">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -149,45 +112,22 @@ function SegmentLinkCard({
 
       <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-grey">{row.preview}</p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {/* 이미 붙어 있는 사건은 배지로 먼저 보여준다 — 붙일지 말지의 판단이 여기서 갈린다 */}
-        {row.linkedEvents.map((e) => (
-          <span
-            key={e.id}
-            className="bg-surface px-1.5 py-0.5 font-mono text-[10px] font-bold text-ink"
-          >
-            {e.eventName}
-          </span>
-        ))}
-        {linkedNow && (
-          <span className="font-mono text-[11px] font-semibold text-ink">
-            ✓ {linkedNow}에 연결됨
-          </span>
-        )}
-
-        {!linkedNow && (
-          <button
-            type="button"
-            onClick={handleLink}
-            disabled={!selected || pending}
-            className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
-          >
-            {pending
-              ? "연결 중…"
-              : selected
-                ? `${selected.year} ${selected.eventName}에 연결`
-                : "왼쪽에서 사건을 고르세요"}
-          </button>
-        )}
-
+      {/* 이미 붙어 있는 사건은 배지로 먼저 서고(붙일지 말지의 판단이 여기서 갈린다),
+          붙이고 끊는 일도 그 자리에서 한다 */}
+      <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
+        <EventAttach
+          events={events}
+          linked={row.linkedEvents}
+          onPick={(event) => linkTargetToEvent(event.id, "segment", row.id, null)}
+          onUnlink={(eventId) => unlinkTargetFromEvent(eventId, "segment", row.id)}
+          emptyHint={<>연표에 사건이 없습니다.</>}
+        />
         <a
           href={`/segments?focus=${row.id}`}
-          className="font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
+          className="pb-1 font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
         >
           본문 보기 ↗
         </a>
-
-        {error && <span className="font-mono text-[11px] text-orange-fill">{error}</span>}
       </div>
     </li>
   );

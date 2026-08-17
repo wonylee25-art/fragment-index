@@ -39,6 +39,7 @@ export default async function ReviewPage({
     description: m.description,
     imageUrl: m.imageUrl,
     sourceUrl: m.sourceUrl || undefined,
+    hiddenLinks: m.hiddenLinks,
   }));
 
   const segments: UnlinkedEntry[] = unlinked.segments.map((s) => ({
@@ -47,6 +48,7 @@ export default async function ReviewPage({
     title: s.itemTitle,
     metaLine: `구술 · ${formatEdtfToKorean(s.dateValue)}`,
     sourceUrl: `/segments?focus=${s.id}`,
+    hiddenLinks: s.hiddenLinks,
   }));
 
   return (

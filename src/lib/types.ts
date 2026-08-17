@@ -123,10 +123,20 @@ export interface PaperData {
   quotes: PaperQuote[];
 }
 
-// 사료 연결 ②번 칸에 쌓이는, 아직 어느 사건에도 연결선이 붙지 않은 자료들.
+// 보류함에 쌓이는, 아직 어느 사건에도 연결선이 붙지 않은 자료들.
+// hiddenLinks는 "숨긴 사건에만 붙어 있어서" 여기로 내려온 것들의 그 사건 목록이다 —
+// 비어 있으면 정말로 어디에도 안 붙은 것이고, 차 있으면 붙긴 했는데 그 사건이 연표에
+// 안 뜨는 것이다. 둘은 다른 상태이므로 화면에서도 다르게 보여야 한다.
 export interface UnlinkedMaterials {
-  materials: RelatedItem[];
-  segments: { id: string; itemTitle: string; dateValue: string }[];
+  materials: (RelatedItem & { hiddenLinks: LinkedEventRef[] })[];
+  segments: { id: string; itemTitle: string; dateValue: string; hiddenLinks: LinkedEventRef[] }[];
+}
+
+export interface LinkedEventRef {
+  id: string;
+  eventName: string;
+  dateValue: string;
+  hidden: boolean;
 }
 
 export interface TimelineEventData {

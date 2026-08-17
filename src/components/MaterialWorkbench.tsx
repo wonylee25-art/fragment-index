@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { MaterialDraft, saveMaterial } from "@/app/actions";
-import { EventOption, EventPicker } from "./EventPicker";
+import { EventOption } from "./EventPicker";
+import { EventAttach } from "./EventAttach";
 
-// 사료 연결의 작업대. 왼쪽에 연결 대상 사건 목록을 펼쳐두고(드롭다운 없이 항상 보이게),
-// 오른쪽 사료 카드에서 버튼 한 번으로 저장+연결한다.
-// 사건을 고르면 카드 버튼이 "1931 청계천 상류 복개에 연결"처럼 대상을 이름으로 보여줘서,
-// 자료마다 목록을 다시 띄울 필요가 없다.
+// 사료 연결의 작업대. 검색으로 걸린 자료를 저장하면서 사건에 붙인다.
+// 사건은 자료마다 따로 고른다 — 화면 왼쪽에 목록 하나를 펼쳐두고 고른 사건이 모든 카드에
+// 똑같이 먹던 방식은, 검색 결과 열 건을 각각 다른 사건에 붙일 수가 없었다.
+// 사건을 고르면 그 자리에서 저장+연결까지 끝난다. 붙일 사건을 아직 못 정했으면 [보류]로
+// 저장만 해 보류함에 쌓아둔다.
 
 export type { EventOption };
 
@@ -24,18 +26,16 @@ export interface MaterialGroup {
   results: MaterialResult[];
 }
 
-function MaterialCard({
-  result,
-  selected,
-}: {
-  result: MaterialResult;
-  selected: EventOption | null;
-}) {
+function MaterialCard({ result, events }: { result: MaterialResult; events: EventOption[] }) {
   const { draft, metaLine, badges, saved } = result;
+  // 고른 사건은 폼 제출에 실어 보내려고 hidden으로 함께 넘긴다. 고르는 즉시 제출하므로
+  // 화면에 남는 상태는 아니지만, 서버 액션이 FormData로만 값을 받기 때문에 한 번은 거쳐야 한다.
+  const [formEl, setFormEl] = useState<HTMLFormElement | null>(null);
+  const [eventId, setEventId] = useState("");
 
   return (
     <li className="border-t border-line py-4">
-      <form action={saveMaterial.bind(null, draft)} className="flex gap-4">
+      <form ref={setFormEl} action={saveMaterial.bind(null, draft)} className="flex gap-4">
         {draft.imageUrl ? (
           // 외부 아카이브 이미지를 그대로 건다(재호스팅하지 않음) — next/image 설정 없이 쓰려고 <img>.
           // eslint-disable-next-line @next/next/no-img-element
@@ -76,29 +76,28 @@ function MaterialCard({
             </p>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
             {saved ? (
               <span className="font-mono text-[11px] font-semibold text-ink">✓ 저장됨</span>
             ) : (
               <>
-                {/* 선택된 사건은 화면 상태라, 폼 제출에 실어 보내려고 hidden으로 함께 넘긴다 */}
-                <input type="hidden" name="eventId" value={selected?.id ?? ""} />
-                <button
-                  type="submit"
-                  name="intent"
-                  value="link"
-                  disabled={!selected}
-                  className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
-                >
-                  {selected
-                    ? `${selected.year} ${selected.eventName}에 연결`
-                    : "왼쪽에서 사건을 고르세요"}
-                </button>
+                <input type="hidden" name="eventId" value={eventId} />
+                <input type="hidden" name="intent" value="link" />
+                <EventAttach
+                  events={events}
+                  onPick={async (event) => {
+                    setEventId(event.id);
+                    // 값이 DOM에 반영된 다음에 제출한다 — 같은 tick에 부르면 빈 eventId가 실린다.
+                    await new Promise((resolve) => setTimeout(resolve, 0));
+                    formEl?.requestSubmit();
+                  }}
+                  emptyHint={<>연표에 사건이 없습니다.</>}
+                />
                 <button
                   type="submit"
                   name="intent"
                   value="hold"
-                  className="border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-grey hover:border-ink hover:text-ink"
+                  className="self-end border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-grey hover:border-ink hover:text-ink"
                 >
                   보류
                 </button>
@@ -128,35 +127,10 @@ export function MaterialWorkbench({
   events: EventOption[];
   groups: MaterialGroup[];
 }) {
-  // 처음부터 하나 골라두면 "고르지 않고 눌렀다"는 사고가 나기 쉬워, 선택은 비워둔 채 시작한다.
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = events.find((e) => e.id === selectedId) ?? null;
   const total = groups.reduce((sum, g) => sum + g.results.length, 0);
 
   return (
-    <div className="grid gap-6 md:grid-cols-[210px_minmax(0,1fr)]">
-      <EventPicker
-        events={events}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
-        // 후보가 연표 전체(DB 사건)라 목록이 길다 — 보류함과 같이 좁히기 칸을 붙인다.
-        filterable
-        emptyHint={
-          <>
-            <p className="text-[12px] leading-relaxed text-grey">
-              연표에 사건이 없습니다.
-            </p>
-            <a
-              href="/admin/timeline"
-              className="mt-2 inline-block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
-            >
-              연표 관리에서 사건 만들기 →
-            </a>
-          </>
-        }
-      />
-
-      <div>
+    <div>
         <p className="mb-2 font-mono text-[11px] font-semibold text-grey">사료 {total}</p>
 
         <div className="flex flex-col gap-7">
@@ -173,17 +147,12 @@ export function MaterialWorkbench({
               ) : (
                 <ul>
                   {group.results.map((result, i) => (
-                    <MaterialCard
-                      key={`${result.draft.id}-${i}`}
-                      result={result}
-                      selected={selected}
-                    />
+                    <MaterialCard key={`${result.draft.id}-${i}`} result={result} events={events} />
                   ))}
                 </ul>
               )}
             </section>
           ))}
-        </div>
       </div>
     </div>
   );

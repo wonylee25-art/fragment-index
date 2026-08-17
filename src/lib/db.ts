@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
-import { ArchiveItemType, Highlight, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials } from "./types";
+import { ArchiveItemType, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -179,14 +179,6 @@ export interface ChronicleOptions {
   includeCandidates?: boolean;
 }
 
-// 관리페이지에서 숨긴 사건(hidden_at != null)의 id — 연표에서 빼고, 그 사건에 매달린
-// 연결선도 "없는 것"으로 치기 위해 여러 곳에서 쓴다.
-async function fetchHiddenEventIds(): Promise<Set<string>> {
-  const { data, error } = await supabase.from("timeline_events").select("id").not("hidden_at", "is", null);
-  if (error) throw error;
-  return new Set(((data as { id: string }[]) ?? []).map((e) => e.id));
-}
-
 export async function getChronicleEvents({ includeCandidates = false }: ChronicleOptions = {}): Promise<TimelineEventData[]> {
   const visibleStatuses = includeCandidates ? ["confirmed", "candidate"] : ["confirmed"];
 
@@ -317,33 +309,62 @@ export async function getInactiveSegments(): Promise<InactiveSegment[]> {
 // 사건이 정해지지 않은 상태를 "사건 칸이 빈 연결선"으로 만들지 않고, 연결선의 부재로 표현한다.
 // 나중에 사건 뼈대를 채울 때 여기 쌓인 것을 재료로 쓴다.
 export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
-  const [{ data: items, error: itemsError }, { data: segments, error: segmentsError }, { data: links, error: linksError }, hiddenEventIds] =
-    await Promise.all([
-      // 치운 사료(hidden_at)는 보류함에서 빠진다 — 되돌리는 길은 아래 "치운 사료" 목록이다.
-      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null).order("id"),
-      supabase.from("segments").select("id, item_title, date_value").is("hidden_at", null).order("id"),
-      // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
-      supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
-      fetchHiddenEventIds(),
-    ]);
+  const [
+    { data: items, error: itemsError },
+    { data: segments, error: segmentsError },
+    { data: links, error: linksError },
+    { data: allEvents, error: eventsError },
+  ] = await Promise.all([
+    // 비활성 사료함에 넣은 것(hidden_at)은 보류함에서 빠진다 — 되돌리는 길은 그 함이다.
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null).order("id"),
+    supabase.from("segments").select("id, item_title, date_value").is("hidden_at", null).order("id"),
+    // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
+    supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
+    supabase.from("timeline_events").select("id, event_name, date_value, hidden_at"),
+  ]);
   if (itemsError) throw itemsError;
   if (segmentsError) throw segmentsError;
   if (linksError) throw linksError;
+  if (eventsError) throw eventsError;
+
+  const eventById = new Map(
+    ((allEvents as { id: string; event_name: string; date_value: string | null; hidden_at: string | null }[]) ?? []).map(
+      (e) => [
+        e.id,
+        { id: e.id, eventName: e.event_name, dateValue: e.date_value ?? "", hidden: e.hidden_at !== null },
+      ],
+    ),
+  );
 
   const linkedItemIds = new Set<string>();
   const linkedSegmentIds = new Set<string>();
+  // 숨긴 사건에만 붙어 있는 것은 보류함으로 내려오되, 어디에 붙어 있었는지는 들고 온다 —
+  // 이유를 모르면 "왜 여기 있지" 하고 같은 자료를 또 붙이게 된다.
+  const hiddenLinksByTarget = new Map<string, LinkedEventRef[]>();
   for (const link of (links as Pick<DbLink, "event_id" | "target_type" | "target_id">[]) ?? []) {
-    // 숨긴 사건에만 붙어 있는 자료는 미연결로 친다 — 그러지 않으면 연표에도 안 보이고
-    // 보류함에도 안 뜨는 사각지대에 갇힌다.
-    if (hiddenEventIds.has(link.event_id)) continue;
+    const event = eventById.get(link.event_id);
+    if (!event) continue;
+    if (event.hidden) {
+      const list = hiddenLinksByTarget.get(link.target_id) ?? [];
+      list.push(event);
+      hiddenLinksByTarget.set(link.target_id, list);
+      continue;
+    }
     (link.target_type === "archive_item" ? linkedItemIds : linkedSegmentIds).add(link.target_id);
   }
 
   return {
-    materials: ((items as DbArchiveItem[]) ?? []).filter((m) => !linkedItemIds.has(m.id)).map(toRelatedItem),
+    materials: ((items as DbArchiveItem[]) ?? [])
+      .filter((m) => !linkedItemIds.has(m.id))
+      .map((m) => ({ ...toRelatedItem(m), hiddenLinks: hiddenLinksByTarget.get(m.id) ?? [] })),
     segments: ((segments as { id: string; item_title: string | null; date_value: string | null }[]) ?? [])
       .filter((s) => !linkedSegmentIds.has(s.id))
-      .map((s) => ({ id: s.id, itemTitle: s.item_title ?? "", dateValue: s.date_value ?? "" })),
+      .map((s) => ({
+        id: s.id,
+        itemTitle: s.item_title ?? "",
+        dateValue: s.date_value ?? "",
+        hiddenLinks: hiddenLinksByTarget.get(s.id) ?? [],
+      })),
   };
 }
 
@@ -528,22 +549,43 @@ export interface SegmentLinkRow {
   dateValue: string;
   speakers: string[]; // 구술자 이름 — 목록에서 발췌를 알아보는 가장 빠른 단서
   preview: string; // 본문 첫 발화
-  linkedEvents: { id: string; eventName: string; dateValue: string }[];
+  linkedEvents: LinkedEventRef[];
 }
 
+// 어느 구술이 어느 사건에 붙어 있는지. 연결선을 사건 목록(getChronicleEvents)에서 거꾸로
+// 훑지 않고 links를 직접 읽는 이유는 숨긴 사건 때문이다 — 사건 목록은 숨긴 것을 아예 빼므로,
+// 숨긴 사건에만 붙어 있는 구술은 연결선이 멀쩡히 있는데도 "안 붙은 구술"로 보였다.
+// 붙어 있다는 사실과 그 사건이 지금 연표에 뜨지 않는다는 사실은 다른 얘기다. 둘 다 보여준다.
 export async function getSegmentLinkRows(): Promise<SegmentLinkRow[]> {
-  const [segments, events] = await Promise.all([
-    getOralSegments(),
-    getChronicleEvents({ includeCandidates: true }),
-  ]);
+  const [segments, { data: links, error: linksError }, { data: events, error: eventsError }] =
+    await Promise.all([
+      getOralSegments(),
+      supabase
+        .from("links")
+        .select("event_id, target_id")
+        .eq("target_type", "segment")
+        .in("status", ["confirmed", "candidate"]),
+      supabase.from("timeline_events").select("id, event_name, date_value, hidden_at"),
+    ]);
+  if (linksError) throw linksError;
+  if (eventsError) throw eventsError;
 
-  const eventsBySegment = new Map<string, { id: string; eventName: string; dateValue: string }[]>();
-  for (const event of events) {
-    for (const segmentId of event.linkedSegmentIds) {
-      const list = eventsBySegment.get(segmentId) ?? [];
-      list.push({ id: event.id, eventName: event.eventName, dateValue: event.dateValue });
-      eventsBySegment.set(segmentId, list);
-    }
+  const eventById = new Map(
+    ((events as { id: string; event_name: string; date_value: string | null; hidden_at: string | null }[]) ?? []).map(
+      (e) => [
+        e.id,
+        { id: e.id, eventName: e.event_name, dateValue: e.date_value ?? "", hidden: e.hidden_at !== null },
+      ],
+    ),
+  );
+
+  const eventsBySegment = new Map<string, LinkedEventRef[]>();
+  for (const link of ((links as { event_id: string; target_id: string }[]) ?? [])) {
+    const event = eventById.get(link.event_id);
+    if (!event) continue;
+    const list = eventsBySegment.get(link.target_id) ?? [];
+    list.push(event);
+    eventsBySegment.set(link.target_id, list);
   }
 
   return segments.map((s) => ({
