@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { EventOption, EventPicker } from "./EventPicker";
 import { LinkTargetType, linkTargetToEvent } from "@/lib/link-actions";
-import { deleteMaterials } from "@/lib/material-actions";
+import { hideMaterials } from "@/lib/material-actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 // 보류함. 저장은 됐지만 아직 어느 사건에도 붙지 않은 자료·구술이 쌓이는 곳.
@@ -11,8 +11,10 @@ import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 // 다른 점은 검색어가 없어 사건 전체가 후보라는 것뿐이라, 목록에 좁히기 칸을 붙였다.
 //
 // 붙이는 것만으로는 보류함이 줄지 않는다 — 검색으로 저장했다가 결국 안 쓰는 자료가 계속
-// 남기 때문에, 사료 쪽에는 골라서 한꺼번에 지우는 길을 함께 둔다(연표 일괄 숨김과 같은 조작).
-// 구술은 여기서 지우지 않는다. 원본이 있는 곳(구술 목록)에서 지우는 규칙을 흩뜨리지 않는다.
+// 남기 때문에, 사료 쪽에는 골라서 한꺼번에 치우는 길을 함께 둔다(연표 일괄 숨김과 같은 조작).
+// 치우는 것은 화면에서 내리는 일이지 지우는 일이 아니다 — DB의 행도 연결선도 그대로 두고,
+// 아래 "치운 사료" 목록에서 되돌린다. 정말로 지우는 일은 그 목록 안에서만 할 수 있다.
+// 구술은 여기서 손대지 않는다. 원본이 있는 곳(구술 목록)에서 지우는 규칙을 흩뜨리지 않는다.
 
 export interface UnlinkedEntry {
   id: string;
@@ -142,12 +144,15 @@ export function UnlinkedBoard({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = events.find((e) => e.id === selectedId) ?? null;
 
-  // 지운 사료는 서버가 다시 그려주기를 기다리지 않고 화면에서 곧바로 뺀다 — 지운 것이 남아
-  // 있으면 "지워졌나?" 하고 한 번 더 누르게 된다.
-  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+  // 치운 사료를 화면에서 빼는 일은 서버가 맡는다(hideMaterials가 이 경로를 revalidate한다).
+  // 처음에는 여기서 지운 id를 따로 들고 걸러냈는데, 그러면 "치운 사료"에서 되돌린 것이
+  // 목록에 돌아왔는데도 그 기억에 걸려 계속 숨겨졌다 — 한쪽만 아는 상태가 둘로 갈린다.
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const visibleMaterials = materials.filter((m) => !deletedIds.has(m.id));
+  const visibleMaterials = materials;
   const total = visibleMaterials.length + segments.length;
+
+  const allPicked = visibleMaterials.length > 0 && visibleMaterials.every((m) => picked.has(m.id));
+  const somePicked = visibleMaterials.some((m) => picked.has(m.id));
 
   function togglePick(id: string, next: boolean) {
     setPicked((prev) => {
@@ -158,11 +163,14 @@ export function UnlinkedBoard({
     });
   }
 
-  async function handleDelete() {
+  function togglePickAll() {
+    setPicked(allPicked ? new Set() : new Set(visibleMaterials.map((m) => m.id)));
+  }
+
+  async function handleHide() {
     const ids = visibleMaterials.filter((m) => picked.has(m.id)).map((m) => m.id);
     if (ids.length === 0) return;
-    await deleteMaterials(ids);
-    setDeletedIds((prev) => new Set([...prev, ...ids]));
+    await hideMaterials(ids);
     setPicked(new Set());
   }
 
@@ -172,7 +180,8 @@ export function UnlinkedBoard({
         <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
         <p className="text-sm font-medium text-grey">
           어느 사건에도 붙지 않은 자료 {visibleMaterials.length}건, 구술 {segments.length}건.
-          왼쪽에서 사건을 고른 뒤 각 항목을 연결하세요. 쓰지 않을 사료는 골라서 지울 수 있습니다.
+          왼쪽에서 사건을 고른 뒤 각 항목을 연결하세요. 쓰지 않을 사료는 골라서 치울 수
+          있습니다 — 치운 것은 DB에 그대로 남고 아래 “치운 사료”에서 되돌립니다.
         </p>
       </div>
 
@@ -205,34 +214,36 @@ export function UnlinkedBoard({
           <div className="flex flex-col gap-7">
             {visibleMaterials.length > 0 && (
               <section>
+                {/* 머리줄의 체크박스는 연표 표 머리와 같은 자리·같은 조작이다 — 행마다 붙는
+                    체크박스가 선 자리에서 "보이는 것 모두"를 한 번에 고른다. 일부만 골랐을
+                    때는 반쯤 찬 모양(indeterminate)으로 그것을 알린다. */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-mono text-[11px] font-semibold text-grey">
-                    사료 — {visibleMaterials.length}건
-                    {picked.size > 0 && ` · ${picked.size}건 고름`}
-                  </p>
-                  <div className="flex items-center gap-2 font-mono text-[11px]">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPicked(
-                          picked.size === visibleMaterials.length
-                            ? new Set()
-                            : new Set(visibleMaterials.map((m) => m.id)),
-                        )
-                      }
-                      className="text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
-                    >
-                      {picked.size === visibleMaterials.length ? "전체 해제" : "전체 고르기"}
-                    </button>
-                    {picked.size > 0 && (
-                      <ConfirmDeleteButton
-                        onDelete={handleDelete}
-                        confirmMessage={`고른 사료 ${picked.size}건을 지웁니다. 되돌릴 수 없습니다.`}
-                        label={`고른 ${picked.size}건 삭제`}
-                        className="border border-line px-2 py-0.5 font-bold text-orange-fill hover:border-orange-fill disabled:text-grey"
-                      />
-                    )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={allPicked}
+                      ref={(el) => {
+                        if (el) el.indeterminate = !allPicked && somePicked;
+                      }}
+                      onChange={togglePickAll}
+                      title={allPicked ? "선택 해제" : `사료 ${visibleMaterials.length}건 모두 선택`}
+                      aria-label={allPicked ? "선택 해제" : `사료 ${visibleMaterials.length}건 모두 선택`}
+                      className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
+                    />
+                    <p className="font-mono text-[11px] font-semibold text-grey">
+                      사료 — {visibleMaterials.length}건
+                      {picked.size > 0 && ` · ${picked.size}건 고름`}
+                    </p>
                   </div>
+                  {picked.size > 0 && (
+                    <ConfirmDeleteButton
+                      onDelete={handleHide}
+                      confirmMessage={`고른 사료 ${picked.size}건을 보류함에서 치웁니다. DB에서는 지워지지 않고, 아래 “치운 사료”에서 되돌릴 수 있습니다.`}
+                      label={`고른 ${picked.size}건 치우기`}
+                      pendingLabel="치우는 중…"
+                      className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
+                    />
+                  )}
                 </div>
                 <ul>
                   {visibleMaterials.map((entry) => (

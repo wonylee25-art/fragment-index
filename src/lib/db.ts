@@ -197,7 +197,8 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
     { data: sources, error: sourcesError },
   ] = await Promise.all([
     supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, user_memo, highlighted").is("hidden_at", null).order("id"),
-    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url"),
+    // 치운 사료는 연표에서도 빠진다. 연결선은 그대로 두므로 되살리면 붙어 있던 사건으로 돌아온다.
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null),
     supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     // 출처 대장 — 사건에 번호(SRC007)로만 적혀 있는 출처를 실제 서지로 푸는 데 쓴다.
     supabase.from("sources").select("id, type, title, creator, publisher, date_value, identifier"),
@@ -275,13 +276,27 @@ export async function getHiddenEvents(): Promise<HiddenEventSummary[]> {
   }));
 }
 
+// 보류함 아래에 접어두는 "치운 사료" 목록. 치운 사료는 연표에서도 보류함에서도 빠지므로,
+// 이 목록이 그것들에 닿는 유일한 길이다 — 되살리는 것도, 정말로 지우는 것도 여기서만 한다.
+export async function getHiddenMaterials(): Promise<RelatedItem[]> {
+  const { data, error } = await supabase
+    .from("archive_items")
+    .select("id, item_type, title, source_org, source_url, description, image_url, hidden_at")
+    .not("hidden_at", "is", null)
+    .order("hidden_at", { ascending: false }); // 방금 치운 것부터 — 잘못 치웠을 때 바로 보인다
+  if (error) throw error;
+
+  return ((data as DbArchiveItem[]) ?? []).map(toRelatedItem);
+}
+
 // 사료 연결 ②번 칸 — 연결선이 하나도 안 붙은 자료·구술.
 // 사건이 정해지지 않은 상태를 "사건 칸이 빈 연결선"으로 만들지 않고, 연결선의 부재로 표현한다.
 // 나중에 사건 뼈대를 채울 때 여기 쌓인 것을 재료로 쓴다.
 export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
   const [{ data: items, error: itemsError }, { data: segments, error: segmentsError }, { data: links, error: linksError }, hiddenEventIds] =
     await Promise.all([
-      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").order("id"),
+      // 치운 사료(hidden_at)는 보류함에서 빠진다 — 되돌리는 길은 아래 "치운 사료" 목록이다.
+      supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null).order("id"),
       supabase.from("segments").select("id, item_title, date_value").order("id"),
       // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
       supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
