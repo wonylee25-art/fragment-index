@@ -6,7 +6,7 @@ import { AdminTabs } from "@/components/AdminTabs";
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-full bg-white">
-      <SiteHeader active="/admin/timeline" title="관리" />
+      <SiteHeader active="/admin/timeline" title="편집" />
       <AdminTabs />
       {children}
     </div>
