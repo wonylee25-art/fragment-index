@@ -80,3 +80,51 @@ export async function unlinkTargetFromEvent(
 
   revalidateLinkViews();
 }
+
+// 고른 여러 건을 한 사건에 한꺼번에 잇는다. 한 건씩 잇는 것과 결과가 같고(같은 함수를 돈다),
+// 다른 점은 "무엇에 붙는지"를 고른 것으로 먼저 정해두고 사건을 나중에 고른다는 것뿐이다.
+// 예전의 공용 사건 목록과 헷갈리지 않게, 이 길은 체크로 고른 것에만 먹는다 — 화면 전체에
+// 조용히 먹던 그 방식이 문제였다.
+export async function linkTargetsToEvent(
+  eventId: string,
+  targetType: LinkTargetType,
+  targetIds: string[],
+  basis: LinkBasis | null = null,
+): Promise<number> {
+  for (const targetId of targetIds) {
+    await linkTargetToEvent(eventId, targetType, targetId, basis);
+  }
+  return targetIds.length;
+}
+
+// 고른 여러 건의 연결선을 한꺼번에 끊는다. 자료·구술 자체는 남고 보류함으로 돌아간다.
+//
+// 숨긴 사건에 걸린 연결선은 건드리지 않는다. 붙일 수 있는 사건 목록에 숨긴 사건이 없어서
+// 한 번 끊으면 화면에서는 되붙일 길이 없기 때문이다(EventAttach의 배지에서 ×를 뺀 것과
+// 같은 이유). 끊으려면 연표 관리에서 사건을 먼저 되살린다.
+export async function unlinkTargetsFromEvents(
+  targetType: LinkTargetType,
+  targetIds: string[],
+): Promise<number> {
+  if (targetIds.length === 0) return 0;
+
+  const { data: hidden, error: hiddenError } = await supabaseAdmin
+    .from("timeline_events")
+    .select("id")
+    .not("hidden_at", "is", null);
+  if (hiddenError) throw hiddenError;
+  const hiddenIds = ((hidden as { id: string }[]) ?? []).map((e) => e.id);
+
+  let query = supabaseAdmin
+    .from("links")
+    .delete()
+    .eq("target_type", targetType)
+    .in("target_id", targetIds);
+  if (hiddenIds.length > 0) query = query.not("event_id", "in", `(${hiddenIds.join(",")})`);
+
+  const { data, error } = await query.select("id");
+  if (error) throw error;
+
+  revalidateLinkViews();
+  return ((data as { id: string }[]) ?? []).length;
+}

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { EventOption } from "./EventPicker";
 import { EventAttach } from "./EventAttach";
-import { LinkTargetType, linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
+import {
+  LinkTargetType,
+  linkTargetToEvent,
+  linkTargetsToEvent,
+  unlinkTargetFromEvent,
+  unlinkTargetsFromEvents,
+} from "@/lib/link-actions";
 import { LinkedEventRef } from "@/lib/types";
 import { deactivateMaterials } from "@/lib/material-actions";
 import { deactivateSegments } from "@/lib/segment-actions";
@@ -131,6 +137,7 @@ function PickSection({
   picked,
   setPicked,
   onDeactivate,
+  targetType,
 }: {
   label: string;
   boxName: string;
@@ -139,12 +146,19 @@ function PickSection({
   picked: Set<string>;
   setPicked: (next: Set<string>) => void;
   onDeactivate: (ids: string[]) => Promise<number>;
+  targetType: LinkTargetType;
 }) {
+  // 여러 건에 같은 사건을 먹이는 일이라, 고른 것이 두 건 이상일 때만 연다 — 한 건이면
+  // 그 항목 안의 "+ 사건 붙이기"가 이미 같은 일을 하고, 그쪽이 무엇에 붙는지 더 분명하다.
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkPending, setBulkPending] = useState(false);
+
   if (entries.length === 0) return null;
 
   const pickedHere = entries.filter((e) => picked.has(e.id));
   const allPicked = pickedHere.length === entries.length;
   const somePicked = pickedHere.length > 0;
+  const bulkReady = pickedHere.length >= 2;
 
   function togglePick(id: string, next: boolean) {
     const draft = new Set(picked);
@@ -157,6 +171,27 @@ function PickSection({
     if (pickedHere.length === 0) return;
     await onDeactivate(pickedHere.map((e) => e.id));
     setPicked(new Set());
+  }
+
+  async function handleBulkLink(event: EventOption) {
+    setBulkPending(true);
+    try {
+      await linkTargetsToEvent(event.id, targetType, pickedHere.map((e) => e.id), "keyword");
+      setBulkOpen(false);
+      setPicked(new Set());
+    } finally {
+      setBulkPending(false);
+    }
+  }
+
+  async function handleBulkUnlink() {
+    setBulkPending(true);
+    try {
+      await unlinkTargetsFromEvents(targetType, pickedHere.map((e) => e.id));
+      setPicked(new Set());
+    } finally {
+      setBulkPending(false);
+    }
   }
 
   return (
@@ -182,6 +217,29 @@ function PickSection({
             {somePicked && ` · ${pickedHere.length}건 고름`}
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* 고른 것이 둘 이상일 때만 서는 두 버튼. 무엇에 먹는지가 버튼 글자에 그대로
+              적힌다("고른 4건") — 예전의 공용 사건 목록이 문제였던 건 고르지 않은 것에도
+              조용히 먹었기 때문이지, 여러 건을 한꺼번에 잇는 일 자체가 아니었다. */}
+          {bulkReady && (
+            <button
+              type="button"
+              onClick={() => setBulkOpen(!bulkOpen)}
+              disabled={bulkPending}
+              className="border border-ink bg-ink px-2 py-0.5 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
+            >
+              {bulkPending ? "붙이는 중…" : "사건 연결"}
+            </button>
+          )}
+          {bulkReady && (
+            <ConfirmDeleteButton
+              onDelete={handleBulkUnlink}
+              confirmMessage={`고른 ${label} ${pickedHere.length}건의 사건 연결을 끊습니다. 자료는 그대로 남고 보류함으로 돌아갑니다. 숨긴 사건에 걸린 연결은 그대로 둡니다 — 끊으면 이 화면에서 되붙일 길이 없기 때문입니다.`}
+              label="사건 연결 해제"
+              pendingLabel="끊는 중…"
+              className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
+            />
+          )}
         {somePicked && (
           <ConfirmDeleteButton
             onDelete={handleDeactivate}
@@ -191,7 +249,22 @@ function PickSection({
             className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
           />
         )}
+        </div>
       </div>
+
+      {/* 고른 것들에 먹일 사건은 카드 안에서와 같은 목록에서 고른다 — 조작을 두 벌 만들지 않는다 */}
+      {bulkOpen && bulkReady && (
+        <div className="mt-2">
+          <EventAttach
+            events={events}
+            startOpen
+            pickLabel={`고른 ${pickedHere.length}건에 붙일 사건 고르기`}
+            onPick={handleBulkLink}
+            onClose={() => setBulkOpen(false)}
+            emptyHint={<>연표에 사건이 없습니다.</>}
+          />
+        </div>
+      )}
       <ul>
         {entries.map((entry) => (
           <EntryCard
@@ -251,6 +324,7 @@ export function UnlinkedBoard({
             picked={pickedMaterials}
             setPicked={setPickedMaterials}
             onDeactivate={deactivateMaterials}
+            targetType="archive_item"
           />
           <PickSection
             label="구술"
@@ -260,6 +334,7 @@ export function UnlinkedBoard({
             picked={pickedSegments}
             setPicked={setPickedSegments}
             onDeactivate={deactivateSegments}
+            targetType="segment"
           />
         </div>
       )}

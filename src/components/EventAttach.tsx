@@ -17,14 +17,21 @@ export function EventAttach({
   onPick,
   onUnlink,
   emptyHint,
+  // 머리줄의 일괄 연결처럼, 이미 "고르겠다"고 누르고 들어온 자리에서는 목록이 곧바로 펼쳐진다.
+  startOpen = false,
+  onClose,
+  pickLabel = "+ 사건 붙이기",
 }: {
   events: EventOption[];
   linked?: LinkedEventRef[];
   onPick: (event: EventOption) => Promise<void>;
   onUnlink?: (eventId: string) => Promise<void>;
   emptyHint?: React.ReactNode;
+  startOpen?: boolean;
+  onClose?: () => void;
+  pickLabel?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [filter, setFilter] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +53,7 @@ export function EventAttach({
       setJustLinked((prev) => [...prev, event]);
       setOpen(false);
       setFilter("");
+      onClose?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -132,7 +140,10 @@ export function EventAttach({
             />
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                onClose?.();
+              }}
               className="shrink-0 px-1 font-mono text-[11px] text-grey hover:text-ink"
             >
               닫기
@@ -173,7 +184,7 @@ export function EventAttach({
             disabled={pending}
             className="border border-ink bg-ink px-2.5 py-1 font-mono text-[11px] font-bold text-background hover:bg-surface hover:text-ink disabled:border-line disabled:bg-surface disabled:text-grey"
           >
-            {pending ? "붙이는 중…" : "+ 사건 붙이기"}
+            {pending ? "붙이는 중…" : pickLabel}
           </button>
           {error && <span className="font-mono text-[11px] text-orange-fill">{error}</span>}
         </div>
