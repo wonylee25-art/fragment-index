@@ -11,8 +11,8 @@ import { ArchiveItemType } from "./types";
 // — 직접 찍은 사진, 종이 신문 스크랩, 개인 소장 문서 — 는 넣을 방법이 없었다.
 // 직접 만든 자료는 id에 am_ 접두어를 붙여 출처를 구분한다(사건의 ev_와 같은 규칙).
 //
-// 사건 삭제와 마찬가지로 여기에도 지우는 길은 두지 않는다 — 붙일 사건을 못 정했으면
-// 연결 없이 저장해 보류함에 쌓아두는 것으로 갈음한다.
+// 지우는 길은 보류함에만 둔다 — 사건에 붙은 사료는 연표의 근거라 화면에서 날릴 수 없고,
+// 어디에도 안 붙은 채 쌓인 검색 부스러기는 치우지 않으면 보류함이 못 쓰게 된다.
 
 export interface MaterialInput {
   itemType: ArchiveItemType;
@@ -55,4 +55,27 @@ export async function createMaterial(
 
   revalidatePath("/admin/review");
   return id;
+}
+
+// 보류함에서 고른 사료를 한꺼번에 지운다. 사건 숨김(hideEvents)과 달리 되돌릴 수 없으므로
+// 화면에서 confirm을 한 번 거친 뒤에만 들어온다.
+// 남아 있을 수 있는 연결선(반려된 것, 숨긴 사건에 매달린 것)을 먼저 끊고 자료를 지운다 —
+// 순서를 바꾸면 대상이 없는 연결선만 DB에 남는다.
+export async function deleteMaterials(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+
+  const { error: linkError } = await supabaseAdmin
+    .from("links")
+    .delete()
+    .eq("target_type", "archive_item")
+    .in("target_id", ids);
+  if (linkError) throw linkError;
+
+  const { error } = await supabaseAdmin.from("archive_items").delete().in("id", ids);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+  revalidatePath("/admin/review");
+  return ids.length;
 }
