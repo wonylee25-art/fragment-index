@@ -244,7 +244,7 @@ function PickSection({
           <ConfirmDeleteButton
             onDelete={handleDeactivate}
             confirmMessage={`고른 ${label} ${pickedHere.length}건을 비활성으로 내립니다. DB에서는 지워지지 않고, 아래 “${boxName}”에서 되돌릴 수 있습니다.`}
-            label={`고른 ${pickedHere.length}건 비활성`}
+            label="비활성"
             pendingLabel="내리는 중…"
             className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
           />
