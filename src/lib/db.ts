@@ -294,15 +294,26 @@ export async function getEventOptions(): Promise<EventOptionRow[]> {
     .map(({ id, year, eventName, hidden }) => ({ id, year, eventName, hidden }));
 }
 
-// 연표 관리 창고 칸의 머리줄에 붙는 건수 — 연표에 안 떠 있는 사건 전부(아직 안 꺼낸 것 +
-// 꺼냈다가 치운 것). 목록은 검색해야 나오므로 여기서는 세기만 한다.
-export async function countWarehouseEvents(): Promise<number> {
-  const { count, error } = await supabase
-    .from("timeline_events")
-    .select("id", { count: "exact", head: true })
-    .or("adopted_at.is.null,hidden_at.not.is.null");
-  if (error) throw error;
-  return count ?? 0;
+// 연표 관리 "사건 찾기" 칸의 머리줄에 붙는 건수. 목록은 검색해야 나오므로 여기서는 세기만
+// 한다. 두 수를 함께 보이는 것은 이 칸이 찾는 범위가 연표 바깥까지라는 것을 머리줄에서
+// 바로 알리기 위함이다.
+export interface EventCounts {
+  total: number;
+  warehouse: number; // 연표에 안 떠 있는 것 — 아직 안 꺼낸 것 + 꺼냈다가 치운 것
+}
+
+export async function countEvents(): Promise<EventCounts> {
+  const [{ count: total, error: totalError }, { count: warehouse, error: warehouseError }] =
+    await Promise.all([
+      supabase.from("timeline_events").select("id", { count: "exact", head: true }),
+      supabase
+        .from("timeline_events")
+        .select("id", { count: "exact", head: true })
+        .or("adopted_at.is.null,hidden_at.not.is.null"),
+    ]);
+  if (totalError) throw totalError;
+  if (warehouseError) throw warehouseError;
+  return { total: total ?? 0, warehouse: warehouse ?? 0 };
 }
 
 export interface HiddenEventSummary {

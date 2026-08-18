@@ -150,25 +150,31 @@ export async function unhideEvent(id: string) {
   revalidatePath("/admin/review");
 }
 
-// ── 창고(들여왔지만 아직 연표에 올리지 않은 사건) ──────────────────────────────
+// ── 사건 찾기(연표 관리 아래 칸) ─────────────────────────────────────────────
 //
 // 국사편찬위원회 오늘의역사에서 들여온 6천여 건은 adopted_at이 비어 있어 연표에 안 나온다.
 // 사료에 붙이면 저절로 올라오지만(link-actions.ts의 adoptEvent), 붙일 사료가 아직 없어도
-// "이건 연표에 넣자" 하고 먼저 꺼낼 수 있어야 한다 — 연표 관리의 창고 칸이 그 길이다.
+// "이건 연표에 넣자" 하고 먼저 꺼낼 수 있어야 한다 — 이 칸이 그 길이다.
+//
+// 창고에 있는 것만 찾던 때가 있었다. 그러면 찾는 사건이 안 나올 때 파일에 없어서인지 이미
+// 꺼내서인지를 가릴 수 없다 — 둘 다 "걸린 사건이 없습니다"로 똑같이 보인다. 그래서 연표에
+// 오른 것까지 함께 찾고, 그 줄은 등록 버튼 대신 "이미 연표에 있음"이라고 적는다.
 //
 // 목록을 통째로 내려보내지 않고 검색한 것만 준다. 6천 건을 화면마다 실어 나르면 연표 관리가
 // 무거워지고, 어차피 그만큼을 눈으로 훑어 고르지도 못한다.
 
-export interface WarehouseEventRow {
+export interface FoundEventRow {
   id: string;
   eventName: string;
   dateValue: string;
   hidden: boolean;
+  // 연표에 올라 있는가 — 채택했고 숨기지 않은 것. 이 줄에는 등록 버튼을 안 단다.
+  onTimeline: boolean;
 }
 
-const WAREHOUSE_LIMIT = 100;
+const SEARCH_LIMIT = 100;
 
-export async function searchWarehouseEvents(query: string): Promise<WarehouseEventRow[]> {
+export async function searchEvents(query: string): Promise<FoundEventRow[]> {
   const q = query.trim();
   if (!q) return [];
 
@@ -177,31 +183,29 @@ export async function searchWarehouseEvents(query: string): Promise<WarehouseEve
   const safe = q.replace(/[,()*]/g, " ").trim();
   if (!safe) return [];
 
-  // 창고는 "연표에 안 떠 있는 사건 전부"다 — 아직 안 꺼낸 것(adopted_at 없음)과 꺼냈다가
-  // 치운 것(hidden_at 있음)을 함께 담는다. 숨기기는 연표에서만 안 보이게 하는 일이지,
-  // 사건을 못 쓰게 만드는 일이 아니다.
   const { data, error } = await supabaseAdmin
     .from("timeline_events")
-    .select("id, event_name, date_value, hidden_at")
-    .or("adopted_at.is.null,hidden_at.not.is.null")
+    .select("id, event_name, date_value, hidden_at, adopted_at")
     .or(`event_name.ilike.%${safe}%,date_value.ilike.%${safe}%`)
     .order("date_value", { ascending: false })
-    .limit(WAREHOUSE_LIMIT);
+    .limit(SEARCH_LIMIT);
   if (error) throw error;
 
-  return ((data as { id: string; event_name: string; date_value: string | null; hidden_at: string | null }[]) ?? []).map((e) => ({
+  type Row = { id: string; event_name: string; date_value: string | null; hidden_at: string | null; adopted_at: string | null };
+  return ((data as Row[]) ?? []).map((e) => ({
     id: e.id,
     eventName: e.event_name,
     dateValue: e.date_value ?? "",
     hidden: e.hidden_at !== null,
+    onTimeline: e.adopted_at !== null && e.hidden_at === null,
   }));
 }
 
-// 창고에 있던 사건을 연표에 올린다. 사료를 붙이는 것과 같은 딱지를 붙이는 일이라,
+// 연표에 없던 사건을 연표에 올린다. 사료를 붙이는 것과 같은 딱지를 붙이는 일이라,
 // 올린 뒤에는 손으로 만든 사건과 구별 없이 다뤄진다(고치기·숨기기 모두 그대로 먹는다).
 //
-// 창고에는 두 갈래가 있어 손보는 곳이 다르다: 아직 안 꺼낸 것은 채택 딱지를 붙이고,
-// 꺼냈다가 치운 것은 숨김을 푼다. 버튼이 "연표에 등록"이라고 적혀 있는 이상 둘 다
+// 연표에 없는 사건에는 두 갈래가 있어 손보는 곳이 다르다: 아직 안 꺼낸 것은 채택 딱지를
+// 붙이고, 꺼냈다가 치운 것은 숨김을 푼다. 버튼이 "연표에 등록"이라고 적혀 있는 이상 둘 다
 // 눌렀을 때 연표에 나타나야 한다. 처음 채택한 때는 덮어쓰지 않는다.
 export async function adoptEventById(id: string) {
   const { data: row, error: findError } = await supabaseAdmin
