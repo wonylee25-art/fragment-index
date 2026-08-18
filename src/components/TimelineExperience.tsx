@@ -426,7 +426,7 @@ function EventEntry({
       // mark·fill로 깔면 그은 행이 표가 아니라 노란 덩어리로 먼저 읽힌다.
       className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
         event.highlighted ? "bg-yellow-tint" : ""
-      } ${event.savedByUser ? "border-l-2 border-l-green-fill pl-3" : ""}`}
+      }`}
     >
       {/* 사료 — 다른 아카이브에서 가져온 자료. 다른 컬럼보다 넓게 잡아 이미지가 잘 보이게 한다 */}
       <div className="flex flex-col gap-2.5">
