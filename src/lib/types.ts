@@ -28,7 +28,10 @@ export interface RelatedItem {
   title: string;
   sourceOrg: string;
   sourceUrl: string; // 외부 원본 아카이브 링크 (재호스팅하지 않음, 4번 IA 참고)
+  dateValue?: string; // 자료 자체의 연대(EDTF) — 사건·구술과 같은 표기. 없는 자료도 많다.
   description?: string; // 호버 미리보기에 쓰는 짧은 설명 (자료 등록 시 오픈그래프 등으로 수집될 값의 mock)
+  fullText?: string; // 자료 원문 — 신문기사처럼 본문을 옮겨 적어 둔 것. description은 이것의 앞머리다.
+  keywords?: string[]; // 사건·구술과 같은 태그. 검색과, 날짜·키워드가 겹치는 사건 찾기에 쓴다.
   imageUrl?: string; // 원본 아카이브의 썸네일 (박물관 유물 등) — 재호스팅하지 않고 링크만 건다
 }
 

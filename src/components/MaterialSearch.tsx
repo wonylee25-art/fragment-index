@@ -5,6 +5,7 @@ import { searchMuseumRelicsDetailed } from "@/lib/museum-relics";
 import { searchThTimeline } from "@/lib/th-timeline";
 import { searchWomensOralArchive } from "@/lib/womens-oral-archive";
 import { formatEdtfToKorean, edtfYear } from "@/lib/edtf";
+import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
 import { saveThEvent } from "@/app/actions";
 import { EventOption, MaterialGroup, MaterialWorkbench } from "./MaterialWorkbench";
 import { AddMaterialForm } from "./AddMaterialForm";
@@ -45,7 +46,7 @@ export async function MaterialSearch({
   allEvents: EventOption[];
 }) {
   const [local, external, saved, suggestedKeywords] = await Promise.all([
-    query ? searchLocal(query) : Promise.resolve({ events: [], segments: [] }),
+    query ? searchLocal(query) : Promise.resolve({ events: [], segments: [], materials: [] }),
     query ? externalSearch(query) : Promise.resolve(null),
     query
       ? getSavedIds()
@@ -221,6 +222,45 @@ export async function MaterialSearch({
               ))}
             </ul>
           </section>
+
+          {/* 이미 DB에 있는 사료 중 걸린 것. 밖에서 더 찾기 전에 "이미 갖고 있는지"를 먼저
+              보여준다 — 같은 자료를 두 번 저장하는 일을 막고, 신문기사처럼 본문을 통째로
+              들고 있는 사료는 검색어가 기사 중간에 있어도 여기 걸린다. */}
+          {local.materials.length > 0 && (
+            <section>
+              <p className="mb-1 font-mono text-[11px] font-semibold text-grey">
+                DB 사료 — {local.materials.length}건
+              </p>
+              <ul>
+                {local.materials.map((m) => (
+                  <li
+                    key={m.id}
+                    className="flex items-start justify-between gap-3 border-t border-line py-2"
+                  >
+                    <span className="text-[13px] leading-relaxed text-ink">
+                      <span className="mr-2 font-mono text-xs tabular-nums text-grey">
+                        {m.dateValue ? formatEdtfToKorean(m.dateValue) : ARCHIVE_ITEM_ICON[m.type]}
+                      </span>
+                      <span className="font-semibold">{m.title}</span>
+                      {m.sourceOrg && (
+                        <span className="ml-2 font-mono text-[11px] text-grey">· {m.sourceOrg}</span>
+                      )}
+                    </span>
+                    {m.sourceUrl && (
+                      <a
+                        href={m.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 pt-0.5 font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
+                      >
+                        원문 ↗
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* 검색어로 걸린 구술 — 연결 대상 사건 목록(왼쪽)과 짝이 되는 참고 정보 */}
           {local.segments.length > 0 && (

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { EventOption } from "./EventPicker";
 import { EventAttach } from "./EventAttach";
 import { LinkTargetType, linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
-import { LinkedEventRef } from "@/lib/types";
+import { ArchiveItemType, LinkedEventRef } from "@/lib/types";
+import { formatEdtfToKorean } from "@/lib/edtf";
 import { deactivateMaterials } from "@/lib/material-actions";
 import { PickSection, isUnlinkedEntry } from "./LinkPickSection";
 
@@ -31,11 +32,42 @@ export interface UnlinkedEntry {
   description?: string;
   imageUrl?: string;
   sourceUrl?: string;
+  // 아래 셋은 사료 줄에만 쓴다(구술 줄은 비워 둔다).
+  itemType?: ArchiveItemType;
+  sourceOrg?: string;
+  dateValue?: string;
+  fullText?: string; // 옮겨 적어 둔 원문 — 있으면 요약 아래에서 펼쳐 읽는다
   // 이 항목이 붙어 있는 사건 전부(숨긴 사건 포함). 비어 있으면 어디에도 안 붙은 것이다.
   links?: LinkedEventRef[];
 }
 
+// 신문 사료의 썸네일 자리. 지면 스캔은 가져올 수 없다 — 네이버 뉴스라이브러리는 robots.txt가
+// 전면 금지라 자동 수집이 막혀 있고, 지면 이미지는 언론사 저작물이라 재호스팅할 것도 아니다.
+// 그렇다고 "이미지 없음"만 아흔 개 세워두면 목록이 빈칸의 행렬이 된다. 가진 것(신문사·날짜·표제)
+// 으로 지면 조각처럼 짜 넣으면, 스캔이 주던 정보 — 어느 신문 언제 것이냐 — 는 그대로 남는다.
+function NewspaperPlate({ entry }: { entry: UnlinkedEntry }) {
+  return (
+    <div className="flex h-[118px] w-24 shrink-0 flex-col border border-line bg-surface px-2 py-1.5">
+      <p className="truncate text-center text-[11px] font-extrabold tracking-tight text-ink">
+        {entry.sourceOrg || "신문"}
+      </p>
+      <div className="mt-1 border-t border-ink" />
+      <p className="mt-1 text-center font-mono text-[9px] tabular-nums text-grey">
+        {entry.dateValue ? formatEdtfToKorean(entry.dateValue) : ""}
+      </p>
+      <p className="mt-1 line-clamp-4 text-[9px] font-semibold leading-snug text-grey">
+        {entry.title}
+      </p>
+    </div>
+  );
+}
+
 function MaterialCard({ entry, events }: { entry: UnlinkedEntry; events: EventOption[] }) {
+  // 요약은 전문의 앞 150자라, 접어둔 채로는 기사 중간이 안 보인다. 펼치는 문을 줄마다 둔다 —
+  // 한 건만 열어 읽고 닫는 일이 대부분이라 목록 전체를 펼치는 스위치는 두지 않았다.
+  const [openFull, setOpenFull] = useState(false);
+  const hasMore = Boolean(entry.fullText && entry.fullText !== entry.description);
+
   return (
     <div className="flex gap-4">
       {entry.imageUrl ? (
@@ -47,6 +79,8 @@ function MaterialCard({ entry, events }: { entry: UnlinkedEntry; events: EventOp
           loading="lazy"
           className="h-[118px] w-24 shrink-0 border border-line bg-surface object-cover"
         />
+      ) : entry.itemType === "신문" ? (
+        <NewspaperPlate entry={entry} />
       ) : (
         <div className="flex h-[118px] w-24 shrink-0 items-center justify-center border border-dashed border-line bg-surface text-center font-mono text-[10px] leading-relaxed text-grey">
           이미지
@@ -59,10 +93,21 @@ function MaterialCard({ entry, events }: { entry: UnlinkedEntry; events: EventOp
         <p className="text-[14px] font-bold leading-snug text-ink">{entry.title}</p>
         <p className="mt-1 font-mono text-[11px] text-grey">{entry.metaLine}</p>
 
-        {entry.description && (
-          <p className="mt-2 border-l-2 border-line pl-2.5 text-[12px] leading-relaxed text-grey">
-            {entry.description}
-          </p>
+        {(entry.description || entry.fullText) && (
+          <div className="mt-2 border-l-2 border-line pl-2.5">
+            <p className="whitespace-pre-line text-[12px] leading-relaxed text-grey">
+              {openFull ? entry.fullText : entry.description}
+            </p>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setOpenFull((v) => !v)}
+                className="mt-1 font-mono text-[11px] font-semibold text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
+              >
+                {openFull ? "본문 접기" : "본문 펼치기"}
+              </button>
+            )}
+          </div>
         )}
 
         <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">

@@ -119,8 +119,10 @@ export function InactiveBoxes({
                   {ARCHIVE_ITEM_ICON[material.type]} {material.type}
                 </span>
                 {material.title}
-                {material.sourceOrg && (
-                  <span className="ml-2 font-mono text-[11px] text-grey">· {material.sourceOrg}</span>
+                {(material.sourceOrg || material.dateValue) && (
+                  <span className="ml-2 font-mono text-[11px] text-grey">
+                    {[material.sourceOrg, material.dateValue].filter(Boolean).map((v) => `· ${v}`).join(" ")}
+                  </span>
                 )}
               </Row>
             ))}

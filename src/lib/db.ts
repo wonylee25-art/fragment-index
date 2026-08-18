@@ -95,7 +95,10 @@ interface DbArchiveItem {
   title: string;
   source_org: string | null;
   source_url: string | null;
+  date_value: string | null;
   description: string | null;
+  full_text: string | null;
+  keywords: string[] | null;
   image_url: string | null;
 }
 
@@ -169,7 +172,10 @@ function toRelatedItem(item: DbArchiveItem): RelatedItem {
     title: item.title,
     sourceOrg: item.source_org ?? "",
     sourceUrl: item.source_url ?? "",
+    dateValue: item.date_value ?? undefined,
     description: item.description ?? undefined,
+    fullText: item.full_text ?? undefined,
+    keywords: item.keywords ?? undefined,
     imageUrl: item.image_url ?? undefined,
   };
 }
@@ -193,7 +199,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
     // 있어 여기 안 걸리고, 사료에 붙는 순간(linkTargetToEvent) 채워지며 올라온다.
     supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, user_memo, highlighted").is("hidden_at", null).not("adopted_at", "is", null).order("id"),
     // 치운 사료는 연표에서도 빠진다. 연결선은 그대로 두므로 되살리면 붙어 있던 사건으로 돌아온다.
-    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null),
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url").is("hidden_at", null),
     supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     // 출처 대장 — 사건에 번호(SRC007)로만 적혀 있는 출처를 실제 서지로 푸는 데 쓴다.
     supabase.from("sources").select("id, type, title, creator, publisher, date_value, identifier"),
@@ -322,7 +328,7 @@ export async function getHiddenEvents(): Promise<HiddenEventSummary[]> {
 export async function getInactiveMaterials(): Promise<RelatedItem[]> {
   const { data, error } = await supabase
     .from("archive_items")
-    .select("id, item_type, title, source_org, source_url, description, image_url, hidden_at")
+    .select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url, hidden_at")
     .not("hidden_at", "is", null)
     .order("hidden_at", { ascending: false }); // 방금 내린 것부터 — 잘못 내렸을 때 바로 보인다
   if (error) throw error;
@@ -371,7 +377,7 @@ export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
     // 비활성 사료함에 넣은 것(hidden_at)은 보류함에서 빠진다 — 되돌리는 길은 그 함이다.
     // 입수 순 — 최근에 들어온 것이 앞이다. 목록을 열 건씩 끊어 보는데 새로 넣은 자료가
     // 마지막 쪽에 처박히면, 방금 넣은 것을 붙이려고 매번 끝까지 넘겨야 한다.
-    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url, created_at").is("hidden_at", null).order("created_at", { ascending: false }).order("id"),
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url, created_at").is("hidden_at", null).order("created_at", { ascending: false }).order("id"),
     supabase.from("segments").select("id, item_title, date_value").is("hidden_at", null).order("id"),
     // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
     supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
@@ -447,11 +453,20 @@ export async function getSuggestedKeywords(limit = 24): Promise<string[]> {
     .map(([keyword]) => keyword);
 }
 
-export async function searchLocal(query: string): Promise<{ events: TimelineEventData[]; segments: SegmentCardData[] }> {
+// 사료도 함께 훑는다. 예전에는 사건과 구술만 봤는데, 신문기사처럼 본문을 통째로 들고 있는
+// 사료가 들어오면서 "그 말이 어느 자료에 나오는지"를 찾을 길이 필요해졌다. 요약(description)은
+// 전문의 앞머리일 뿐이라 그것만 보면 기사 중간의 말을 놓친다 — full_text까지 본다.
+export async function searchLocal(
+  query: string,
+): Promise<{ events: TimelineEventData[]; segments: SegmentCardData[]; materials: RelatedItem[] }> {
   const q = query.trim();
-  if (!q) return { events: [], segments: [] };
+  if (!q) return { events: [], segments: [], materials: [] };
 
-  const [events, segments] = await Promise.all([getChronicleEvents(), getOralSegments()]);
+  const [events, segments, materials] = await Promise.all([
+    getChronicleEvents(),
+    getOralSegments(),
+    getSearchableMaterials(),
+  ]);
 
   return {
     events: events.filter(
@@ -464,7 +479,27 @@ export async function searchLocal(query: string): Promise<{ events: TimelineEven
         s.keywordTags.some((k) => k.includes(q)) ||
         s.personPlaceTags.some((t) => t.includes(q)),
     ),
+    materials: materials.filter(
+      (m) =>
+        m.title.includes(q) ||
+        (m.fullText ?? m.description ?? "").includes(q) ||
+        (m.keywords ?? []).some((k) => k.includes(q)) ||
+        m.sourceOrg.includes(q),
+    ),
   };
+}
+
+// 검색 대상 사료 — 비활성으로 내린 것은 뺀다. 날짜순으로 세워, 걸린 자료가 시대 순으로 읽힌다.
+// PostgREST가 응답을 1000행에서 자른다 — 사료가 그만큼 불면 sync-csv.mjs처럼 나눠 받아야 한다.
+async function getSearchableMaterials(): Promise<RelatedItem[]> {
+  const { data, error } = await supabase
+    .from("archive_items")
+    .select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url")
+    .is("hidden_at", null)
+    .order("date_value", { nullsFirst: false });
+  if (error) throw error;
+
+  return ((data as DbArchiveItem[]) ?? []).map(toRelatedItem);
 }
 
 interface DbPaper {
