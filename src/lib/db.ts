@@ -305,9 +305,14 @@ export async function getInactiveSegments(): Promise<InactiveSegment[]> {
   }));
 }
 
-// 사료 연결 ②번 칸 — 연결선이 하나도 안 붙은 자료·구술.
-// 사건이 정해지지 않은 상태를 "사건 칸이 빈 연결선"으로 만들지 않고, 연결선의 부재로 표현한다.
-// 나중에 사건 뼈대를 채울 때 여기 쌓인 것을 재료로 쓴다.
+// 보류함에 서는 자료·구술 전부와, 각자가 어느 사건에 붙어 있는지.
+//
+// 예전에는 "안 붙은 것"만 골라 내보냈다. 그랬더니 사건을 붙이는 순간 그 항목이 목록에서
+// 사라졌고, 잘못 붙였을 때 끊을 방법이 없었다 — 끊을 대상이 화면에 없으니까. 이제 붙은 것도
+// 함께 내보내고 걸러 보는 일은 화면이 맡는다(머리줄의 "안 붙은 것 / 전체").
+//
+// 붙었는지의 기준은 예전 그대로다: 숨긴 사건에만 붙어 있으면 "안 붙은 것"으로 친다.
+// 그 사건은 연표에 없으므로, 화면에서 보면 어디에도 매여 있지 않은 것과 같다.
 export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
   const [
     { data: items, error: itemsError },
@@ -316,7 +321,9 @@ export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
     { data: allEvents, error: eventsError },
   ] = await Promise.all([
     // 비활성 사료함에 넣은 것(hidden_at)은 보류함에서 빠진다 — 되돌리는 길은 그 함이다.
-    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null).order("id"),
+    // 입수 순 — 최근에 들어온 것이 앞이다. 목록을 열 건씩 끊어 보는데 새로 넣은 자료가
+    // 마지막 쪽에 처박히면, 방금 넣은 것을 붙이려고 매번 끝까지 넘겨야 한다.
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url, created_at").is("hidden_at", null).order("created_at", { ascending: false }).order("id"),
     supabase.from("segments").select("id, item_title, date_value").is("hidden_at", null).order("id"),
     // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
     supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
@@ -336,35 +343,30 @@ export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
     ),
   );
 
-  const linkedItemIds = new Set<string>();
-  const linkedSegmentIds = new Set<string>();
-  // 숨긴 사건에만 붙어 있는 것은 보류함으로 내려오되, 어디에 붙어 있었는지는 들고 온다 —
-  // 이유를 모르면 "왜 여기 있지" 하고 같은 자료를 또 붙이게 된다.
-  const hiddenLinksByTarget = new Map<string, LinkedEventRef[]>();
+  // 항목마다 붙어 있는 사건 전부(숨긴 것 포함). 붙었는지를 세는 일도, 끊을 대상을 고르는
+  // 일도 이 목록 하나로 한다.
+  const linksByTarget = new Map<string, LinkedEventRef[]>();
   for (const link of (links as Pick<DbLink, "event_id" | "target_type" | "target_id">[]) ?? []) {
     const event = eventById.get(link.event_id);
     if (!event) continue;
-    if (event.hidden) {
-      const list = hiddenLinksByTarget.get(link.target_id) ?? [];
-      list.push(event);
-      hiddenLinksByTarget.set(link.target_id, list);
-      continue;
-    }
-    (link.target_type === "archive_item" ? linkedItemIds : linkedSegmentIds).add(link.target_id);
+    const list = linksByTarget.get(link.target_id) ?? [];
+    list.push(event);
+    linksByTarget.set(link.target_id, list);
   }
 
   return {
-    materials: ((items as DbArchiveItem[]) ?? [])
-      .filter((m) => !linkedItemIds.has(m.id))
-      .map((m) => ({ ...toRelatedItem(m), hiddenLinks: hiddenLinksByTarget.get(m.id) ?? [] })),
-    segments: ((segments as { id: string; item_title: string | null; date_value: string | null }[]) ?? [])
-      .filter((s) => !linkedSegmentIds.has(s.id))
-      .map((s) => ({
+    materials: ((items as DbArchiveItem[]) ?? []).map((m) => ({
+      ...toRelatedItem(m),
+      links: linksByTarget.get(m.id) ?? [],
+    })),
+    segments: ((segments as { id: string; item_title: string | null; date_value: string | null }[]) ?? []).map(
+      (s) => ({
         id: s.id,
         itemTitle: s.item_title ?? "",
         dateValue: s.date_value ?? "",
-        hiddenLinks: hiddenLinksByTarget.get(s.id) ?? [],
-      })),
+        links: linksByTarget.get(s.id) ?? [],
+      }),
+    ),
   };
 }
 

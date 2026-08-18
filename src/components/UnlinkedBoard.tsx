@@ -15,7 +15,9 @@ import { deactivateMaterials } from "@/lib/material-actions";
 import { deactivateSegments } from "@/lib/segment-actions";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
-// 보류함. 저장은 됐지만 아직 어느 사건에도 붙지 않은 자료·구술이 쌓이는 곳.
+// 보류함. 저장은 됐지만 아직 사건에 붙지 않은 자료·구술이 쌓이는 곳 — 붙은 것도 머리줄의
+// "전체"로 불러올 수 있다. 붙는 순간 목록에서 사라지면 잘못 붙였을 때 끊을 대상이 화면에
+// 없어진다.
 // 사건은 항목마다 따로 붙인다(EventAttach) — 화면 하나에 사건 하나를 골라두고 모든 항목에
 // 같이 먹이던 방식은, 열 건을 각각 다른 사건에 붙이려면 왼쪽을 열 번 다시 골라야 했다.
 //
@@ -37,9 +39,8 @@ export interface UnlinkedEntry {
   description?: string;
   imageUrl?: string;
   sourceUrl?: string;
-  // 숨긴 사건에만 붙어 있어서 보류함으로 내려온 경우, 그 사건들. 비어 있으면 정말로
-  // 어디에도 안 붙은 것이다(db.getUnlinkedMaterials 주석 참고).
-  hiddenLinks?: LinkedEventRef[];
+  // 이 항목이 붙어 있는 사건 전부(숨긴 사건 포함). 비어 있으면 어디에도 안 붙은 것이다.
+  links?: LinkedEventRef[];
 }
 
 function EntryCard({
@@ -95,7 +96,7 @@ function EntryCard({
           <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
             <EventAttach
               events={events}
-              linked={entry.hiddenLinks}
+              linked={entry.links}
               onPick={(event) =>
                 linkTargetToEvent(event.id, entry.targetType, entry.id, "keyword")
               }
@@ -156,19 +157,29 @@ function PickSection({
   // 그 항목 안의 "+ 사건 붙이기"가 이미 같은 일을 하고, 그쪽이 무엇에 붙는지 더 분명하다.
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPending, setBulkPending] = useState(false);
+  // 붙은 것을 목록에서 빼버리면 잘못 붙였을 때 끊을 대상이 화면에 없다 — 붙이는 순간
+  // 사라지는 목록에서는 되돌릴 수가 없다. 기본은 할 일이 남은 것("안 붙은 것")만 보이되,
+  // 전체로 넘겨 붙은 것까지 불러올 수 있게 한다(구술 연결 화면과 같은 방식).
+  const [scope, setScope] = useState<"unlinked" | "all">("unlinked");
   // 목록도 열 건씩 끊어 보여준다. 보류함이 수십 건으로 불면 스크롤만 길어지고, 아래쪽
   // 비활성함까지 내려가려면 그 전부를 지나야 한다.
   const [page, setPage] = useState(0);
 
   if (entries.length === 0) return null;
 
-  const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  // 숨긴 사건에만 붙어 있으면 "안 붙은 것"으로 친다 — 그 사건은 연표에 없으므로 화면에서
+  // 보면 어디에도 매여 있지 않은 것과 같다(db.ts의 같은 규칙).
+  const isUnlinked = (entry: UnlinkedEntry) => (entry.links ?? []).every((l) => l.hidden);
+  const unlinkedCount = entries.filter(isUnlinked).length;
+  const visible = scope === "all" ? entries : entries.filter(isUnlinked);
+
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   // 내리거나 붙여서 목록이 줄면 보던 쪽이 사라질 수 있다 — 상태를 고쳐 맞추지 않고
   // 그릴 때 끌어당긴다(EventAttach의 쪽 번호와 같은 방식).
   const safePage = Math.min(page, pageCount - 1);
-  const shown = entries.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const shown = visible.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
-  const pickedHere = entries.filter((e) => picked.has(e.id));
+  const pickedHere = visible.filter((e) => picked.has(e.id));
   const somePicked = pickedHere.length > 0;
   const bulkReady = pickedHere.length >= 2;
   // 머리줄 체크박스는 "지금 보이는 쪽"을 고른다(연표 표 머리와 같은 규칙). 고른 것은
@@ -237,10 +248,33 @@ function PickSection({
             className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
           />
           <p className="font-mono text-[11px] font-semibold text-grey">
-            {label} — {entries.length}건
+            {label} — {visible.length}건
             {pageCount > 1 && ` · ${safePage + 1}/${pageCount}쪽`}
             {somePicked && ` · ${pickedHere.length}건 고름`}
           </p>
+          {/* 안 붙은 것 / 전체. 붙이고 나서 "어디 갔지" 할 때 여기로 되찾는다. */}
+          <div className="flex gap-1 font-mono text-[10px]">
+            {(
+              [
+                { value: "unlinked", text: `안 붙은 것 ${unlinkedCount}` },
+                { value: "all", text: `전체 ${entries.length}` },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setScope(option.value);
+                  setPage(0);
+                }}
+                className={`px-1.5 py-0.5 ${
+                  scope === option.value ? "bg-ink text-background" : "text-grey hover:text-ink"
+                }`}
+              >
+                {option.text}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {/* 고른 것이 둘 이상일 때만 서는 두 버튼. 무엇에 먹는지가 버튼 글자에 그대로
@@ -353,9 +387,10 @@ export function UnlinkedBoard({
       <div className="flex flex-col gap-1.5">
         <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
         <p className="text-sm font-medium text-grey">
-          어느 사건에도 붙지 않은 자료 {materials.length}건, 구술 {segments.length}건. 항목마다
-          “+ 사건 붙이기”로 각자의 사건에 붙이세요. 쓰지 않을 것은 골라서 비활성으로 내릴 수
-          있습니다 — DB에서 지워지지 않고 아래 비활성함에서 되돌립니다.
+          자료 {materials.length}건, 구술 {segments.length}건. 항목마다 “+ 사건 연결”로 각자의
+          사건에 붙이고, “− 사건 연결 해제”로 끊습니다. 붙인 것은 머리줄의 “전체”에서 다시
+          찾습니다. 쓰지 않을 것은 골라서 비활성으로 내릴 수 있습니다 — DB에서 지워지지 않고
+          아래 비활성함에서 되돌립니다.
         </p>
       </div>
 

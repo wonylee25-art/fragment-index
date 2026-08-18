@@ -123,13 +123,13 @@ export interface PaperData {
   quotes: PaperQuote[];
 }
 
-// 보류함에 쌓이는, 아직 어느 사건에도 연결선이 붙지 않은 자료들.
-// hiddenLinks는 "숨긴 사건에만 붙어 있어서" 여기로 내려온 것들의 그 사건 목록이다 —
-// 비어 있으면 정말로 어디에도 안 붙은 것이고, 차 있으면 붙긴 했는데 그 사건이 연표에
-// 안 뜨는 것이다. 둘은 다른 상태이므로 화면에서도 다르게 보여야 한다.
+// 보류함에 서는 자료·구술과, 각자가 붙어 있는 사건들(숨긴 사건 포함).
+// links가 비어 있으면 어디에도 안 붙은 것이고, 숨긴 사건만 들어 있으면 붙긴 했는데 그
+// 사건이 연표에 없는 것이다 — 화면에서는 둘 다 "안 붙은 것"으로 세지만, 배지로는 구별해
+// 보여준다. 어느 쪽인지 모르면 같은 자료를 또 붙이게 된다.
 export interface UnlinkedMaterials {
-  materials: (RelatedItem & { hiddenLinks: LinkedEventRef[] })[];
-  segments: { id: string; itemTitle: string; dateValue: string; hiddenLinks: LinkedEventRef[] }[];
+  materials: (RelatedItem & { links: LinkedEventRef[] })[];
+  segments: { id: string; itemTitle: string; dateValue: string; links: LinkedEventRef[] }[];
 }
 
 export interface LinkedEventRef {
