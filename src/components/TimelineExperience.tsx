@@ -420,9 +420,13 @@ function EventEntry({
 
   return (
     <div
+      // 내가 그은 사건은 행 전체에 음영을 깐다. 사건명에만 밑줄을 그었을 때는 표를 훑는
+      // 눈에 걸리지 않았다 — 사건명 칸은 표의 다섯 칸 중 하나라, 그 안의 3px 선은 옆 칸
+      // (사료·날짜·출처)까지 훑는 시선에 묻힌다. 넓은 자리라 가장 옅은 단(tint)을 쓴다 —
+      // mark·fill로 깔면 그은 행이 표가 아니라 노란 덩어리로 먼저 읽힌다.
       className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
-        event.savedByUser ? "border-l-2 border-l-green-fill pl-3" : ""
-      }`}
+        event.highlighted ? "bg-yellow-tint" : ""
+      } ${event.savedByUser ? "border-l-2 border-l-green-fill pl-3" : ""}`}
     >
       {/* 사료 — 다른 아카이브에서 가져온 자료. 다른 컬럼보다 넓게 잡아 이미지가 잘 보이게 한다 */}
       <div className="flex flex-col gap-2.5">
@@ -481,14 +485,7 @@ function EventEntry({
             제목들(논문 제목·기관명)과 서체가 갈려 사건명만 다른 종류의 글처럼 보였다.
             굵기는 font-bold(700) — layout.tsx가 받는 굵기는 400·500·700·800이라
             font-semibold(600)로 적으면 브라우저가 알아서 700으로 바꿔 그린다. */}
-        {/* 내가 그은 밑줄. 링크의 밑줄(초록 점선)과 겹치지 않게 노란 실선으로, 두껍게
-            긋는다 — 얇으면 표를 훑는 눈에 걸리지 않고, 이 표에서 사건명은 링크가 아니라
-            읽는 이름이라 점선과 뜻이 갈린다. 밑줄과 글자 사이를 벌려 받침이 잘리지 않게 한다. */}
-        <h3
-          className={`${TEXT_SUBHEAD_CLASSNAME} font-bold leading-snug text-ink ${
-            event.highlighted ? "underline decoration-yellow-fill decoration-[3px] underline-offset-4" : ""
-          }`}
-        >
+        <h3 className={`${TEXT_SUBHEAD_CLASSNAME} font-bold leading-snug text-ink`}>
           {/* 편집 화면에서는 사건명 자체가 메뉴를 여는 손잡이다. 사건명은 링크가 아니라
               읽는 이름이라 밑줄·색을 더하지 않는다 — 누를 수 있다는 것은 손이 닿았을 때만
               알린다(형광펜과 같다). */}
