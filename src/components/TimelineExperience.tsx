@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Tag } from "./Tag";
+import { OffTimelineFinder } from "./OffTimelineFinder";
 import { MemoField } from "./MemoField";
 import { AddEventPanel, EventRowControls } from "./EventEditor";
 import { FlagToggle } from "./FlagToggle";
@@ -250,6 +251,10 @@ export function TimelineExperience({
           {/* 사건 추가는 도구 줄 오른쪽 끝 — 연표를 훑다 "없네" 싶은 순간 눈이 이미 이 줄에 있다 */}
           {mode === "admin" && <AddEventPanel />}
         </div>
+
+        {/* 검색어에 걸렸지만 연표에는 안 떠 있는 사건 — 검색칸이 위아래로 둘이 되지 않게,
+            맨 위 한 곳에서 찾고 걸린 것만 여기로 흘러나오게 한다 */}
+        {mode === "admin" && <OffTimelineFinder query={query} />}
 
         {/* 표 헤더 — 사료 · 날짜 · 사건명(키워드) · 내용(출처) · 구술 5단 구성.
             고른 사건이 있으면 이 줄이 그대로 선택 도구로 바뀐다 — 새 막대를 얹지 않는다. */}
