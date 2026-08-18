@@ -80,12 +80,14 @@ function Box({
   );
 }
 
+// 함은 제 화면에만 선다 — 비활성 사료함은 사료 연결 아래, 비활성 구술함은 구술 연결
+// 아래. 내린 자리와 되돌리는 자리가 갈라져 있으면 되돌리는 길을 찾지 못한다.
 export function InactiveBoxes({
-  materials,
-  segments,
+  materials = [],
+  segments = [],
 }: {
-  materials: RelatedItem[];
-  segments: InactiveSegment[];
+  materials?: RelatedItem[];
+  segments?: InactiveSegment[];
 }) {
   if (materials.length === 0 && segments.length === 0) return null;
 

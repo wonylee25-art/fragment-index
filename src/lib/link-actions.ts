@@ -99,30 +99,23 @@ export async function linkTargetsToEvent(
 
 // 고른 여러 건의 연결선을 한꺼번에 끊는다. 자료·구술 자체는 남고 보류함으로 돌아간다.
 //
-// 숨긴 사건에 걸린 연결선은 건드리지 않는다. 붙일 수 있는 사건 목록에 숨긴 사건이 없어서
-// 한 번 끊으면 화면에서는 되붙일 길이 없기 때문이다(EventAttach의 배지에서 ×를 뺀 것과
-// 같은 이유). 끊으려면 연표 관리에서 사건을 먼저 되살린다.
+// 숨긴 사건에 걸린 것도 끊는다. 한동안은 그것만 남겨뒀는데 — 붙일 수 있는 사건 목록에
+// 숨긴 사건이 없어서 한 번 끊으면 화면에서 되붙일 길이 없기 때문에 — 숨긴 사건에만
+// 붙은 사료를 골라 끊으면 아무 일도 일어나지 않는 것처럼 보였다. 되붙이는 길이 아주
+// 없지도 않다(연표 관리에서 사건을 되살리면 된다). 항목 하나짜리 끊기(EventAttach)도
+// 한 번 더 물어보고 끊는 쪽을 골랐으니, 여기서도 같게 한다.
 export async function unlinkTargetsFromEvents(
   targetType: LinkTargetType,
   targetIds: string[],
 ): Promise<number> {
   if (targetIds.length === 0) return 0;
 
-  const { data: hidden, error: hiddenError } = await supabaseAdmin
-    .from("timeline_events")
-    .select("id")
-    .not("hidden_at", "is", null);
-  if (hiddenError) throw hiddenError;
-  const hiddenIds = ((hidden as { id: string }[]) ?? []).map((e) => e.id);
-
-  let query = supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("links")
     .delete()
     .eq("target_type", targetType)
-    .in("target_id", targetIds);
-  if (hiddenIds.length > 0) query = query.not("event_id", "in", `(${hiddenIds.join(",")})`);
-
-  const { data, error } = await query.select("id");
+    .in("target_id", targetIds)
+    .select("id");
   if (error) throw error;
 
   revalidateLinkViews();
