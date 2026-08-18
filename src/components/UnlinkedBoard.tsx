@@ -131,16 +131,9 @@ export function UnlinkedBoard({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5">
-        <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
-        <p className="text-sm font-medium text-grey">
-          사료 {materials.length}건 — 사건에 붙지 않은 것 {unlinked.length}건, 붙은 것{" "}
-          {linked.length}건. 항목마다 “+ 사건 연결”로 각자의 사건에 붙이고, “− 사건 연결
-          해제”로 끊습니다. 붙이면 아래 무리로 내려갈 뿐 목록에서 사라지지 않습니다. 쓰지
-          않을 것은 골라서 비활성으로 내릴 수 있습니다 — DB에서 지워지지 않고 아래
-          비활성함에서 되돌립니다.
-        </p>
-      </div>
+      {/* 조작법을 적어두던 문단이 있었는데 걷어냈다(구술 연결과 같이) — 버튼에 적힌 말과
+          아래 무리 이름이 같은 얘기를 이미 하고 있어, 매번 읽고 지나가는 짐이 됐다. */}
+      <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
 
       {materials.length === 0 ? (
         <p className="border border-dashed border-line px-4 py-10 text-center text-sm font-medium text-grey">
