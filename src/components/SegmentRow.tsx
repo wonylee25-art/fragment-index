@@ -16,6 +16,7 @@ import {
   DISCREPANCY_LABEL_CLASSNAME,
   DISCREPANCY_ROW_CLASSNAME,
   FOCUS_HIGHLIGHT_CLASSNAME,
+  MINE_ROW_CLASSNAME,
 } from "@/lib/design-tokens";
 import { formatEdtfToKorean } from "@/lib/edtf";
 
@@ -71,14 +72,19 @@ export function SegmentRow({
   return (
     <div
       id={`segment-${data.id}`}
+      // 행 바탕의 순서: 지금 찾아온 행 > 내가 표시한 행 > 이견 > 얼룩말. 내 표시가 이견의
+      // 빨강을 덮지만 뜻은 안 사라진다 — "🔍 이견 발견"이 행 안에 빨간 글씨로 남는다.
+      // 반대로 두면 이견 행에서만 표시가 안 보여, 표시해도 아무 일이 없는 행이 생긴다.
       className={`grid scroll-mt-6 grid-cols-[64px_1fr] gap-4 border-b border-line px-1 py-4 transition-colors duration-500 sm:grid-cols-[88px_2fr_1fr] ${
         highlighted
           ? FOCUS_HIGHLIGHT_CLASSNAME
-          : data.hasDiscrepancy
-            ? DISCREPANCY_ROW_CLASSNAME
-            : zebra
-              ? "bg-surface"
-              : "bg-background"
+          : data.isImportant
+            ? MINE_ROW_CLASSNAME
+            : data.hasDiscrepancy
+              ? DISCREPANCY_ROW_CLASSNAME
+              : zebra
+                ? "bg-surface"
+                : "bg-background"
       }`}
     >
       <div className="pt-0.5 font-mono text-xs text-grey">

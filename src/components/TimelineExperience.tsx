@@ -24,6 +24,7 @@ import {
   DOT_MINE,
   INPUT_CLASSNAME,
   MATERIAL_THUMB_CLASSNAME,
+  MINE_ROW_CLASSNAME,
   TEXT_BODY_CLASSNAME,
   TEXT_SUBHEAD_CLASSNAME,
   TOGGLE_BUTTON_CLASSNAME,
@@ -420,12 +421,12 @@ function EventEntry({
 
   return (
     <div
-      // 내가 그은 사건은 행 전체에 음영을 깐다. 사건명에만 밑줄을 그었을 때는 표를 훑는
-      // 눈에 걸리지 않았다 — 사건명 칸은 표의 다섯 칸 중 하나라, 그 안의 3px 선은 옆 칸
-      // (사료·날짜·출처)까지 훑는 시선에 묻힌다. 넓은 자리라 가장 옅은 단(tint)을 쓴다 —
-      // mark·fill로 깔면 그은 행이 표가 아니라 노란 덩어리로 먼저 읽힌다.
+      // 내가 그은 사건은 행 전체에 음영을 깐다(구술 목록의 "중요"와 같은 바탕이다 —
+      // MINE_ROW_CLASSNAME). 사건명에만 밑줄을 그었을 때는 표를 훑는 눈에 걸리지
+      // 않았다 — 사건명 칸은 표의 다섯 칸 중 하나라, 그 안의 3px 선은 옆 칸(사료·날짜·
+      // 출처)까지 훑는 시선에 묻힌다.
       className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
-        event.highlighted ? "bg-yellow-tint" : ""
+        event.highlighted ? MINE_ROW_CLASSNAME : ""
       }`}
     >
       {/* 사료 — 다른 아카이브에서 가져온 자료. 다른 컬럼보다 넓게 잡아 이미지가 잘 보이게 한다 */}

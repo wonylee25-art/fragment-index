@@ -113,6 +113,11 @@ export const INPUT_CLASSNAME =
   "rounded-sm border border-line bg-surface px-2.5 py-1 font-mono text-xs text-ink placeholder:text-grey focus:border-green-text focus:outline-none";
 
 export const DISCREPANCY_ROW_CLASSNAME = "bg-red-tint";
+
+// 내가 표시한 행(연표의 "강조", 구술 목록의 "중요") — 행 전체를 물들인다. 글자 하나에만
+// 표시를 얹으면 여러 칸을 옆으로 훑는 눈에 걸리지 않는다. 넓은 면이라 가장 옅은 단(tint)을
+// 쓴다 — mark·fill로 깔면 표시한 행이 표가 아니라 노란 덩어리로 먼저 읽힌다.
+export const MINE_ROW_CLASSNAME = "bg-yellow-tint";
 export const DISCREPANCY_LABEL_CLASSNAME = "text-red-text";
 
 // 다른 화면(연표 등)에서 링크를 타고 들어왔을 때 대상 행을 잠깐 강조 — "지금 고른 것"이라
