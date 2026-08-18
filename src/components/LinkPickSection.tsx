@@ -24,9 +24,11 @@ import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 // 줄의 생김새만 화면마다 다르다(renderCard) — 사료는 이미지가 붙은 카드, 구술은 화자와
 // 첫 발화가 서는 얇은 줄이다. 체크박스는 여기서 그리고, 그 오른쪽만 넘겨받는다.
 
-// 목록은 한 번에 열 건씩. 사건 목록(EventAttach)과 같은 수로 맞춘다 — 두 목록이 같은
-// 화면에 겹쳐 뜨는데 끊는 단위가 다르면 눈이 두 번 센다.
-const PAGE_SIZE = 10;
+// 목록은 한 번에 열다섯 건씩. 원래는 사건 목록(EventAttach)과 같은 열 건이었는데, 신문기사
+// 90건이 들어오면서 아홉 쪽이 됐다 — 붙일 것을 고르는 동안 쪽 넘기기가 일이 된다.
+// 사건 목록은 열 건 그대로다. 그쪽은 항목 안에서 잠깐 열리는 고르기 창이라 길어지면 되레
+// 가리는 게 많아지고, 좁히기 칸이 이미 후보를 줄여준다.
+const PAGE_SIZE = 15;
 
 export interface PickEntry {
   id: string;
