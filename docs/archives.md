@@ -28,7 +28,9 @@
 
 ### 국사편찬위원회 "오늘의역사" 원문파일
 - **판정**: ✅ (단, 실시간 API 아님)
-- data.go.kr에서 XML 파일을 통째로 다운로드해 `data/raw/th.xml`로 올려두고 `src/lib/th-timeline.ts`에서 파싱. 라이브 검색 API는 아니라서 새 데이터가 나오면 다시 파일을 받아와야 함.
+- data.go.kr에서 XML 파일을 통째로 다운로드해 `data/raw/th.xml`(11MB)로 올려둠. 라이브 검색 API는 아니라서 새 데이터가 나오면 다시 파일을 받아와야 함.
+- **원문파일을 런타임에 읽지 않는다**(2026-08-19 변경). `/data/raw/`가 `.gitignore`라 저장소에 없고, 그래서 배포된 함수에도 파일이 없어 검색이 `ENOENT: '/var/task/data/raw/th.xml'`로 터졌었다. 검색이 쓰는 건 id·날짜·제목 세 값뿐이라, `scripts/build-th-timeline.mjs`로 그것만 뽑아 `src/lib/th-timeline.json`(15,577건, 1.7MB)에 커밋해두고 `src/lib/th-timeline.ts`가 import한다 — import한 것은 번들에 실려 가므로 어디서 돌든 있다. 요청마다 11MB XML을 파싱하던 일도 없어짐(XML 파싱 결과와 전수 일치 확인).
+- 원문파일을 새로 받으면 `node scripts/build-th-timeline.mjs`를 다시 돌려야 한다.
 
 ---
 
