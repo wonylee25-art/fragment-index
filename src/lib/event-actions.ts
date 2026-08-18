@@ -150,55 +150,73 @@ export async function unhideEvent(id: string) {
   revalidatePath("/admin/review");
 }
 
-// ── 사건 찾기(사건 관리 아래 칸) ─────────────────────────────────────────────
+// ── 사건 찾기(연표 도구 줄의 검색과 짝을 이룬다) ────────────────────────────
 //
 // 국사편찬위원회 오늘의역사에서 들여온 6천여 건은 adopted_at이 비어 있어 연표에 안 나온다.
 // 사료에 붙이면 저절로 올라오지만(link-actions.ts의 adoptEvent), 붙일 사료가 아직 없어도
-// "이건 연표에 넣자" 하고 먼저 꺼낼 수 있어야 한다 — 이 칸이 그 길이다.
+// "이건 연표에 넣자" 하고 먼저 꺼낼 수 있어야 한다 — 이 검색이 그 길이다.
 //
-// 창고에 있는 것만 찾던 때가 있었다. 그러면 찾는 사건이 안 나올 때 파일에 없어서인지 이미
-// 꺼내서인지를 가릴 수 없다 — 둘 다 "걸린 사건이 없습니다"로 똑같이 보인다. 그래서 연표에
-// 오른 것까지 함께 찾고, 그 줄은 등록 버튼 대신 "이미 연표에 있음"이라고 적는다.
+// 연표에 이미 오른 사건은 여기서 안 준다. 그것들은 같은 검색어로 아래 연표 표에 그대로
+// 걸리므로, 여기까지 섞으면 같은 사건이 한 화면에 두 번 선다.
 //
-// 목록을 통째로 내려보내지 않고 검색한 것만 준다. 6천 건을 화면마다 실어 나르면 사건 관리가
-// 무거워지고, 어차피 그만큼을 눈으로 훑어 고르지도 못한다.
+// 걸린 것을 쪽으로 끊어 준다. 넓은 낱말은 수백 건이 걸린다("서울" 516건) — 앞의 열몇 건만
+// 보여주고 나머지를 "더 좁혀보라"고 미루면, 정작 찾는 사건이 그 뒤에 있을 때 닿을 길이 없다.
+// 건수는 자른 목록이 아니라 DB가 직접 센 값이라 몇 쪽이 되든 정확하다.
 
 export interface FoundEventRow {
   id: string;
   eventName: string;
   dateValue: string;
   hidden: boolean;
-  // 연표에 올라 있는가 — 채택했고 숨기지 않은 것. 이 줄에는 등록 버튼을 안 단다.
-  onTimeline: boolean;
 }
 
-const SEARCH_LIMIT = 100;
+export interface OffTimelineSearchResult {
+  rows: FoundEventRow[];
+  total: number; // 걸린 것 전부 — 지금 쪽에 실린 수가 아니다
+  pageSize: number;
+}
 
-export async function searchEvents(query: string): Promise<FoundEventRow[]> {
+const PAGE_SIZE = 12;
+
+export async function searchOffTimelineEvents(
+  query: string,
+  page = 0,
+): Promise<OffTimelineSearchResult> {
+  const empty = { rows: [], total: 0, pageSize: PAGE_SIZE };
+
   const q = query.trim();
-  if (!q) return [];
+  if (!q) return empty;
 
   // PostgREST 필터 문법에서 쉼표·괄호는 조건을 가르는 글자다 — 검색어에 섞여 들어오면
   // 질의가 통째로 어그러지므로 지운다.
   const safe = q.replace(/[,()*]/g, " ").trim();
-  if (!safe) return [];
+  if (!safe) return empty;
 
-  const { data, error } = await supabaseAdmin
+  const from = Math.max(0, page) * PAGE_SIZE;
+
+  const { data, count, error } = await supabaseAdmin
     .from("timeline_events")
-    .select("id, event_name, date_value, hidden_at, adopted_at")
+    .select("id, event_name, date_value, hidden_at", { count: "exact" })
+    // 연표에 안 떠 있는 것 — 아직 안 꺼낸 것(adopted_at 없음)과 꺼냈다가 치운 것(hidden_at 있음)
+    .or("adopted_at.is.null,hidden_at.not.is.null")
     .or(`event_name.ilike.%${safe}%,date_value.ilike.%${safe}%`)
+    // 쪽을 넘겨도 순서가 흔들리지 않게 id로 한 번 더 묶는다 — 날짜가 같은 사건이 흔하다.
     .order("date_value", { ascending: false })
-    .limit(SEARCH_LIMIT);
+    .order("id")
+    .range(from, from + PAGE_SIZE - 1);
   if (error) throw error;
 
-  type Row = { id: string; event_name: string; date_value: string | null; hidden_at: string | null; adopted_at: string | null };
-  return ((data as Row[]) ?? []).map((e) => ({
-    id: e.id,
-    eventName: e.event_name,
-    dateValue: e.date_value ?? "",
-    hidden: e.hidden_at !== null,
-    onTimeline: e.adopted_at !== null && e.hidden_at === null,
-  }));
+  type Row = { id: string; event_name: string; date_value: string | null; hidden_at: string | null };
+  return {
+    rows: ((data as Row[]) ?? []).map((e) => ({
+      id: e.id,
+      eventName: e.event_name,
+      dateValue: e.date_value ?? "",
+      hidden: e.hidden_at !== null,
+    })),
+    total: count ?? 0,
+    pageSize: PAGE_SIZE,
+  };
 }
 
 // 연표에 없던 사건을 연표에 올린다. 사료를 붙이는 것과 같은 딱지를 붙이는 일이라,
