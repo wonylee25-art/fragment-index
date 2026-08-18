@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { EventOption } from "./EventPicker";
 import { EventAttach } from "./EventAttach";
 import { LinkTargetType, linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
@@ -151,9 +152,15 @@ const UNLINKED_LABEL = "사건과 연결되지 않은 사료";
 export function UnlinkedBoard({
   events,
   materials,
+  query,
+  totalCount,
 }: {
   events: EventOption[];
   materials: UnlinkedEntry[];
+  // 위 "사료 검색"에 친 말. 들어오면 보류함도 그 말로 걸린 것만 세운다(page.tsx에서 거른다).
+  query: string;
+  // 좁히기 전의 전체 건수 — 몇 건 중 몇 건인지 알려야 남은 것이 사라진 것으로 읽히지 않는다.
+  totalCount: number;
 }) {
   // 내린 것을 화면에서 빼는 일은 서버가 맡는다(deactivate…가 이 경로를 revalidate한다).
   // 처음에는 여기서 내린 id를 따로 들고 걸러냈는데, 그러면 비활성함에서 되돌린 것이
@@ -180,11 +187,28 @@ export function UnlinkedBoard({
     <div className="flex flex-col gap-6">
       {/* 조작법을 적어두던 문단이 있었는데 걷어냈다(구술 연결과 같이) — 버튼에 적힌 말과
           아래 무리 이름이 같은 얘기를 이미 하고 있어, 매번 읽고 지나가는 짐이 됐다. */}
-      <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
+      {/* 좁혀져 있다는 것과 푸는 길을 제목 줄에 함께 둔다 — 검색은 화면 맨 위에서 했는데
+          결과가 여기까지 미치므로, 이 자리에서 무엇 때문에 줄었는지 읽혀야 한다. */}
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h2 className="text-xl font-extrabold tracking-tight text-ink">보류함</h2>
+        {query && (
+          <>
+            <span className="font-mono text-[11px] text-grey">
+              “{query}”으로 좁힘 — 전체 {totalCount}건 중 {materials.length}건
+            </span>
+            <Link
+              href="/admin/review"
+              className="font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4 hover:text-green-text"
+            >
+              전체 보기
+            </Link>
+          </>
+        )}
+      </div>
 
       {materials.length === 0 ? (
         <p className="border border-dashed border-line px-4 py-10 text-center text-sm font-medium text-grey">
-          보류 중인 자료가 없습니다.
+          {query ? `“${query}”으로 걸린 사료가 보류함에 없습니다.` : "보류 중인 자료가 없습니다."}
         </p>
       ) : (
         <div className="flex flex-col gap-7">

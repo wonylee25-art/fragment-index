@@ -460,6 +460,21 @@ export async function getSuggestedKeywords(limit = 24): Promise<string[]> {
 // 사료도 함께 훑는다. 예전에는 사건과 구술만 봤는데, 신문기사처럼 본문을 통째로 들고 있는
 // 사료가 들어오면서 "그 말이 어느 자료에 나오는지"를 찾을 길이 필요해졌다. 요약(description)은
 // 전문의 앞머리일 뿐이라 그것만 보면 기사 중간의 말을 놓친다 — full_text까지 본다.
+// 사료 한 건이 검색어에 걸리는가. "사료 검색"의 DB 사료 목록과 보류함이 같은 규칙을 쓴다 —
+// 한 화면 위아래에서 같은 말을 쳤는데 걸리는 것이 다르면, 걸리지 않은 쪽을 "없다"로 읽게 된다.
+// 제목만이 아니라 옮겨 적어 둔 원문과 키워드·소장기관까지 본다: 신문기사는 표제에 없는 말이
+// 본문 한복판에 있는 경우가 대부분이다.
+export function materialMatchesQuery(material: RelatedItem, query: string): boolean {
+  const q = query.trim();
+  if (!q) return true;
+  return (
+    material.title.includes(q) ||
+    (material.fullText ?? material.description ?? "").includes(q) ||
+    (material.keywords ?? []).some((k) => k.includes(q)) ||
+    material.sourceOrg.includes(q)
+  );
+}
+
 export async function searchLocal(
   query: string,
 ): Promise<{ events: TimelineEventData[]; segments: SegmentCardData[]; materials: RelatedItem[] }> {
@@ -483,13 +498,7 @@ export async function searchLocal(
         s.keywordTags.some((k) => k.includes(q)) ||
         s.personPlaceTags.some((t) => t.includes(q)),
     ),
-    materials: materials.filter(
-      (m) =>
-        m.title.includes(q) ||
-        (m.fullText ?? m.description ?? "").includes(q) ||
-        (m.keywords ?? []).some((k) => k.includes(q)) ||
-        m.sourceOrg.includes(q),
-    ),
+    materials: materials.filter((m) => materialMatchesQuery(m, q)),
   };
 }
 

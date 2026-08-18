@@ -6,6 +6,7 @@ import {
   getEventOptions,
   getInactiveMaterials,
   getUnlinkedMaterials,
+  materialMatchesQuery,
 } from "@/lib/db";
 import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
 
@@ -36,7 +37,14 @@ export default async function ReviewPage({
       ]
     : events;
 
-  const materials: UnlinkedEntry[] = unlinked.materials.map((m) => ({
+  // 보류함도 검색어로 좁힌다. 위의 "DB 사료"와 같은 규칙(materialMatchesQuery)을 쓴다 —
+  // 한 화면에서 같은 말을 쳤는데 위에서는 걸리고 아래에서는 안 걸리면, 보류함에 그 자료가
+  // 없다고 읽게 된다. 실제로는 아흔 건 중 넷째 쪽에 있어 눈에 안 띈 것뿐이다.
+  // 좁힌 동안에도 붙었느냐로 가른 두 무리는 그대로다 — 그래야 "이 말로 걸린 것 중 아직
+  // 할 일이 남은 것"이 바로 보인다.
+  const matched = query ? unlinked.materials.filter((m) => materialMatchesQuery(m, query)) : unlinked.materials;
+
+  const materials: UnlinkedEntry[] = matched.map((m) => ({
     id: m.id,
     targetType: "archive_item",
     title: m.title,
@@ -56,7 +64,12 @@ export default async function ReviewPage({
     <main className="page-shell flex flex-col gap-10 py-8">
       {/* eventOptions는 보류함과 "직접 사료 추가"가 함께 쓴다 — 둘 다 사건 전체가 후보다 */}
       <MaterialSearch query={query} allEvents={eventOptions} />
-      <UnlinkedBoard events={eventOptions} materials={materials} />
+      <UnlinkedBoard
+        events={eventOptions}
+        materials={materials}
+        query={query}
+        totalCount={unlinked.materials.length}
+      />
       {/* 비활성으로 내린 것은 연표에도 보류함에도 없다 — 이 함이 그것들에 닿는 유일한 길이다 */}
       <InactiveBoxes materials={inactiveMaterials} />
     </main>
