@@ -33,6 +33,7 @@ export async function saveThEvent(entry: ThTimelineEntry) {
     has_discrepancy: false,
     keywords: [],
     user_saved: true, // 사람이 직접 골라 저장한 사건 — 연표에서 별도 표시
+    adopted_at: new Date().toISOString(), // 골라서 저장한 것이므로 곧바로 연표에 오른다
   });
   if (error && error.code !== "23505") throw error; // 23505 = 중복(이미 저장됨) — 조용히 무시
   revalidatePath("/admin/review");

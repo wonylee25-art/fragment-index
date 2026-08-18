@@ -41,10 +41,20 @@ function mergeValue(existing, incoming) {
   return incoming;
 }
 
+// PostgREST가 응답 하나를 1000행에서 자른다. timeline_events는 국편 오늘의역사를 들여온
+// 뒤로 6천 건이 넘으므로 1000건씩 나눠 받는다 — 안 그러면 있는 행을 "새 행"으로 잘못 보고
+// 사람이 다듬어 둔 요약을 CSV 빈 칸으로 덮어쓰게 된다.
+const PAGE = 1000;
+
 async function fetchExisting(table, columns) {
-  const { data, error } = await supabase.from(table).select(columns);
-  if (error) throw error;
-  return new Map(data.map((row) => [row.id, row]));
+  const map = new Map();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase.from(table).select(columns).order("id").range(from, from + PAGE - 1);
+    if (error) throw error;
+    for (const row of data) map.set(row.id, row);
+    if (data.length < PAGE) break;
+  }
+  return map;
 }
 
 const report = {};
@@ -108,7 +118,7 @@ async function syncSources() {
 // ---------- timeline_events + event_persons ----------
 async function syncChronicle() {
   const rows = readCsv("data/fragments_index - chronicle.csv").filter((r) => r.event_name);
-  const existing = await fetchExisting("timeline_events", "id, event_name, date_value, summary, source_reference, keywords");
+  const existing = await fetchExisting("timeline_events", "id, event_name, date_value, summary, source_reference, keywords, adopted_at");
   const upserts = [];
   const eventPersonPairs = [];
   for (const r of rows) {
@@ -121,6 +131,10 @@ async function syncChronicle() {
       summary: mergeValue(ex?.summary, r.content), // content는 시트에서 대개 비어있음 — 기존 요약 보존
       source_reference: mergeValue(ex?.source_reference, r.event_sources),
       keywords: mergeValue(ex?.keywords, splitMulti(r.keywords)),
+      // CSV로 들어오는 사건은 연표에 실릴 것들이라 채택 딱지를 붙여 넣는다.
+      // 이미 있는 행은 처음 채택한 때를 그대로 둔다(행마다 칸이 달라지면 upsert가 깨지므로
+      // 빼지 않고 옛 값을 그대로 다시 넣는다).
+      adopted_at: ex?.adopted_at ?? new Date().toISOString(),
     });
     log("timeline_events", ex ? "updated" : "new");
     for (const pid of splitMulti(r.related_persons_id)) eventPersonPairs.push({ event_id: r.event_id, person_id: pid });

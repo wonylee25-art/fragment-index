@@ -181,7 +181,7 @@ export function PickSection<T extends PickEntry>({
           {bulkReady && (
             <ConfirmDeleteButton
               onDelete={handleBulkUnlink}
-              confirmMessage={`고른 ${pickedHere.length}건의 사건 연결을 모두 끊습니다. ${noun}은(는) 그대로 남고 “${unlinkedLabel}”으로 돌아갑니다. 숨긴 사건에 걸린 연결도 끊습니다 — 그것은 이 화면에서 되붙일 수 없고, 되붙이려면 연표 관리에서 사건을 먼저 되살려야 합니다.`}
+              confirmMessage={`고른 ${pickedHere.length}건의 사건 연결을 모두 끊습니다. ${noun}은(는) 그대로 남고 “${unlinkedLabel}”으로 돌아갑니다. 숨긴 사건에 걸린 연결도 끊습니다 — 숨긴 사건도 목록에 “숨김”으로 나오니 이 화면에서 다시 붙일 수 있습니다.`}
               label="사건 연결 해제"
               pendingLabel="끊는 중…"
               className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"

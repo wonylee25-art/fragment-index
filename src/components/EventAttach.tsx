@@ -150,18 +150,9 @@ export function EventAttach({
 
   async function handleUnlink(eventId: string) {
     if (!onUnlink) return;
-    const target = linkedNow.find((l) => l.id === eventId);
-    // 숨긴 사건에서 끊으면 이 화면에서는 되붙일 길이 없다(붙일 수 있는 목록에 숨긴 사건이
-    // 없으므로). 막지는 않되, 무엇을 감수하는지는 누르기 전에 말한다.
-    if (
-      target?.hidden &&
-      !window.confirm(
-        `“${target.eventName}”은 숨긴 사건입니다. 끊으면 이 화면에서는 다시 붙일 수 없고, 되붙이려면 연표 관리에서 사건을 먼저 되살려야 합니다. 끊을까요?`,
-      )
-    ) {
-      return;
-    }
-
+    // 숨긴 사건이라고 따로 물어보던 때가 있었다 — 붙일 수 있는 목록에 숨긴 사건이 없어서
+    // 한 번 끊으면 되붙일 길이 없었기 때문이다. 이제 목록이 숨긴 사건까지 담으므로("숨김"으로
+    // 적힌다) 끊는 것도 되붙이는 것도 이 화면에서 끝난다.
     setPending(true);
     setError(null);
     try {

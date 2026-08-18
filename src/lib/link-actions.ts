@@ -61,7 +61,20 @@ export async function linkTargetToEvent(
     if (error) throw error;
   }
 
+  await adoptEvent(eventId);
   revalidateLinkViews();
+}
+
+// 창고에 있던 사건(국편 오늘의역사에서 들여온 것)에 무언가를 붙이는 순간, 그 사건은
+// 연표에 오른다 — 붙일 만하다고 판단한 것이 곧 "연표에 넣기로 했다"는 뜻이기 때문이다.
+// 이미 올라와 있는 사건은 건드리지 않는다(처음 채택한 때를 덮어쓰지 않기 위해).
+async function adoptEvent(eventId: string) {
+  const { error } = await supabaseAdmin
+    .from("timeline_events")
+    .update({ adopted_at: new Date().toISOString() })
+    .eq("id", eventId)
+    .is("adopted_at", null);
+  if (error) throw error;
 }
 
 // 연결선만 지운다 — 자료·구술 자체는 남고 보류함(연결선 없는 자료)으로 돌아간다.

@@ -70,6 +70,7 @@ export async function createEvent(input: EventInput): Promise<string> {
     ...normalize(input),
     has_discrepancy: false,
     user_saved: true, // 사람이 직접 만든 사건 — 연표에서 "저장됨"으로 구분된다
+    adopted_at: new Date().toISOString(), // 손으로 만든 사건은 만드는 즉시 연표에 오른다
   });
   if (error) throw error;
 
@@ -142,6 +143,83 @@ export async function hideEvents(ids: string[]): Promise<number> {
 
 export async function unhideEvent(id: string) {
   const { error } = await supabaseAdmin.from("timeline_events").update({ hidden_at: null }).eq("id", id);
+  if (error) throw error;
+
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+  revalidatePath("/admin/review");
+}
+
+// ── 창고(들여왔지만 아직 연표에 올리지 않은 사건) ──────────────────────────────
+//
+// 국사편찬위원회 오늘의역사에서 들여온 6천여 건은 adopted_at이 비어 있어 연표에 안 나온다.
+// 사료에 붙이면 저절로 올라오지만(link-actions.ts의 adoptEvent), 붙일 사료가 아직 없어도
+// "이건 연표에 넣자" 하고 먼저 꺼낼 수 있어야 한다 — 연표 관리의 창고 칸이 그 길이다.
+//
+// 목록을 통째로 내려보내지 않고 검색한 것만 준다. 6천 건을 화면마다 실어 나르면 연표 관리가
+// 무거워지고, 어차피 그만큼을 눈으로 훑어 고르지도 못한다.
+
+export interface WarehouseEventRow {
+  id: string;
+  eventName: string;
+  dateValue: string;
+  hidden: boolean;
+}
+
+const WAREHOUSE_LIMIT = 100;
+
+export async function searchWarehouseEvents(query: string): Promise<WarehouseEventRow[]> {
+  const q = query.trim();
+  if (!q) return [];
+
+  // PostgREST 필터 문법에서 쉼표·괄호는 조건을 가르는 글자다 — 검색어에 섞여 들어오면
+  // 질의가 통째로 어그러지므로 지운다.
+  const safe = q.replace(/[,()*]/g, " ").trim();
+  if (!safe) return [];
+
+  // 창고는 "연표에 안 떠 있는 사건 전부"다 — 아직 안 꺼낸 것(adopted_at 없음)과 꺼냈다가
+  // 치운 것(hidden_at 있음)을 함께 담는다. 숨기기는 연표에서만 안 보이게 하는 일이지,
+  // 사건을 못 쓰게 만드는 일이 아니다.
+  const { data, error } = await supabaseAdmin
+    .from("timeline_events")
+    .select("id, event_name, date_value, hidden_at")
+    .or("adopted_at.is.null,hidden_at.not.is.null")
+    .or(`event_name.ilike.%${safe}%,date_value.ilike.%${safe}%`)
+    .order("date_value", { ascending: false })
+    .limit(WAREHOUSE_LIMIT);
+  if (error) throw error;
+
+  return ((data as { id: string; event_name: string; date_value: string | null; hidden_at: string | null }[]) ?? []).map((e) => ({
+    id: e.id,
+    eventName: e.event_name,
+    dateValue: e.date_value ?? "",
+    hidden: e.hidden_at !== null,
+  }));
+}
+
+// 창고에 있던 사건을 연표에 올린다. 사료를 붙이는 것과 같은 딱지를 붙이는 일이라,
+// 올린 뒤에는 손으로 만든 사건과 구별 없이 다뤄진다(고치기·숨기기 모두 그대로 먹는다).
+//
+// 창고에는 두 갈래가 있어 손보는 곳이 다르다: 아직 안 꺼낸 것은 채택 딱지를 붙이고,
+// 꺼냈다가 치운 것은 숨김을 푼다. 버튼이 "연표에 등록"이라고 적혀 있는 이상 둘 다
+// 눌렀을 때 연표에 나타나야 한다. 처음 채택한 때는 덮어쓰지 않는다.
+export async function adoptEventById(id: string) {
+  const { data: row, error: findError } = await supabaseAdmin
+    .from("timeline_events")
+    .select("adopted_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (findError) throw findError;
+  if (!row) throw new Error("사건을 찾지 못했습니다.");
+
+  const { error } = await supabaseAdmin
+    .from("timeline_events")
+    .update({
+      adopted_at: (row as { adopted_at: string | null }).adopted_at ?? new Date().toISOString(),
+      hidden_at: null,
+      user_saved: true,
+    })
+    .eq("id", id);
   if (error) throw error;
 
   revalidatePath("/");

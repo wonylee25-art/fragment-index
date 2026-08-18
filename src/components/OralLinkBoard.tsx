@@ -2,15 +2,19 @@
 
 import { useState } from "react";
 import { linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
-import { SegmentLinkRow } from "@/lib/db";
+import { SegmentLinkRow, SourceOption } from "@/lib/db";
 import { formatEdtfToKorean } from "@/lib/edtf";
 import { deactivateSegments } from "@/lib/segment-actions";
 import { EventOption } from "./EventPicker";
 import { EventAttach } from "./EventAttach";
+import { OralIntakeForm } from "./OralIntakeForm";
+import { PersonBrief } from "@/lib/types";
 import { PickSection, isUnlinkedEntry } from "./LinkPickSection";
 
-// 관리 "구술 연결". 구술을 넣는 일은 구술 목록에서 하고, 여기서는 넣어 둔 구술을 사건에
-// 붙이는 일만 한다 — 관리 화면이 하는 일은 자료를 모으는 게 아니라 그물망을 짜는 것이다.
+// 관리 "구술 연결". 넣어 둔 구술을 사건에 붙이는 일을 하고, 새 구술을 넣는 입구도 여기 있다.
+// 한동안은 넣는 일을 구술 목록에만 두고 여기서는 링크만 걸어뒀는데 — 붙일 것이 없다는 걸
+// 아는 자리가 바로 여기라, 알아차린 자리에서 화면을 옮겨야 넣을 수 있는 게 번거로웠다.
+// 사료 연결의 "+ 사료 추가"와 같은 규칙이다: 없다는 걸 아는 순간 눈이 이미 그 줄에 있다.
 //
 // 사료 연결의 보류함과 조작이 같다 — 같은 한 벌(LinkPickSection)을 쓴다. 붙었느냐로 두
 // 무리를 갈라 나란히 세우고, 체크박스로 골라 한꺼번에 붙이거나 끊거나 내리고, 열 건씩
@@ -67,11 +71,17 @@ const UNLINKED_LABEL = "사건과 연결되지 않은 구술";
 export function OralLinkBoard({
   rows,
   events,
+  persons,
+  sources,
 }: {
   rows: SegmentLinkRow[];
   events: EventOption[];
+  // 구술 추가 폼이 쓰는 재료 — 화자 명단과 이미 등록된 출처(구술 목록과 같은 것을 받는다).
+  persons: PersonBrief[];
+  sources: SourceOption[];
 }) {
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [adding, setAdding] = useState(false);
 
   const entries: SegmentEntry[] = rows.map((row) => ({
     ...row,
@@ -97,22 +107,43 @@ export function OralLinkBoard({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-xl font-extrabold tracking-tight text-ink">구술 연결</h2>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h2 className="mr-auto text-xl font-extrabold tracking-tight text-ink">구술 연결</h2>
+          {!adding && (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="shrink-0 border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-ink hover:bg-ink hover:text-background"
+            >
+              + 구술 추가
+            </button>
+          )}
+        </div>
         <p className="text-sm font-medium text-grey">
           구술 {entries.length}건 — 사건에 붙지 않은 것 {unlinked.length}건, 붙은 것{" "}
           {linked.length}건. 항목마다 “+ 사건 연결”로 각자의 사건에 붙이고, “− 사건 연결
           해제”로 끊습니다. 붙이면 아래 무리로 내려갈 뿐 목록에서 사라지지 않습니다. 쓰지
           않을 것은 골라서 비활성으로 내릴 수 있습니다 — DB에서 지워지지 않고 아래
-          비활성함에서 되돌립니다. 구술을 새로 넣는 것은{" "}
+          비활성함에서 되돌립니다. 새 구술은 위의 “+ 구술 추가”로 여기서 바로 넣을 수 있고,{" "}
           <a
             href="/segments"
             className="font-semibold text-ink underline decoration-dotted underline-offset-4"
           >
             구술 목록
           </a>
-          에서 합니다.
+          에서 넣어도 됩니다 — 같은 폼입니다.
         </p>
       </div>
+
+      {/* 넣자마자 그 구술이 아래 "사건과 연결되지 않은 구술"에 나타난다(서버가 다시 그린다) */}
+      {adding && (
+        <OralIntakeForm
+          persons={persons}
+          sources={sources}
+          events={events}
+          onClose={() => setAdding(false)}
+        />
+      )}
 
       {entries.length === 0 ? (
         <p className="border border-dashed border-line px-4 py-10 text-center text-sm font-medium text-grey">

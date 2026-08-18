@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
+import { edtfSortKey, edtfYear } from "./edtf";
 import { ArchiveItemType, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
@@ -188,7 +189,9 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
     { data: links, error: linksError },
     { data: sources, error: sourcesError },
   ] = await Promise.all([
-    supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, user_memo, highlighted").is("hidden_at", null).order("id"),
+    // 채택한 사건만 연표에 오른다. 국편 오늘의역사에서 들여온 수천 건은 adopted_at이 비어
+    // 있어 여기 안 걸리고, 사료에 붙는 순간(linkTargetToEvent) 채워지며 올라온다.
+    supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, user_memo, highlighted").is("hidden_at", null).not("adopted_at", "is", null).order("id"),
     // 치운 사료는 연표에서도 빠진다. 연결선은 그대로 두므로 되살리면 붙어 있던 사건으로 돌아온다.
     supabase.from("archive_items").select("id, item_type, title, source_org, source_url, description, image_url").is("hidden_at", null),
     supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
@@ -244,6 +247,62 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
       highlighted: e.highlighted,
     };
   });
+}
+
+export interface EventOptionRow {
+  id: string;
+  year: string;
+  eventName: string;
+  hidden: boolean;
+}
+
+// "+ 사건 연결"이 고를 수 있는 사건 전체. 연표(getChronicleEvents)와 세 가지가 다르다:
+//  - 채택 여부를 안 따진다. 창고에 든 국편 오늘의역사 사건까지 여기서 찾아 붙인다.
+//  - 숨긴 사건도 담는다. 숨기기는 연표에서만 안 보이게 하는 일이지 사건을 못 쓰게 만드는
+//    일이 아니다 — 라디오·방송 사건 98건이 숨김 상태라 통째로 못 붙던 것이 이 때문이었다.
+//    목록에서는 "숨김"이라고 적어 구분한다(EventAttach).
+//  - 사건명·연도만 읽는다. 연결선·사료·출처를 함께 조립하는 그 무거운 질의는 목록을
+//    그리는 데 아무 쓸모가 없었다(세 화면이 그걸로 목록을 만들고 있었다).
+//
+// PostgREST가 응답 하나를 1000행에서 자른다(range를 크게 잡아도 그 상한이 이긴다). 사건이
+// 6천 건이 넘으므로 1000건씩 나눠 받는다 — 안 그러면 오래된 사건이 목록에서 조용히 사라진다.
+const PAGE = 1000;
+
+export async function getEventOptions(): Promise<EventOptionRow[]> {
+  const rows: { id: string; event_name: string; date_value: string | null; hidden_at: string | null }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("timeline_events")
+      .select("id, event_name, date_value, hidden_at")
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const page = (data as typeof rows) ?? [];
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+
+  return rows
+    .map((e) => ({
+      id: e.id,
+      year: edtfYear(e.date_value ?? ""),
+      eventName: e.event_name,
+      hidden: e.hidden_at !== null,
+      sortKey: edtfSortKey(e.date_value ?? ""),
+    }))
+    .sort((a, b) => b.sortKey - a.sortKey) // 최근 사건부터
+    .map(({ id, year, eventName, hidden }) => ({ id, year, eventName, hidden }));
+}
+
+// 연표 관리 창고 칸의 머리줄에 붙는 건수 — 연표에 안 떠 있는 사건 전부(아직 안 꺼낸 것 +
+// 꺼냈다가 치운 것). 목록은 검색해야 나오므로 여기서는 세기만 한다.
+export async function countWarehouseEvents(): Promise<number> {
+  const { count, error } = await supabase
+    .from("timeline_events")
+    .select("id", { count: "exact", head: true })
+    .or("adopted_at.is.null,hidden_at.not.is.null");
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export interface HiddenEventSummary {
