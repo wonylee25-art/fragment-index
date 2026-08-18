@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { LinkTargetType, unlinkTargetFromEvent } from "@/lib/link-actions";
 
-// 연표 관리에서 사건에 붙은 사료·구술의 연결선을 끊는다. 자료 자체는 지워지지 않고
+// 사건 관리에서 사건에 붙은 사료·구술의 연결선을 끊는다. 자료 자체는 지워지지 않고
 // 보류함(연결선 없는 자료)으로 돌아간다 — 그래서 삭제만큼 무겁게 확인받지 않고 두 번 누르기로 끝낸다.
 export function UnlinkButton({
   eventId,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FoundEventRow, adoptEventById, searchEvents } from "@/lib/event-actions";
 import { EventCounts } from "@/lib/db";
 
-// 연표 관리 아래 "사건 찾기" 칸. 사건 전체에서 찾아, 연표에 없는 것은 그 자리에서 올린다.
+// 사건 관리 아래 "사건 찾기" 칸. 사건 전체에서 찾아, 연표에 없는 것은 그 자리에서 올린다.
 //
 // 한동안 연표에 없는 것만 찾았다. 그러면 찾는 사건이 안 나올 때 파일에 없어서인지 이미
 // 꺼내서인지를 가릴 수 없다 — 둘 다 "걸린 사건이 없습니다"로 똑같이 보인다. 지금은 연표에

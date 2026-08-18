@@ -78,7 +78,7 @@ function MaterialCard({ entry, events }: { entry: UnlinkedEntry; events: EventOp
                   href="/admin/timeline"
                   className="mt-2 block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
                 >
-                  연표 관리에서 사건 만들기 →
+                  사건 관리에서 사건 만들기 →
                 </a>
               </>
             }

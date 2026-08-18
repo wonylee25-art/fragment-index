@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ADMIN_TABS = [
-  { href: "/admin/timeline", label: "연표 관리" },
+  { href: "/admin/timeline", label: "사건 관리" },
   { href: "/admin/review", label: "사료 연결" },
   { href: "/admin/oral", label: "구술 연결" },
 ] as const;
