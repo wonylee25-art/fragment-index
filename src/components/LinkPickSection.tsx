@@ -10,6 +10,7 @@ import {
   unlinkTargetsFromEvents,
 } from "@/lib/link-actions";
 import { LinkedEventRef } from "@/lib/types";
+import { Pager } from "./Pager";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
 // 사료 연결과 구술 연결이 함께 쓰는 한 무리. 두 화면은 다루는 것이 다를 뿐 하는 일이
@@ -80,7 +81,7 @@ export function PickSection<T extends PickEntry>({
   // 그 항목 안의 "+ 사건 붙이기"가 이미 같은 일을 하고, 그쪽이 무엇에 붙는지 더 분명하다.
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPending, setBulkPending] = useState(false);
-  // 목록도 열 건씩 끊어 보여준다. 목록이 수십 건으로 불면 스크롤만 길어지고, 아래쪽
+  // 목록도 끊어 보여준다(PAGE_SIZE). 목록이 수십 건으로 불면 스크롤만 길어지고, 아래쪽
   // 비활성함까지 내려가려면 그 전부를 지나야 한다.
   const [page, setPage] = useState(0);
 
@@ -235,26 +236,8 @@ export function PickSection<T extends PickEntry>({
       </ul>
 
       {pageCount > 1 && (
-        <div className="flex items-center justify-between border-t border-line pt-2 font-mono text-[11px] text-grey">
-          <button
-            type="button"
-            onClick={() => setPage(Math.max(0, safePage - 1))}
-            disabled={safePage === 0}
-            className="px-1.5 py-0.5 hover:text-ink disabled:text-line"
-          >
-            ‹ 이전
-          </button>
-          <span className="tabular-nums">
-            {safePage + 1} / {pageCount}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
-            disabled={safePage >= pageCount - 1}
-            className="px-1.5 py-0.5 hover:text-ink disabled:text-line"
-          >
-            다음 ›
-          </button>
+        <div className="border-t border-line pt-2">
+          <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
         </div>
       )}
     </section>

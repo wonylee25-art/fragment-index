@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EventOption } from "./EventPicker";
+import { Pager } from "./Pager";
 import { LinkedEventRef } from "@/lib/types";
 
 // 항목 하나에 사건을 붙이고 끊는 손잡이. 예전에는 화면 왼쪽에 사건 목록을 하나 펼쳐두고
@@ -61,26 +62,8 @@ function EventPage({
       </ul>
 
       {pageCount > 1 && (
-        <div className="mt-1 flex items-center justify-between font-mono text-[11px] text-grey">
-          <button
-            type="button"
-            onClick={() => setPage(Math.max(0, safePage - 1))}
-            disabled={safePage === 0}
-            className="px-1.5 py-0.5 hover:text-ink disabled:text-line"
-          >
-            ‹ 이전
-          </button>
-          <span className="tabular-nums">
-            {safePage + 1} / {pageCount}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
-            disabled={safePage >= pageCount - 1}
-            className="px-1.5 py-0.5 hover:text-ink disabled:text-line"
-          >
-            다음 ›
-          </button>
+        <div className="mt-1">
+          <Pager page={safePage} pageCount={pageCount} onChange={setPage} />
         </div>
       )}
     </>
