@@ -118,7 +118,8 @@ export async function MaterialSearch({
               itemType: "구술" as const,
               title: w.title,
               sourceOrg: `여성사전시관 (${w.category})`,
-              sourceUrl: w.videoUrl,
+              // API의 유튜브 링크는 제목과 어긋나는 자료가 있어, 제목으로 맞춘 전시관 원문 페이지를 건다
+              sourceUrl: w.detailUrl,
               description: w.excerpt.length > 300 ? `${w.excerpt.slice(0, 300)}…` : w.excerpt,
             },
             metaLine: `구술 · 여성사전시관 · ${w.category} · ${w.registeredDate}`,

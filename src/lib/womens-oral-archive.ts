@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { asArray } from "./xml";
+import boardLinks from "./womens-oral-links.json";
 
 // 성평등가족부_여성사전시관 구술자료 정보 서비스 (data.go.kr, 서비스 ID 15078220) 클라이언트.
 // 서버 전용 — WOMENS_HISTORY_ORAL_API_KEY는 .env.local에만 두고 클라이언트로 내려가지 않는다.
@@ -14,14 +15,20 @@ import { asArray } from "./xml";
 // dctnDataNm 파라미터가 정확검색인지 불확실하고 전체 64건(2026-08-06 기준 totalCount)뿐이라,
 // th-timeline.ts처럼 전체를 한 번 받아 캐시해두고 로컬에서 필터링한다.
 // 6-5 정책: 추출한 동영상 URL만 링크로 쓰고 원문(영상)을 재호스팅하지 않는다.
-
+//
+// **링크는 유튜브가 아니라 전시관 원문 페이지를 쓴다** (2026-08-19):
+// API가 주는 유튜브 링크가 제목과 어긋나는 자료가 있다 — 예: "닭똥까지 주워 먹었던 보릿고개 이야기"에
+// "한 땀 한 땀 자긍심을 바느질하다"(.041)의 영상이 붙어 있다(전시관 게시판 원본도 같은 영상이라 상류 오류다).
+// 그래서 사료의 출처 링크는 제목이 실제로 가리키는 곳, 즉 전시관 "구술영상기록" 게시판의 상세 페이지로 건다.
+// 대응표(nttId·제목·영상ID)는 scripts/build-womens-oral-links.mjs가 게시판을 훑어 womens-oral-links.json에 써 둔다.
 const BASE_URL = "https://apis.data.go.kr/1383000/eyis/oralDataService/getOralDataList";
 
 export interface WomensOralArchiveItem {
   id: string;
   title: string; // vdoUrlAddr — 실제로는 인터뷰 제목(구술자 한 줄 소개)
   category: string; // dctnDataNm — 실제로는 시리즈/카테고리명
-  videoUrl: string; // vdoSbttlIfmtn 안 <iframe src="...">에서 추출한 실제 유튜브 URL
+  videoUrl: string; // vdoSbttlIfmtn 안 <iframe src="...">에서 추출한 유튜브 URL (제목과 어긋나는 자료가 있다)
+  detailUrl: string; // 전시관 구술영상기록 게시판의 상세 페이지 — 제목으로 맞춘 진짜 출처 링크
   excerpt: string; // vdoSbttlIfmtn 안 <textarea>에서 추출한 구술 요약 텍스트
   registeredDate: string; // regYmd
 }
@@ -52,6 +59,28 @@ function decodeHtmlEntities(text: string): string {
 function extractExcerpt(html: string): string {
   const raw = html.match(/<textarea[^>]*>([\s\S]*?)<\/textarea>/)?.[1]?.trim() ?? "";
   return decodeHtmlEntities(raw);
+}
+
+const BOARD_LIST_URL =
+  "https://eherstory.mogef.go.kr/cop/bbs/selectBoardList.do?bbsId=tell_info_main&menuNo=050300";
+
+// 제목만 비교하면 따옴표·꺾쇠(&lt;할머니 설렁탕&gt;)·띄어쓰기가 API와 게시판에서 달라 어긋난다.
+function normalizeTitle(title: string): string {
+  return decodeHtmlEntities(title).replace(/[^가-힣0-9a-zA-Z]/g, "");
+}
+
+// "대한민국 건국훈장 애국장을 받은 여성독립유공자"처럼 제목이 똑같은 자료가 여섯 건 있다.
+// 그럴 때만 영상 ID로 갈라 보고, 그래도 못 고르면 어느 한쪽을 찍지 않고 목록 페이지로 물러선다.
+function findDetailUrl(title: string, videoUrl: string): string {
+  const key = normalizeTitle(title);
+  const matches = boardLinks.filter((link) => normalizeTitle(link.title) === key);
+  if (matches.length === 1) return matches[0].url;
+
+  const videoId = videoUrl.match(/embed\/([\w-]{11})/)?.[1] ?? "";
+  const byVideo = (matches.length > 1 ? matches : boardLinks).filter((link) => link.videoId === videoId);
+  if (videoId && byVideo.length === 1) return byVideo[0].url;
+
+  return BOARD_LIST_URL;
 }
 
 let cachedItems: WomensOralArchiveItem[] | null = null;
@@ -86,11 +115,14 @@ async function loadAllItems(): Promise<WomensOralArchiveItem[]> {
   const rawItems = asArray(parsed?.response?.body?.items?.item) as Array<Record<string, unknown>>;
   cachedItems = rawItems.map((item, index) => {
     const html = String(item.vdoSbttlIfmtn ?? "");
+    const title = String(item.vdoUrlAddr ?? "").trim();
+    const videoUrl = extractVideoUrl(html);
     return {
       id: `wos-${String(item.regYmd ?? "unknown")}-${index}`,
-      title: String(item.vdoUrlAddr ?? "").trim(),
+      title,
       category: String(item.dctnDataNm ?? "").trim(),
-      videoUrl: extractVideoUrl(html),
+      videoUrl,
+      detailUrl: findDetailUrl(title, videoUrl),
       excerpt: extractExcerpt(html),
       registeredDate: String(item.regYmd ?? ""),
     };
