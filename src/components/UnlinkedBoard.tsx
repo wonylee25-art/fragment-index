@@ -25,6 +25,10 @@ import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 // 아래 비활성함에서 되돌린다. 정말로 지우는 일은 그 함 안에서만 할 수 있다.
 // 사료와 구술이 같은 조작을 쓰되 내리는 함은 따로다 — 비활성 사료함, 비활성 구술함.
 
+// 목록은 한 번에 열 건씩. 사건 목록(EventAttach)과 같은 수로 맞춘다 — 두 목록이 같은
+// 화면에 겹쳐 뜨는데 끊는 단위가 다르면 눈이 두 번 센다.
+const PAGE_SIZE = 10;
+
 export interface UnlinkedEntry {
   id: string;
   targetType: LinkTargetType;
@@ -152,13 +156,26 @@ function PickSection({
   // 그 항목 안의 "+ 사건 붙이기"가 이미 같은 일을 하고, 그쪽이 무엇에 붙는지 더 분명하다.
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPending, setBulkPending] = useState(false);
+  // 목록도 열 건씩 끊어 보여준다. 보류함이 수십 건으로 불면 스크롤만 길어지고, 아래쪽
+  // 비활성함까지 내려가려면 그 전부를 지나야 한다.
+  const [page, setPage] = useState(0);
 
   if (entries.length === 0) return null;
 
+  const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  // 내리거나 붙여서 목록이 줄면 보던 쪽이 사라질 수 있다 — 상태를 고쳐 맞추지 않고
+  // 그릴 때 끌어당긴다(EventAttach의 쪽 번호와 같은 방식).
+  const safePage = Math.min(page, pageCount - 1);
+  const shown = entries.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+
   const pickedHere = entries.filter((e) => picked.has(e.id));
-  const allPicked = pickedHere.length === entries.length;
   const somePicked = pickedHere.length > 0;
   const bulkReady = pickedHere.length >= 2;
+  // 머리줄 체크박스는 "지금 보이는 쪽"을 고른다(연표 표 머리와 같은 규칙). 고른 것은
+  // 쪽을 넘겨도 유지되므로, 여러 쪽에 걸쳐 골라 한꺼번에 붙이거나 내릴 수 있다.
+  const pickedOnPage = shown.filter((e) => picked.has(e.id));
+  const allPicked = pickedOnPage.length === shown.length;
+  const somePickedOnPage = pickedOnPage.length > 0;
 
   function togglePick(id: string, next: boolean) {
     const draft = new Set(picked);
@@ -205,15 +222,23 @@ function PickSection({
             type="checkbox"
             checked={allPicked}
             ref={(el) => {
-              if (el) el.indeterminate = !allPicked && somePicked;
+              if (el) el.indeterminate = !allPicked && somePickedOnPage;
             }}
-            onChange={() => setPicked(allPicked ? new Set() : new Set(entries.map((e) => e.id)))}
-            title={allPicked ? "선택 해제" : `${label} ${entries.length}건 모두 선택`}
-            aria-label={allPicked ? "선택 해제" : `${label} ${entries.length}건 모두 선택`}
+            onChange={() => {
+              const draft = new Set(picked);
+              for (const entry of shown) {
+                if (allPicked) draft.delete(entry.id);
+                else draft.add(entry.id);
+              }
+              setPicked(draft);
+            }}
+            title={allPicked ? "이 쪽 선택 해제" : `보이는 ${label} ${shown.length}건 모두 선택`}
+            aria-label={allPicked ? "이 쪽 선택 해제" : `보이는 ${label} ${shown.length}건 모두 선택`}
             className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
           />
           <p className="font-mono text-[11px] font-semibold text-grey">
             {label} — {entries.length}건
+            {pageCount > 1 && ` · ${safePage + 1}/${pageCount}쪽`}
             {somePicked && ` · ${pickedHere.length}건 고름`}
           </p>
         </div>
@@ -266,7 +291,7 @@ function PickSection({
         </div>
       )}
       <ul>
-        {entries.map((entry) => (
+        {shown.map((entry) => (
           <EntryCard
             key={entry.id}
             entry={entry}
@@ -276,6 +301,30 @@ function PickSection({
           />
         ))}
       </ul>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between border-t border-line pt-2 font-mono text-[11px] text-grey">
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(0, safePage - 1))}
+            disabled={safePage === 0}
+            className="px-1.5 py-0.5 hover:text-ink disabled:text-line"
+          >
+            ‹ 이전
+          </button>
+          <span className="tabular-nums">
+            {safePage + 1} / {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
+            disabled={safePage >= pageCount - 1}
+            className="px-1.5 py-0.5 hover:text-ink disabled:text-line"
+          >
+            다음 ›
+          </button>
+        </div>
+      )}
     </section>
   );
 }
