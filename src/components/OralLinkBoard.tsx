@@ -106,33 +106,19 @@ export function OralLinkBoard({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h2 className="mr-auto text-xl font-extrabold tracking-tight text-ink">구술 연결</h2>
-          {!adding && (
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              className="shrink-0 border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-ink hover:bg-ink hover:text-background"
-            >
-              + 구술 추가
-            </button>
-          )}
-        </div>
-        <p className="text-sm font-medium text-grey">
-          구술 {entries.length}건 — 사건에 붙지 않은 것 {unlinked.length}건, 붙은 것{" "}
-          {linked.length}건. 항목마다 “+ 사건 연결”로 각자의 사건에 붙이고, “− 사건 연결
-          해제”로 끊습니다. 붙이면 아래 무리로 내려갈 뿐 목록에서 사라지지 않습니다. 쓰지
-          않을 것은 골라서 비활성으로 내릴 수 있습니다 — DB에서 지워지지 않고 아래
-          비활성함에서 되돌립니다. 새 구술은 위의 “+ 구술 추가”로 여기서 바로 넣을 수 있고,{" "}
-          <a
-            href="/segments"
-            className="font-semibold text-ink underline decoration-dotted underline-offset-4"
+      {/* 조작법을 적어두던 문단이 있었는데 걷어냈다 — 버튼에 적힌 말과 아래 무리 이름이
+          같은 얘기를 이미 하고 있어, 매번 읽고 지나가는 짐이 됐다. */}
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h2 className="mr-auto text-xl font-extrabold tracking-tight text-ink">구술 연결</h2>
+        {!adding && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="shrink-0 border border-line px-2.5 py-1 font-mono text-[11px] font-semibold text-ink hover:bg-ink hover:text-background"
           >
-            구술 목록
-          </a>
-          에서 넣어도 됩니다 — 같은 폼입니다.
-        </p>
+            + 구술 추가
+          </button>
+        )}
       </div>
 
       {/* 넣자마자 그 구술이 아래 "사건과 연결되지 않은 구술"에 나타난다(서버가 다시 그린다) */}
