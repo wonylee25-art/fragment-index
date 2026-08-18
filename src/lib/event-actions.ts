@@ -82,7 +82,23 @@ export async function createEvent(input: EventInput): Promise<string> {
 export async function updateEvent(id: string, input: EventInput) {
   assertValid(input);
 
-  const { error } = await supabaseAdmin.from("timeline_events").update(normalize(input)).eq("id", id);
+  const fields = normalize(input);
+
+  // 내용에 그어 둔 형광펜은 문자 위치로 잡혀 있어(summary_highlights), 내용이 바뀌면
+  // 엉뚱한 구절이 노랗게 남는다. 그래서 내용이 달라졌을 때만 함께 지운다 — 키워드나
+  // 출처만 고친 경우까지 지우면 손대지 않은 것을 잃는다. 구술 발췌에서 정한 것과 같은
+  // 방식이다(20260817_add_highlights_to_segments.sql).
+  const { data: before } = await supabaseAdmin
+    .from("timeline_events")
+    .select("summary")
+    .eq("id", id)
+    .maybeSingle();
+  const summaryChanged = (before?.summary ?? null) !== fields.summary;
+
+  const { error } = await supabaseAdmin
+    .from("timeline_events")
+    .update(summaryChanged ? { ...fields, summary_highlights: null } : fields)
+    .eq("id", id);
   if (error) throw error;
 
   revalidatePath("/");

@@ -9,6 +9,8 @@ import { AddEventPanel, EventRowControls } from "./EventEditor";
 import { FlagToggle } from "./FlagToggle";
 import { hideEvents } from "@/lib/event-actions";
 import { setEventsHighlighted } from "@/lib/flag-actions";
+import { saveEventSummaryHighlights } from "@/lib/highlight-actions";
+import { HighlightableText } from "./HighlightableText";
 import { UnlinkButton } from "./UnlinkButton";
 import { saveTimelineMemo } from "@/lib/memo-actions";
 import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
@@ -576,7 +578,20 @@ function EventEntry({
 
       {/* 내용 + 하단 출처 */}
       <div className="min-w-0">
-        <p className={`${TEXT_BODY_CLASSNAME} leading-5 text-ink`}>{event.summary}</p>
+        {/* 내용에도 형광펜을 긋는다 — 구술 본문과 같은 손짓(드래그하면 그어지고, 그은 자리를
+            누르면 지우는 메뉴가 뜬다). 사건 전체를 짚는 "강조"와는 갈래가 다르다: 저것은
+            표를 훑을 때 이 행이 눈에 걸리게 하는 일이고, 이것은 두어 문장 안에서 어느 구절이
+            걸렸는지를 남기는 일이다. 사건이 비어 있으면 그을 것이 없어 그냥 —를 둔다. */}
+        {event.summary ? (
+          <HighlightableText
+            text={event.summary}
+            highlights={event.summaryHighlights}
+            onSave={(next) => saveEventSummaryHighlights(event.id, next)}
+            className={`${TEXT_BODY_CLASSNAME} leading-5 text-ink`}
+          />
+        ) : (
+          <span className="font-mono text-[10px] text-line">—</span>
+        )}
         {/* 출처 한 줄. 책·학술지·간행물이면 저자와 쪽수가 함께 붙는다(citation.ts) */}
         <p className="mt-1 font-mono text-[10px] text-grey">
           {event.sourceUrl ? (

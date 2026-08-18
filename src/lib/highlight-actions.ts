@@ -58,3 +58,16 @@ export async function saveSegmentHighlights(id: string, highlights: Highlight[])
   if (error) throw error;
   revalidatePath("/segments");
 }
+
+// 연표 내용 칸에 그은 형광펜. 구술 본문과 같은 셈이고 같은 모양으로 저장하지만, 글이
+// 한 덩이라 line은 늘 0이다(normalize는 line별로 묶으므로 그대로 통한다).
+export async function saveEventSummaryHighlights(id: string, highlights: Highlight[]) {
+  const normalized = normalize(highlights);
+  const { error } = await supabaseAdmin
+    .from("timeline_events")
+    .update({ summary_highlights: normalized.length > 0 ? normalized : null })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+}

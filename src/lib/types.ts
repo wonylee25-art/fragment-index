@@ -167,4 +167,8 @@ export interface TimelineEventData {
   // 이용자가 이 사건에 그은 밑줄 — 사건명 아래 노란 실선으로 그려진다. 구술의 isImportant와
   // 같은 성격(발췌/사건 하나를 통째로 표시)이고, 본문 안 구절을 가리키는 Highlight와는 다르다.
   highlighted: boolean;
+  // 내용 칸(summary) 안에 그은 형광펜. 사건 하나를 통째로 짚는 위의 highlighted와 달리
+  // 어느 구절이 걸렸는지를 가리킨다 — 구술 본문의 highlights와 같은 갈래다.
+  // 글이 한 덩이라 line은 늘 0이다.
+  summaryHighlights: Highlight[];
 }
