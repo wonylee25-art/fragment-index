@@ -50,6 +50,40 @@ export function edtfSortKey(value: string): number {
   return parseInt(year, 10) * 10000 + parseInt(month, 10) * 100 + parseInt(day, 10);
 }
 
+// EDTF 시작 날짜를 "날 수"로 바꾼다 — 두 날짜가 얼마나 떨어졌는지 재는 데 쓴다.
+// 정렬용 edtfSortKey로는 이 계산을 할 수 없다: YYYYMMDD를 그냥 이어붙인 수라 12월 31일과
+// 이튿날 1월 1일이 8,870만큼 떨어진 것으로 나온다.
+// 연도만 적힌 값("1960s", "1950~")은 그 해 1월 1일로 친다 — 어느 달인지 모르는 사건을
+// 하루 단위로 견줄 수는 없으니, 언저리를 고르는 데 쓰는 어림값이다.
+export function edtfToDays(value: string): number | null {
+  if (!value) return null;
+  const [datePart] = stripEdtfMarks(value).split("T");
+  const [y, m = "1", d = "1"] = datePart.split("-");
+  const year = parseInt(y, 10);
+  const month = parseInt(m, 10);
+  const day = parseInt(d, 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  return Math.round(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+// 두 EDTF 값이 며칠 떨어졌는지. 한쪽이라도 못 읽으면 null — 견줄 수 없다는 뜻이다.
+export function edtfDayGap(a: string, b: string): number | null {
+  const left = edtfToDays(a);
+  const right = edtfToDays(b);
+  if (left === null || right === null) return null;
+  return Math.abs(left - right);
+}
+
+// 간격을 사람이 읽는 말로. 날짜가 가까울수록 촘촘히, 멀어지면 뭉뚱그린다 — 3일과 5일의
+// 차이는 판단에 쓰이지만 11년과 11년 2개월의 차이는 그렇지 않다.
+export function formatDayGap(days: number): string {
+  if (days === 0) return "같은 날";
+  if (days < 90) return `${days}일`;
+  const months = Math.round(days / 30.44);
+  if (months < 24) return `${months}개월`;
+  return `${Math.round(days / 365.25)}년`;
+}
+
 // 압축된 눈금(바코드)이나 배경 숫자처럼 자리가 좁은 곳에 쓰는 연도만 뽑은 짧은 표기.
 export function edtfYear(value: string): string {
   if (!value) return "미상";

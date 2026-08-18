@@ -114,6 +114,8 @@ function MaterialCard({ entry, events }: { entry: UnlinkedEntry; events: EventOp
           <EventAttach
             events={events}
             linked={entry.links}
+            // 사료에 날짜가 있으면 그 언저리 사건부터 보인다 — 6천 건에서 손으로 찾는 일을 줄인다.
+            nearDate={entry.dateValue}
             onPick={(event) => linkTargetToEvent(event.id, entry.targetType, entry.id, "keyword")}
             onUnlink={(eventId) => unlinkTargetFromEvent(eventId, entry.targetType, entry.id)}
             emptyHint={

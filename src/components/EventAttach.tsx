@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { EventOption } from "./EventPicker";
 import { Pager } from "./Pager";
+import { edtfDayGap, formatDayGap, formatEdtfToKorean } from "@/lib/edtf";
 import { LinkedEventRef } from "@/lib/types";
 
 // 항목 하나에 사건을 붙이고 끊는 손잡이. 예전에는 화면 왼쪽에 사건 목록을 하나 펼쳐두고
@@ -16,13 +17,21 @@ import { LinkedEventRef } from "@/lib/types";
 // 훑는 것은 고르는 일이 아니라 뒤지는 일이 된다 — 좁히기 칸으로 줄이고, 남은 것을 쪽으로 센다.
 const PAGE_SIZE = 10;
 
+function gapLabel(event: EventOption, nearDate: string): string | null {
+  const gap = event.dateValue ? edtfDayGap(event.dateValue, nearDate) : null;
+  return gap === null ? null : formatDayGap(gap);
+}
+
 function EventPage({
   events,
+  nearDate,
   onChoose,
   disabled,
   emptyText,
 }: {
-  events: { id: string; year: string; eventName: string; hidden?: boolean }[];
+  events: EventOption[];
+  // 있으면 이 날짜에서 얼마나 떨어졌는지를 줄마다 적는다(사료 날짜).
+  nearDate?: string;
   onChoose: (id: string) => void;
   disabled: boolean;
   emptyText: string;
@@ -56,6 +65,12 @@ function EventPage({
                 {event.eventName}
               </span>
               {event.hidden && <span className="font-mono text-[10px] text-grey">숨김</span>}
+              {/* 사료와 며칠 떨어졌는지. 연도만으로는 같은 해 안에서 어느 것이 가까운지 모른다. */}
+              {nearDate && gapLabel(event, nearDate) && (
+                <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-grey">
+                  {gapLabel(event, nearDate)}
+                </span>
+              )}
             </button>
           </li>
         ))}
@@ -80,6 +95,7 @@ export function EventAttach({
   startOpen = false,
   onClose,
   pickLabel = "+ 사건 연결",
+  nearDate,
 }: {
   events: EventOption[];
   linked?: LinkedEventRef[];
@@ -89,6 +105,8 @@ export function EventAttach({
   startOpen?: boolean;
   onClose?: () => void;
   pickLabel?: string;
+  // 이 날짜 언저리의 사건을 앞세운다 — 사료의 연대. 없으면 예전대로 최근 사건부터.
+  nearDate?: string;
 }) {
   const [mode, setMode] = useState<"none" | "link" | "unlink">(startOpen ? "link" : "none");
   const [filter, setFilter] = useState("");
@@ -99,11 +117,25 @@ export function EventAttach({
   const [justLinked, setJustLinked] = useState<EventOption[]>([]);
   const [justUnlinked, setJustUnlinked] = useState<string[]>([]);
 
+  // 사료에 날짜가 있으면 그 언저리 사건을 앞세운다. 예전에는 늘 최근 사건부터였는데,
+  // 1961년 기사에 붙일 사건을 고르려면 2020년대부터 예순 쪽을 넘겨야 했다 — 좁히기 칸에
+  // 넣을 말이 미리 떠오르지 않으면 손쓸 방법이 없었다.
+  // 날짜를 모르는 사건은 견줄 수가 없으니 뒤로 보낸다. 걸러내지는 않는다 — 사건 6천 건 중
+  // 날짜가 성긴 것도 있고, 붙일 수 있는 후보에서 조용히 빼면 찾다가 없다고 여기게 된다.
+  // 좁히기 칸에 말을 넣으면 그 순간부터는 사람이 고른 실마리가 앞선다(원래 순서로 돌아간다).
   const candidates = useMemo(() => {
     const q = filter.trim();
-    if (!q) return events;
-    return events.filter((e) => e.eventName.includes(q) || e.year.includes(q));
-  }, [events, filter]);
+    if (q) return events.filter((e) => e.eventName.includes(q) || e.year.includes(q));
+    if (!nearDate) return events;
+
+    return [...events].sort((a, b) => {
+      const ga = a.dateValue ? edtfDayGap(a.dateValue, nearDate) : null;
+      const gb = b.dateValue ? edtfDayGap(b.dateValue, nearDate) : null;
+      if (ga === null) return gb === null ? 0 : 1;
+      if (gb === null) return -1;
+      return ga - gb;
+    });
+  }, [events, filter, nearDate]);
 
   const linkedNow = linked.filter((l) => !justUnlinked.includes(l.id));
   const linkedIds = new Set(linkedNow.map((l) => l.id));
@@ -226,11 +258,20 @@ export function EventAttach({
             </button>
           </div>
 
+          {/* 무엇이 앞에 서 있는지 적어 둔다 — 목록 순서가 바뀐 이유를 화면이 말하지 않으면
+              "왜 이 사건이 먼저 뜨지"가 된다. 좁히기 칸에 말을 넣으면 이 줄도 사라진다. */}
+          {mode === "link" && nearDate && !filter.trim() && (
+            <p className="mt-1 px-0.5 font-mono text-[10px] text-grey">
+              사료 날짜({formatEdtfToKorean(nearDate)})에 가까운 사건부터
+            </p>
+          )}
+
           {mode === "link" && events.length === 0 ? (
             <div className="px-2 py-4 text-center text-[12px] text-grey">{emptyHint}</div>
           ) : mode === "link" ? (
             <EventPage
               events={candidates}
+              nearDate={filter.trim() ? undefined : nearDate}
               onChoose={handlePick}
               disabled={pending}
               emptyText="좁히기에 걸린 사건이 없습니다."

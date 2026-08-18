@@ -260,6 +260,7 @@ export interface EventOptionRow {
   year: string;
   eventName: string;
   hidden: boolean;
+  dateValue: string; // 사료 날짜와 견주려면 연도만으로는 모자라다(EventAttach의 nearDate)
 }
 
 // "+ 사건 연결"이 고를 수 있는 사건 전체. 연표(getChronicleEvents)와 세 가지가 다르다:
@@ -294,10 +295,11 @@ export async function getEventOptions(): Promise<EventOptionRow[]> {
       year: edtfYear(e.date_value ?? ""),
       eventName: e.event_name,
       hidden: e.hidden_at !== null,
+      dateValue: e.date_value ?? "",
       sortKey: edtfSortKey(e.date_value ?? ""),
     }))
     .sort((a, b) => b.sortKey - a.sortKey) // 최근 사건부터
-    .map(({ id, year, eventName, hidden }) => ({ id, year, eventName, hidden }));
+    .map(({ id, year, eventName, hidden, dateValue }) => ({ id, year, eventName, hidden, dateValue }));
 }
 
 export interface HiddenEventSummary {

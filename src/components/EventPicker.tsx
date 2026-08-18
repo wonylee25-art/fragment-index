@@ -11,6 +11,8 @@ export interface EventOption {
   id: string;
   year: string;
   eventName: string;
+  // 사료와 며칠 떨어졌는지 재는 데 쓴다(EventAttach의 nearDate). 연도만으로는 못 잰다.
+  dateValue?: string;
   // 숨긴 사건도 붙일 수 있다 — 숨기기는 연표에서만 안 보이게 하는 일이다. 다만 목록에서는
   // "숨김"이라고 적어, 붙여도 연표에 안 나타난다는 것을 누르기 전에 알린다.
   hidden?: boolean;
