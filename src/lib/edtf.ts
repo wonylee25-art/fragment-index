@@ -1,11 +1,26 @@
 // EDTF(Extended Date/Time Format) 값을 한글 표기로 변환하고, 정렬용 숫자 키를 뽑아낸다.
 // 규칙은 기획 정리노트 6-3 표를 그대로 따른다.
 
+// 연대를 셋으로 나눠 적는 확장 표기("1970s-early"). 구술에서 "70년대 초쯤"처럼 연대 안의
+// 어림 위치까지는 기억하는 진술을 그대로 담기 위한 것 — 연대 전체(1970s)로 뭉개지도 않고,
+// 없는 확신을 지어내 특정 연도로 못박지도 않는다.
+const DECADE_PART = /^(\d{4})s-(early|mid|late)$/;
+const DECADE_PART_LABEL = { early: "초반", mid: "중반", late: "후반" } as const;
+// 정렬·좌표에 쓸 대표 연도(연대 시작연도 + 이 값). 초=앞 4년(0~3), 중=가운데 3년(4~6),
+// 후=뒤 3년(7~9)으로 보고 각 구간의 한가운데를 찍는다. 폭이 있는 시기를 축 위 한 점으로
+// 옮기는 어림값이므로, 같은 연대 안에서 초·중·후 순서가 지켜지는 것까지가 이 값의 몫이다.
+const DECADE_PART_ANCHOR = { early: 1, mid: 5, late: 8 } as const;
+
 export function formatEdtfToKorean(value: string): string {
   if (!value) return "연도 미상";
 
   // 시트 입력에서 쓰인 확장 표기: "1960s"(연대), "1950~"(그 무렵부터), "1945~1948"(그 기간 동안),
   // "1936?/1942?"(둘 중 하나로 추정)
+  const decadePart = value.match(DECADE_PART);
+  if (decadePart) {
+    const [, decade, part] = decadePart;
+    return `${decade}년대 ${DECADE_PART_LABEL[part as keyof typeof DECADE_PART_LABEL]}`;
+  }
   if (/^\d{4}s$/.test(value)) return `${value.slice(0, -1)}년대`;
   if (/^\d{4}~\d{4}$/.test(value)) {
     const [start, end] = value.split("~");
@@ -40,6 +55,11 @@ export function formatEdtfToKorean(value: string): string {
 // "1940?/1949?" → "1940", "1960s" → "1960", "1950~" → "1950", "1945~1948" → "1945"
 // 처럼 정렬·좌표 계산에 쓸 "시작 연도"만 남기고 수식 기호를 벗겨낸다.
 function stripEdtfMarks(value: string): string {
+  const decadePart = value.match(DECADE_PART);
+  if (decadePart) {
+    const [, decade, part] = decadePart;
+    return String(parseInt(decade, 10) + DECADE_PART_ANCHOR[part as keyof typeof DECADE_PART_ANCHOR]);
+  }
   return value.split("/")[0].replace(/s$/, "").replace(/\?/g, "").split("~")[0];
 }
 
@@ -87,6 +107,10 @@ export function formatDayGap(days: number): string {
 // 압축된 눈금(바코드)이나 배경 숫자처럼 자리가 좁은 곳에 쓰는 연도만 뽑은 짧은 표기.
 export function edtfYear(value: string): string {
   if (!value) return "미상";
+  // 연대 표기는 대표 연도(1978)가 아니라 연대(1970)를 보여준다 — 사건 검색창이 이 값을
+  // 그대로 훑기 때문에, "1970"으로 찾을 때 1970년대 후반 사건이 빠지면 안 된다.
+  const decadePart = value.match(DECADE_PART);
+  if (decadePart) return decadePart[1];
   return stripEdtfMarks(value).split("-")[0];
 }
 

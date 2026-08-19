@@ -95,7 +95,7 @@ function EventForm({
         <input
           value={draft.dateValue}
           onChange={(e) => setDraft({ ...draft, dateValue: e.target.value })}
-          placeholder="1963 · 1963-05 · 1963-05-18 · 1945~1948 · 1960s · 1936?"
+          placeholder="1963 · 1963-05 · 1963-05-18 · 1945~1948 · 1960s · 1960s-early · 1936?"
           className={`${FIELD_CLASSNAME} font-mono`}
         />
       </div>
