@@ -122,6 +122,9 @@ export interface PaperData {
   userMemo?: string; // 이용자가 이 논문에 대해 직접 적는 개인 메모
   isImportant: boolean; // 이용자가 "중요"로 표시했는지
   isRead: boolean; // 이용자가 "읽음"으로 표시했는지
+  // 이용자가 목록에서 쳐낸 논문 — 행은 남고 화면과 동기화에서만 빠진다. 원본이 CSV라서
+  // 행을 지우면 매주 동기화 때 되살아나기 때문이다(20260819_add_hidden_at_to_papers.sql).
+  hiddenAt: string | null;
   createdAt: string; // 이 DB에 처음 들어온 시각 — "등록순" 정렬용 (발행연도와는 무관)
   quotes: PaperQuote[];
 }

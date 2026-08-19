@@ -9,12 +9,13 @@
 //
 // 범위(사용자와 합의):
 // - 학위논문: "구술사" + "구술생애사" 정확검색 합집합, 단 교육/종교/스포츠 계열 기관 제외
-// - 학술논문: "구술사" + "구술생애사" + "생애사" 정확검색 합집합 중 "구술사연구"(한국구술사학회지) +
-//   "한국구술사학회 학술대회" 발행물만 — "생애사" 단독은 학위논문 쪽엔 안 붙임(사회복지·평생교육 등
-//   다른 분야로 너무 넓게 퍼져 노이즈가 큼, 2026-07-25 사용자와 합의)
+// - 학술논문: "구술사" + "구술생애사" + "생애사" 정확검색 합집합 중 제목에 "구술"이나 "생애사"가
+//   들어가고 발행 학술지·학회가 인문학·사회과학·복합학 계열인 것 (아래 isCollectedArticle 참고)
+//   — "생애사" 단독은 학위논문 쪽엔 안 붙인다(사회복지·평생교육 등 다른 분야로 너무 넓게 퍼져
+//   노이즈가 큼, 2026-07-25 사용자와 합의)
 
 import { existsSync } from "node:fs";
-import { politeFetch, stripTags, parseVolumeIssue } from "./lib/riss-http.mjs";
+import { politeFetch, parseListItems, parseVolumeIssue, stripTags } from "./lib/riss-http.mjs";
 import { RISS_PAPERS_CSV_PATH, readRissPapersCsv, writeRissPapersCsv } from "./lib/riss-papers-csv.mjs";
 
 const QUERIES = [
@@ -42,57 +43,35 @@ const MANUALLY_EXCLUDED_CONTROL_NOS = new Set([
   "7173d42142b2fbe14884a65323211ff0", // 철원군유도 발전과정 : 개인생애사를 중심으로
 ]);
 
-const ALLOWED_JOURNALS = new Set(["구술사연구", "한국구술사학회 학술대회"]);
+// 2026-08-19까지 학술논문은 이 두 발행물만 받았다. 이제는 조건을 통과 못 해도 무조건 넣는
+// "구술사 전문지" 목록으로 남는다 — 제목에 구술·생애사가 없는 방법론 논문도 여기 실린 건 다 받는다.
+// 2026-08-19에 과거분 수집을 한 번에 끝냈다. 그 뒤로 매주 도는 자동 수집(weekly-research-sync.sh)은
+// 새로 발간된 것만 받으면 되므로, 이 연도보다 오래된 논문은 아예 상세페이지를 요청하지 않는다.
+// - 이미 data/riss-papers.csv에 있는 논문은 이 값과 무관하게 그대로 남는다(버리는 장치가 아니다).
+// - 대신 RISS 색인이 늦어 예전 논문이 뒤늦게 검색에 뜨는 경우는 이 컷에 걸려 안 들어온다.
+//   과거분을 다시 훑고 싶으면 이 값을 낮춰서 한 번 돌리면 된다.
+const MIN_PUBLICATION_YEAR = 2026;
 
-// 검색결과 목록 HTML에서 <li>...</li> 항목들을 파싱한다.
-function parseListItems(html, kind) {
-  const items = [];
-  const liBlocks = html.split('<div class="cont ml60">').slice(1);
-  for (const block of liBlocks) {
-    const end = block.indexOf('<div class="btnW">');
-    const chunk = end > -1 ? block.slice(0, end) : block.slice(0, 2000);
+const ALWAYS_ALLOWED_JOURNALS = new Set(["구술사연구", "한국구술사학회 학술대회"]);
 
-    const titleMatch = chunk.match(/<p class="title"><a href="([^"]+)"[^>]*>([\s\S]*?)<\/a><\/p>/);
-    if (!titleMatch) continue;
-    const href = titleMatch[1].replace(/&amp;/g, "&");
-    const title = stripTags(titleMatch[2]);
+// 학술논문 수집 범위를 위 두 발행물 밖으로 넓히면서 붙인 분야 제한(2026-08-19 사용자와 합의).
+// 원래는 DBpia의 주제분류(인문학·사회과학·복합학) 필터를 쓰려 했으나 DBpia 검색 API가 일회성
+// 토큰을 요구해 자동 수집이 막혔고(docs/archives.md 참고), RISS 목록에는 주제분류가 없어서
+// 발행 학술지·학회 이름으로 예술체육·의약학·공학·종교 계열을 걸러내는 방식으로 대신한다.
+const JOURNAL_FIELD_BLOCKLIST = [
+  "체육", "스포츠", "무용", "태권도", "골프", "무도", "레저", "여가",
+  "신학", "선교", "목회", "교회", "종교", "기독", "불교", "가톨릭",
+  "간호", "의학", "재활", "치의학", "한의", "약학", "수의",
+  "공학", "건축", "디자인", "미술",
+];
 
-    const controlNoMatch = href.match(/control_no=([a-f0-9]+)/);
-    const matTypeMatch = href.match(/p_mat_type=([a-f0-9]+)/);
-    if (!controlNoMatch || !matTypeMatch) continue;
-
-    const writerMatch = chunk.match(/class="writer"><a[^>]*>([\s\S]*?)<\/a>/);
-    const assignedMatch = chunk.match(/class="assigned"><a[^>]*>([\s\S]*?)<\/a>/);
-    const author = writerMatch ? stripTags(writerMatch[1]) : "";
-    const institution = assignedMatch ? stripTags(assignedMatch[1]) : "";
-
-    // <p class="etc"> 안에서 assigned 다음에 오는 태그 없는 <span>들 — 연도, (학위유형 또는 학술지명)
-    const etcMatch = chunk.match(/<p class="etc">([\s\S]*?)<\/p>/);
-    let year = null;
-    let extra = ""; // 학위유형(국내석사 등) 또는 학술지명
-    if (etcMatch) {
-      const spanTexts = [...etcMatch[1].matchAll(/<span>([\s\S]*?)<\/span>/g)].map((m) => stripTags(m[1]));
-      const plain = spanTexts.filter((t) => t);
-      const yearEntry = plain.find((t) => /^\d{4}$/.test(t));
-      if (yearEntry) year = parseInt(yearEntry, 10);
-      // 학술지명은 <span><a>...</a></span> 형태라 위 정규식엔 안 잡힘 — 별도로 추출
-      const journalMatch = etcMatch[1].match(/<span><a[^>]*DetailView\.do[^>]*>([\s\S]*?)<\/a><\/span>/);
-      extra = journalMatch ? stripTags(journalMatch[1]) : plain.find((t) => t !== yearEntry) || "";
-    }
-
-    items.push({
-      controlNo: controlNoMatch[1],
-      matType: matTypeMatch[1],
-      title,
-      author,
-      institution,
-      year,
-      kind,
-      degreeLevel: kind === "학위논문" ? extra : "",
-      journalName: kind === "학술논문" ? extra : "",
-    });
-  }
-  return items;
+// 학술논문을 수집 대상으로 볼지 판정한다. RISS 정확검색은 제목뿐 아니라 초록·주제어까지 걸리므로,
+// DBpia의 "논문명" 검색에 해당하는 좁힘(제목 조건)을 여기서 따로 건다.
+function isCollectedArticle(item) {
+  if (ALWAYS_ALLOWED_JOURNALS.has(item.journalName)) return true;
+  if (!/구술|생애사/.test(item.title)) return false;
+  const field = `${item.journalName} ${item.institution}`;
+  return !JOURNAL_FIELD_BLOCKLIST.some((word) => field.includes(word));
 }
 
 async function fetchAllListPages(colName, phrase, kind) {
@@ -157,11 +136,14 @@ async function main() {
     const items = await fetchAllListPages(q.colName, q.phrase, q.kind);
     for (const item of items) {
       if (MANUALLY_EXCLUDED_CONTROL_NOS.has(item.controlNo)) continue;
+      // 연도를 못 읽은 건(year === null)은 컷에 안 걸리게 둔다 — 몰라서 버리는 것보다 받아서
+      // 화면에서 쳐내는 편이 낫다.
+      if (item.year !== null && item.year < MIN_PUBLICATION_YEAR) continue;
       if (item.kind === "학위논문") {
         if (isExcludedInstitution(item.institution)) continue;
         theses.set(item.controlNo, item);
       } else {
-        if (!ALLOWED_JOURNALS.has(item.journalName)) continue;
+        if (!isCollectedArticle(item)) continue;
         journalArticles.set(item.controlNo, item);
       }
     }

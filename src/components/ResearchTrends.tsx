@@ -22,7 +22,7 @@ import { Switch } from "./Switch";
 import { savePaperMemo } from "@/lib/memo-actions";
 import { togglePaperImportant, togglePaperRead } from "@/lib/flag-actions";
 import { refreshResearchData } from "@/lib/research-sync-actions";
-import { deletePaper } from "@/lib/paper-actions";
+import { hidePaper, restorePaper } from "@/lib/paper-actions";
 import { addQuote, deleteQuote, updateQuote } from "@/lib/quote-actions";
 
 const MIN_MENTIONS = 2; // 노이즈를 줄이기 위해 2회 이상 등장한 주제어만 클라우드에 노출
@@ -122,6 +122,8 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const [addingPaper, setAddingPaper] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [importantOnly, setImportantOnly] = useState(false);
+  // 쳐낸 논문만 보는 자리. 훑다가 잘못 누른 것을 여기서 되돌린다.
+  const [hiddenOnly, setHiddenOnly] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("latest");
   // 주제어 클라우드는 화면 위쪽을 크게 차지한다 — 논문 목록만 보고 싶을 때 접는다.
   // 접어도 골라둔 주제어는 살아 있고, 접힌 채로도 해제할 수 있게 알린다.
@@ -142,8 +144,13 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
     }
   }
 
-  const frequency = useMemo(() => buildFrequency(papers), [papers]);
-  const cooccurrence = useMemo(() => buildCooccurrence(papers), [papers]);
+  // 쳐낸 논문도 함께 받아 온다(되돌리려면 목록이 있어야 한다) — 세는 자리·주제어 클라우드는
+  // 보이는 논문만 기준으로 삼는다.
+  const visiblePool = useMemo(() => papers.filter((p) => !p.hiddenAt), [papers]);
+  const hiddenPapers = useMemo(() => papers.filter((p) => p.hiddenAt), [papers]);
+
+  const frequency = useMemo(() => buildFrequency(visiblePool), [visiblePool]);
+  const cooccurrence = useMemo(() => buildCooccurrence(visiblePool), [visiblePool]);
 
   const cloudKeywords = useMemo(() => {
     return Array.from(frequency.entries())
@@ -154,22 +161,22 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const maxCount = cloudKeywords[0]?.[1] ?? 1;
   const relatedCounts = activeKeyword ? cooccurrence.get(activeKeyword) : undefined;
 
-  const importantCount = useMemo(() => papers.filter((p) => p.isImportant).length, [papers]);
+  const importantCount = useMemo(() => visiblePool.filter((p) => p.isImportant).length, [visiblePool]);
 
   const filteredPapers = useMemo(() => {
-    return papers.filter((p) => {
+    return (hiddenOnly ? hiddenPapers : visiblePool).filter((p) => {
       if (activeKeyword && !p.keywords.includes(activeKeyword)) return false;
       if (importantOnly && !p.isImportant) return false;
       return true;
     });
-  }, [papers, activeKeyword, importantOnly]);
+  }, [visiblePool, hiddenPapers, hiddenOnly, activeKeyword, importantOnly]);
 
   const sortedPapers = useMemo(() => sortPapers(filteredPapers, sortMode), [filteredPapers, sortMode]);
 
   // 좁히는 조건이나 정렬이 바뀌면 첫 묶음으로 되돌린다. 효과(useEffect)로 되돌리면 100편을
   // 한 번 그린 뒤 다시 그리게 되므로, 렌더 중에 이전 조건과 비교해 바로 맞춘다.
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const scopeKey = `${activeKeyword}|${importantOnly}|${sortMode}`;
+  const scopeKey = `${activeKeyword}|${importantOnly}|${hiddenOnly}|${sortMode}`;
   const [prevScopeKey, setPrevScopeKey] = useState(scopeKey);
   if (prevScopeKey !== scopeKey) {
     setPrevScopeKey(scopeKey);
@@ -178,7 +185,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const visiblePapers = sortedPapers.slice(0, visibleCount);
   const remaining = sortedPapers.length - visiblePapers.length;
 
-  const scopeLabel = [activeKeyword ? `"${activeKeyword}"` : null, importantOnly ? "★ 중요" : null]
+  const scopeLabel = [activeKeyword ? `"${activeKeyword}"` : null, importantOnly ? "★ 중요" : null, hiddenOnly ? "쳐냄" : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -187,7 +194,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
       <section className="mb-8">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <h2 className="font-mono text-xs text-grey">
-            주제어 {cloudKeywords.length}개 · 논문 {papers.length}편 (RISS, 국내 구술사·구술생애사 연구)
+            주제어 {cloudKeywords.length}개 · 논문 {visiblePool.length}편 (RISS, 국내 구술사·생애사 연구)
           </h2>
           {/* 오른쪽 상단 — 최신화 줄 아래에 보기 스위치와 정렬 띠를 모아 둔다 */}
           <div className="flex flex-col items-end gap-1.5 font-mono text-[11px] text-grey">
@@ -211,6 +218,16 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                 on={importantOnly}
                 onToggle={() => setImportantOnly((v) => !v)}
               />
+              {/* 쳐낸 논문은 평소엔 안 보이지만 지워진 게 아니다 — 여기서 꺼내 되돌린다.
+                  쳐낸 게 하나도 없으면 스위치를 내지 않되, 켜 둔 채로 마지막 하나를 되돌린
+                  경우에는 남겨 둔다 — 안 그러면 빈 목록에 갇혀 끌 방법이 없어진다. */}
+              {(hiddenPapers.length > 0 || hiddenOnly) && (
+                <Switch
+                  label={`쳐냄 (${hiddenPapers.length})`}
+                  on={hiddenOnly}
+                  onToggle={() => setHiddenOnly((v) => !v)}
+                />
+              )}
               <span className="mx-1 h-3 w-px bg-line" />
               {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
                 <button
@@ -363,13 +380,23 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       >
                         수정
                       </button>
-                      <ConfirmDeleteButton
-                        onDelete={() => deletePaper(paper.id)}
-                        confirmMessage={`"${paper.title}"을(를) 삭제할까요? 되돌릴 수 없습니다.`}
-                        label="삭제"
-                        pendingLabel="삭제 중…"
-                        className="rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey hover:bg-red-tint hover:text-red-text disabled:opacity-50"
-                      />
+                      {paper.hiddenAt ? (
+                        <button
+                          type="button"
+                          onClick={() => restorePaper(paper.id)}
+                          className="rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey hover:bg-line hover:text-ink"
+                        >
+                          되돌리기
+                        </button>
+                      ) : (
+                        <ConfirmDeleteButton
+                          onDelete={() => hidePaper(paper.id)}
+                          confirmMessage={`"${paper.title}"을(를) 목록에서 뺄까요? 「쳐냄」에서 되돌릴 수 있습니다.`}
+                          label="삭제"
+                          pendingLabel="빼는 중…"
+                          className="rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey hover:bg-red-tint hover:text-red-text disabled:opacity-50"
+                        />
+                      )}
                     </div>
 
                     {/* 원문 링크가 없는 논문(직접 추가분 등)은 링크로 만들지 않는다 — href=""는 클릭해도

@@ -526,6 +526,7 @@ interface DbPaper {
   degree_level: string | null;
   keywords: string[];
   riss_url: string | null;
+  hidden_at: string | null;
   user_memo: string | null;
   is_important: boolean;
   is_read: boolean;
@@ -555,20 +556,28 @@ export async function getResearchSyncedAt(): Promise<string | null> {
 }
 
 export async function getPapers(): Promise<PaperData[]> {
-  const [
-    { data, error },
-    { data: quotes, error: quotesError },
-  ] = await Promise.all([
-    supabase
+  // 논문도 1000행 상한에 걸린다(위 PAGE 주석 참고). 2026-08-19 학술논문 수집 범위를 넓혀
+  // 1,274편이 되면서 실제로 오래된 논문이 화면에서 조용히 잘려나갔다 — 나눠 받는다.
+  const data: DbPaper[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: page, error } = await supabase
       .from("papers")
       .select(
-        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read, publisher_location, translator, volume_issue, research_period, research_team, research_summary, created_at",
+        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read, hidden_at, publisher_location, translator, volume_issue, research_period, research_team, research_summary, created_at",
       )
       .order("year", { ascending: false })
-      .order("id", { ascending: true }), // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
-    supabase.from("paper_quotes").select("id, paper_id, quote_text, page, created_at").order("created_at", { ascending: true }),
-  ]);
-  if (error) throw error;
+      .order("id", { ascending: true }) // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const rows = (page as DbPaper[]) ?? [];
+    data.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+
+  const { data: quotes, error: quotesError } = await supabase
+    .from("paper_quotes")
+    .select("id, paper_id, quote_text, page, created_at")
+    .order("created_at", { ascending: true });
   if (quotesError) throw quotesError;
 
   const quotesByPaper = new Map<string, PaperQuote[]>();
@@ -578,7 +587,7 @@ export async function getPapers(): Promise<PaperData[]> {
     quotesByPaper.set(q.paper_id, list);
   }
 
-  return ((data as DbPaper[]) ?? []).map((p) => ({
+  return data.map((p) => ({
     id: p.id,
     paperType: p.paper_type as PaperData["paperType"],
     title: p.title,
@@ -589,6 +598,7 @@ export async function getPapers(): Promise<PaperData[]> {
     degreeLevel: p.degree_level ?? undefined,
     keywords: p.keywords ?? [],
     rissUrl: p.riss_url ?? "",
+    hiddenAt: p.hidden_at,
     userMemo: p.user_memo ?? undefined,
     isImportant: p.is_important,
     isRead: p.is_read,

@@ -62,10 +62,14 @@ async function syncPapers() {
     return;
   }
   const rows = readCsv(RISS_PAPERS_CSV_PATH);
-  const existing = await fetchExisting("papers", "id");
+  const existing = await fetchExisting("papers", "id, hidden_at");
+  // 화면에서 쳐낸 논문은 다시 올리지 않는다 — CSV에는 그대로 남아 있어서, 걸러내지 않으면
+  // 동기화가 쳐낸 것을 통째로 되살려 놓는다(papers.hidden_at, paper-actions.hidePaper).
+  const hidden = new Set([...existing.values()].filter((p) => p.hidden_at).map((p) => p.id));
   const upserts = [];
   for (const r of rows) {
     if (!r.paper_id || !r.title) { log("papers", "skipped"); continue; }
+    if (hidden.has(r.paper_id)) { log("papers", "skipped"); continue; }
     upserts.push({
       id: r.paper_id,
       paper_type: r.type,

@@ -88,8 +88,20 @@ export async function updatePaper(id: string, input: AddPaperInput) {
   revalidatePath("/research");
 }
 
-export async function deletePaper(id: string) {
-  const { error } = await supabaseAdmin.from("papers").delete().eq("id", id);
+// 화면의 "삭제"가 하는 일 — 행을 지우지 않고 쳐낸 시각만 적는다. 원본이 data/riss-papers.csv라
+// 행을 지우면 매주 동기화가 그대로 되살려 놓기 때문이다(syncPapers가 이 칸을 보고 건너뛴다).
+// 주제어·메모·인용구가 그대로 남으므로 restorePaper로 되돌리면 쳐내기 전 상태로 돌아온다.
+export async function hidePaper(id: string) {
+  const { error } = await supabaseAdmin
+    .from("papers")
+    .update({ hidden_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+  revalidatePath("/research");
+}
+
+export async function restorePaper(id: string) {
+  const { error } = await supabaseAdmin.from("papers").update({ hidden_at: null }).eq("id", id);
   if (error) throw error;
   revalidatePath("/research");
 }
