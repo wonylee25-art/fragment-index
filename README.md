@@ -54,10 +54,12 @@
 
 실데이터는 **Supabase**(Postgres)에 저장되어 있고, 원본 소스는 두 갈래입니다.
 
-1. **관리 화면(`/admin`)에서 직접 넣고 고친 것** — 구술 발췌, 인물, 사건, 사료 연결이 모두 여기서 Supabase에 바로 쓰입니다. **원본은 Supabase 하나뿐입니다.** 2026-08-19까지는 구글 시트(fragments_index)에서 내보낸 `data/*.csv` 4개를 `npm run sync`로 밀어 넣었으나, 화면에서 고친 값을 시트의 옛 값으로 되돌리는 문제가 있어 걷어냈습니다(걷어낸 CSV는 `data/backup/`).
+1. **관리 화면(`/admin`)에서 직접 넣고 고친 것** — 구술 발췌, 인물, 사건, 사료 연결이 모두 여기서 Supabase에 바로 쓰입니다. **원본은 Supabase 하나뿐입니다.** 2026-08-19까지는 구글 시트(fragments_index)에서 내보낸 `data/*.csv` 4개를 `npm run sync`로 밀어 넣었으나, 화면에서 고친 값을 시트의 옛 값으로 되돌리는 문제가 있어 걷어냈습니다. CSV 사본은 로컬에서 지웠고(원래 `.gitignore` 대상이라 저장소에도 없습니다), 시트 자체는 남아 있으나 더는 원본이 아닙니다.
 2. **외부 오픈데이터/API** — 국가기록원, 국립중앙박물관 유물정보, 국사편찬위원회 "오늘의역사" 원문(XML), 서울기록원 사진아카이브, RISS 논문 메타데이터 등. 어떤 아카이브에 접근을 시도했고 자동화가 가능한지는 [docs/archives.md](docs/archives.md)에 전부 기록해 둡니다(성공/실패 무관하게).
 
 `/oral-history-projects` 화면만은 예외로 DB가 아니라 **마크다운 문서를 직접 읽습니다** — [docs/oral_history_projects.md](docs/oral_history_projects.md)를 매 요청마다 파싱하므로([src/lib/oral-history-projects.ts](src/lib/oral-history-projects.ts)), 문서를 고치면 화면이 따라 바뀝니다.
+
+Supabase 무료 플랜에는 자동 백업이 없습니다(일 단위 백업·PITR은 Pro부터). 그래서 `npm run backup`이 유일한 되돌리기 수단입니다 — 화면에서 손으로 만든 것(발췌·인물·사료·출처·인용·연결선)은 통째로, 기계가 긁어온 `timeline_events`·`papers`는 그 위에 얹힌 사람의 판단만(연표로 꺼낸 딱지, 저장·메모·강조, 쳐낸 표시, 직접 만든 행) 떠냅니다. 6천여 건의 재고 본문은 스크립트를 다시 돌리면 되므로 담지 않습니다. 복원은 파일을 보고 사람이 판단해 넣습니다 — 통째로 되밀면 스냅샷 이후에 한 일까지 되감기므로 자동 복원 스크립트는 두지 않았습니다.
 
 원본 자료는 재호스팅하지 않고 항상 원본 링크로 연결하는 것이 원칙입니다.
 
@@ -109,11 +111,12 @@ npm run dev
 | `npm run lint` | ESLint 검사 |
 | `npm run sync` | `data/riss-papers.csv`(논문 목록)를 Supabase에 반영. 새 행은 insert, 기존 행은 갱신. 구술·인물·사건·출처는 여기서 다루지 않습니다 — 관리 화면이 유일한 입구입니다 |
 | `npm run fetch:riss` | RISS에서 구술사/구술생애사 관련 논문 메타데이터를 긁어 `data/riss-papers.csv` 생성(요청 간 10초 대기, 수십 분 소요 — 백그라운드 실행 권장). 손으로 수정하지 말고 재실행으로 갱신할 것 |
+| `npm run backup` | 사람이 만든 것만 골라 `data/backup/snapshot-<날짜>.json`으로 떠냅니다. 무료 플랜에는 Supabase 자동 백업이 없어 되돌릴 수단이 이것뿐입니다. 매주 월요일 자동 실행되지만(아래 주간 스크립트), 큰 작업 전에는 직접 한 번 누르는 편이 낫습니다 — 그 직전 상태가 정확히 남습니다. 같은 날 다시 돌리면 그날 파일을 덮어씁니다 |
 | `npm run tunnel` | localtunnel로 외부에서 개발 서버 접근 |
 
 그 밖에 `package.json`에 등록하지 않은 1회성·자동화 스크립트가 `scripts/`에 있습니다.
 
-- [scripts/weekly-research-sync.sh](scripts/weekly-research-sync.sh) — launchd(`com.fragment-index.research-sync`)가 매주 월요일 08:00에 `fetch:riss` + `sync`를 실행. 그 시각에 노트북이 꺼져 있었으면 다음 로그인 때 따라잡고, 이미 이번 주에 돌았으면 건너뜁니다
+- [scripts/weekly-research-sync.sh](scripts/weekly-research-sync.sh) — launchd(`com.fragment-index.research-sync`)가 매주 월요일 08:00에 `backup` → `fetch:riss` → `sync`를 실행. 백업이 맨 앞인 것은 동기화가 DB를 건드리기 직전 상태를 남기기 위해서이고, 백업이 실패해도 동기화는 그대로 진행합니다(로그에만 남김). 그 시각에 노트북이 꺼져 있었으면 다음 로그인 때 따라잡고, 이미 이번 주에 돌았으면 건너뜁니다
 - [scripts/import-seoul-photo-collections.mjs](scripts/import-seoul-photo-collections.mjs) — 서울기록원 사진아카이브 컬렉션 CSV를 `archive_items`에 반영
 - [scripts/match-museum-relics.mjs](scripts/match-museum-relics.mjs) — 국립중앙박물관 유물 매칭 후보를 콘솔에 출력(자동 반영하지 않고 사람이 확인)
 - [scripts/backfill-volume-issue.mjs](scripts/backfill-volume-issue.mjs) — RISS 논문의 권호 정보 보강(요청 간 10초 대기)
@@ -125,7 +128,7 @@ src/app/        라우트(App Router) — /, /segments, /research, /oral-history
 src/components/ 화면 단위 클라이언트 컴포넌트
 src/lib/        DB 접근·서버 액션·도메인 로직(EDTF 날짜, 인용 형식, 외부 API 클라이언트)
 scripts/        수집·동기화 스크립트(Node .mjs) + 주간 자동 동기화용 셸 스크립트
-data/           구글 시트 export CSV·원본 내려받기(커밋하지 않음, .gitignore)
+data/           외부 자료 원본 내려받기·스크립트가 만든 중간 CSV(커밋하지 않음, .gitignore)
 docs/           기획·조사·진행 기록 문서 (아래)
 public/         정적 파일
 ```

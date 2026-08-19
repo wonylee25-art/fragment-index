@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "sync": "node --env-file=.env.local scripts/sync-csv.mjs",
+    "backup": "node --env-file=.env.local scripts/backup-db.mjs",
     "fetch:riss": "node scripts/fetch-riss-papers.mjs",
     "tunnel": "lt --port 3000 --subdomain fragment-index",
     "import:th": "node --env-file=.env.local scripts/import-th-timeline.mjs"

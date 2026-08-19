@@ -45,6 +45,7 @@ google-service-account.json
 # 실제 아카이브 데이터 — 로컬/Supabase에만 두고 저장소엔 코드 구조만 남긴다
 /data/*.csv
 /data/raw/
+/data/backup/
 
 # 개인 기획/조사 메모 — 코드 저장소엔 프로젝트 설명(README)만 남기고 로컬 전용으로 전환
 /docs/plan.md

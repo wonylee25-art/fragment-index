@@ -1,0 +1,115 @@
+// 사람이 만든 것만 골라 파일 하나로 떠낸다. 실행: npm run backup
+//
+// 왜 필요한가 — Supabase 무료 플랜에는 자동 백업이 없다(일 단위 백업·PITR은 Pro부터). 지금
+// 이 프로젝트에서 실수로 지우거나 덮어쓴 것을 되돌릴 수단은 이 스냅샷 말고 없다. 삭제 시점에
+// 자동으로 남기는 방식(그림자 테이블)을 택하지 않은 것은, 실수가 삭제보다 수정에서 더 자주
+// 나기 때문이다 — 잘못 고쳐 쓴 발췌는 삭제 기록으로 되돌릴 수 없지만 스냅샷으로는 된다.
+//
+// 무엇을 담는가 —
+//   통째로: 화면에서 손으로 만든 것 전부(합쳐 200행 남짓이라 나눌 이유가 없다).
+//   골라서: timeline_events·papers는 기계가 긁어온 재고라 다시 받으면 그만이지만, 그 위에
+//           얹힌 사람의 판단은 다시 받으면 사라진다. 연표로 꺼낸 딱지(adopted_at), 저장·메모·
+//           강조, 쳐낸 표시(hidden_at), 그리고 화면에서 직접 만든 행(ev_/manual- 접두어)만 뜬다.
+//           6,430건 본문을 매번 뜨는 것은 파일만 무겁게 한다.
+//   제외:   sync_status(타임스탬프 한 줄, 다시 동기화하면 채워진다).
+//
+// 되돌릴 때는 이 파일을 손에 들고 사람이 판단해서 넣는다 — 자동 복원 스크립트는 없다.
+// 스냅샷이 최신이라는 보장이 없는데 통째로 밀어 넣으면 그 뒤에 한 일까지 되감기 때문이다.
+
+import { writeFileSync, mkdirSync } from "node:fs";
+import { createClient } from "@supabase/supabase-js";
+
+const OUT_DIR = "data/backup";
+const PAGE = 1000; // PostgREST가 응답 하나를 이 행 수에서 자른다
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!url || !key) {
+  console.error("NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY가 없습니다. .env.local을 확인하세요.");
+  process.exit(1);
+}
+const supabase = createClient(url, key);
+
+// 통째로 뜨는 테이블 — 전부 화면에서 사람이 넣고 고친 것이다.
+// 값은 페이지를 나눠 받을 때 쓸 정렬 기준 열이다. 발췌에 딸린 화자·주석 표처럼 id가 없고
+// (segment_id, seq)로 한 행이 정해지는 표가 있어 테이블마다 적어 둔다.
+const FULL_TABLES = {
+  segments: "id",
+  segment_speakers: "segment_id",
+  segment_notes: "segment_id",
+  segment_persons: "segment_id",
+  persons: "id",
+  sources: "id",
+  archive_items: "id",
+  paper_quotes: "id",
+  links: "id",
+};
+
+// 사람 흔적만 뜨는 테이블 — 필터는 PostgREST or() 문법이고, like의 와일드카드는 *다.
+const PARTIAL_TABLES = [
+  {
+    table: "timeline_events",
+    // ev_ = 화면에서 직접 만든 사건. 나머지는 오늘의역사에서 들여온 재고 중 사람이 손댄 것.
+    filter: "id.like.ev_*,adopted_at.not.is.null,user_saved.eq.true,highlighted.eq.true,user_memo.not.is.null,hidden_at.not.is.null",
+  },
+  {
+    table: "papers",
+    // manual- = 화면에서 직접 추가한 논문. hidden_at = 목록에서 쳐낸 판단(paper-actions.hidePaper).
+    filter: "id.like.manual-*,hidden_at.not.is.null",
+  },
+];
+
+async function fetchAll(table, { orderBy = "id", filter } = {}) {
+  const rows = [];
+  for (let from = 0; ; from += PAGE) {
+    let q = supabase.from(table).select("*").order(orderBy).range(from, from + PAGE - 1);
+    if (filter) q = q.or(filter);
+    const { data, error } = await q;
+    if (error) throw new Error(`${table}: ${error.message}`);
+    rows.push(...data);
+    if (data.length < PAGE) break;
+  }
+  return rows;
+}
+
+async function main() {
+  const tables = {};
+  const counts = {};
+
+  for (const [table, orderBy] of Object.entries(FULL_TABLES)) {
+    const rows = await fetchAll(table, { orderBy });
+    tables[table] = rows;
+    counts[table] = rows.length;
+    console.log(`  ${table.padEnd(18)} ${rows.length}행`);
+  }
+
+  for (const { table, filter } of PARTIAL_TABLES) {
+    const rows = await fetchAll(table, { filter });
+    tables[table] = rows;
+    counts[table] = rows.length;
+    console.log(`  ${table.padEnd(18)} ${rows.length}행 (사람이 손댄 것만)`);
+  }
+
+  const savedAt = new Date().toISOString();
+  const snapshot = {
+    savedAt,
+    note: "사람이 만든 것만 떠낸 스냅샷 (npm run backup). timeline_events·papers는 사람이 손댄 행만 담겨 있다.",
+    counts,
+    tables,
+  };
+
+  mkdirSync(OUT_DIR, { recursive: true });
+  // 날짜까지만 쓴다 — 하루에 여러 번 돌리면 그날 파일을 덮어써서, 큰 작업 전에 습관처럼 눌러도
+  // 폴더가 불어나지 않는다.
+  const path = `${OUT_DIR}/snapshot-${savedAt.slice(0, 10)}.json`;
+  writeFileSync(path, JSON.stringify(snapshot, null, 2));
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const kb = Math.round(Buffer.byteLength(JSON.stringify(snapshot)) / 1024);
+  console.log(`\n${path} — 합계 ${total}행, ${kb}KB`);
+}
+
+main().catch((err) => {
+  console.error("백업 실패:", err);
+  process.exit(1);
+});
