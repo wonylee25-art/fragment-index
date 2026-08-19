@@ -47,14 +47,14 @@
 - **논문 목록** — 유형(학위논문/학술논문/단행본)·연도·저자·학술지(권호)/학위수여기관/출판사 표시, RISS 원문 링크로 연결. 목록에서 바로 ★ 중요, ✓ 읽음 토글과 삭제가 가능하고, `+ 논문 추가`로 수기 등록도 지원합니다.
 - **개인 메모 & 인용구** — 논문마다 자유 메모 하나, 그리고 페이지 번호를 붙인 인용구를 여러 개 쌓을 수 있습니다(`quotes`, 논문당 자유 메모와는 별개 개념).
 - **인용 형식 자동 생성** — [src/lib/citation.ts](src/lib/citation.ts)가 한국문화인류학회 인용 형식(저자, 연도, "제목," 출처)으로 서지사항을 만들고, `📋 노션으로 복사` 버튼([CopyForNotionButton](src/components/CopyForNotionButton.tsx))으로 서지+메모+인용구를 마크다운 블록쿼트째로 클립보드에 복사할 수 있습니다.
-- **원클릭 새로고침** — `🔄 새로고침` 버튼을 누르면 서버에서 `npm run fetch:riss && npm run sync`를 백그라운드로 실행합니다([research-sync-actions.ts](src/lib/research-sync-actions.ts)). `fetch-riss-papers.mjs`는 이미 처리한 논문(`paper_id`)은 건너뛰므로, 보통은 새 논문 유무 확인(수 분)만으로 끝나고 새 논문이 있을 때만 건당 10초(robots.txt `Crawl-delay`)가 더 걸립니다. 화면 상단의 "최신화: ~ 기준" 시각으로 완료 여부를 확인합니다.
+- **원클릭 새로고침** — `🔄 새로고침` 버튼을 누르면 서버에서 `npm run fetch:riss && npm run sync`를 백그라운드로 실행합니다([research-sync-actions.ts](src/lib/research-sync-actions.ts)). 이 두 명령은 논문 목록에만 손댑니다. `fetch-riss-papers.mjs`는 이미 처리한 논문(`paper_id`)은 건너뛰므로, 보통은 새 논문 유무 확인(수 분)만으로 끝나고 새 논문이 있을 때만 건당 10초(robots.txt `Crawl-delay`)가 더 걸립니다. 화면 상단의 "최신화: ~ 기준" 시각으로 완료 여부를 확인합니다.
 - **수집 범위**([scripts/fetch-riss-papers.mjs](scripts/fetch-riss-papers.mjs) 참고) — 학위논문은 "구술사"+"구술생애사" 정확검색 합집합(교육/종교/스포츠 계열 기관 제외), 학술논문은 "구술사"+"구술생애사"+"생애사" 정확검색 합집합 중 『구술사연구』(한국구술사학회지)·한국구술사학회 학술대회 발행물만 포함합니다.
 
 ## 데이터 구조
 
 실데이터는 **Supabase**(Postgres)에 저장되어 있고, 원본 소스는 두 갈래입니다.
 
-1. **구글 시트(fragments_index)** — 사용자가 직접 채록·정리 중인 구술 아카이브 원본(연표 `chronicle`, 구술 발췌 `oral segments`, 인물 전거 `persons_authority`, 출처 전거 `sources_authority`). `data/*.csv`로 내보낸 뒤 `npm run sync`로 Supabase에 반영합니다. **이 CSV들은 저장소에 커밋되지 않고(`.gitignore`) 로컬/Supabase에만 존재**합니다.
+1. **관리 화면(`/admin`)에서 직접 넣고 고친 것** — 구술 발췌, 인물, 사건, 사료 연결이 모두 여기서 Supabase에 바로 쓰입니다. **원본은 Supabase 하나뿐입니다.** 2026-08-19까지는 구글 시트(fragments_index)에서 내보낸 `data/*.csv` 4개를 `npm run sync`로 밀어 넣었으나, 화면에서 고친 값을 시트의 옛 값으로 되돌리는 문제가 있어 걷어냈습니다(걷어낸 CSV는 `data/backup/`).
 2. **외부 오픈데이터/API** — 국가기록원, 국립중앙박물관 유물정보, 국사편찬위원회 "오늘의역사" 원문(XML), 서울기록원 사진아카이브, RISS 논문 메타데이터 등. 어떤 아카이브에 접근을 시도했고 자동화가 가능한지는 [docs/archives.md](docs/archives.md)에 전부 기록해 둡니다(성공/실패 무관하게).
 
 `/oral-history-projects` 화면만은 예외로 DB가 아니라 **마크다운 문서를 직접 읽습니다** — [docs/oral_history_projects.md](docs/oral_history_projects.md)를 매 요청마다 파싱하므로([src/lib/oral-history-projects.ts](src/lib/oral-history-projects.ts)), 문서를 고치면 화면이 따라 바뀝니다.
@@ -107,7 +107,7 @@ npm run dev
 | `npm run dev` | 개발 서버 실행 |
 | `npm run build` / `npm run start` | 프로덕션 빌드 / 실행 |
 | `npm run lint` | ESLint 검사 |
-| `npm run sync` | `data/*.csv`(구글 시트 export본)를 Supabase에 반영. 새 행은 insert, 기존 행은 CSV의 빈 칸을 덮어쓰지 않고 채워진 필드만 갱신 |
+| `npm run sync` | `data/riss-papers.csv`(논문 목록)를 Supabase에 반영. 새 행은 insert, 기존 행은 갱신. 구술·인물·사건·출처는 여기서 다루지 않습니다 — 관리 화면이 유일한 입구입니다 |
 | `npm run fetch:riss` | RISS에서 구술사/구술생애사 관련 논문 메타데이터를 긁어 `data/riss-papers.csv` 생성(요청 간 10초 대기, 수십 분 소요 — 백그라운드 실행 권장). 손으로 수정하지 말고 재실행으로 갱신할 것 |
 | `npm run tunnel` | localtunnel로 외부에서 개발 서버 접근 |
 
