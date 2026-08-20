@@ -30,6 +30,7 @@ const QUERIES = [
 const INSTITUTION_BLOCKLIST = [
   "교육대학원", "신학", "목회", "선교", "종교학", "불교학", "교회사",
   "체육", "스포츠", "무용", "태권도", "골프", "무도",
+  "사회복지", "특수교육", "평생교육", "재활",
 ];
 
 // 한 번 쳐낸 논문은 다시 긁지 않는다 — 화면에서 손으로 쳐낸 것과 아래 주제어 규칙이 거른 것이
@@ -53,7 +54,7 @@ const ALWAYS_ALLOWED_JOURNALS = new Set(["구술사연구", "한국구술사학�
 // 토큰을 요구해 자동 수집이 막혔고(docs/archives.md 참고), RISS 목록에는 주제분류가 없어서
 // 발행 학술지·학회 이름으로 예술체육·의약학·공학·종교 계열을 걸러내는 방식으로 대신한다.
 const JOURNAL_FIELD_BLOCKLIST = [
-  "체육", "스포츠", "무용", "태권도", "골프", "무도", "레저", "여가",
+  "체육", "스포츠", "무용", "태권도", "골프", "무도", "레저", "여가", "코칭",
   "신학", "선교", "목회", "교회", "종교", "기독", "불교", "가톨릭",
   "간호", "의학", "재활", "치의학", "한의", "약학", "수의",
   "공학", "건축", "디자인", "미술",
@@ -75,13 +76,28 @@ function isAppliedLearningStudy(item, keywords) {
   return keywords.some((k) => APPLIED_LEARNING_KEYWORDS.has(k));
 }
 
+// 사회복지·특수교육·평생교육 계열 지면을 받지 않는다(2026-08-20 사용자 지시). 위 갈래와 달리
+// 이쪽은 손으로 쳐낸 것과 남긴 것이 81편 대 78편으로 반반이라, 규칙을 세우면 남길 논문도 같은
+// 수만큼 안 들어온다 — 그걸 감수하고 긋는 선이다. 되살릴 논문이 생기면 화면의 `+ 논문 추가`로
+// 직접 넣거나, 여기서 해당 낱말을 지우고 MIN_PUBLICATION_YEAR를 낮춰 다시 훑으면 된다.
+//
+// 다만 제목에 "구술"이 들어간 것은 이 선에서 뺀다 — 지면이 어디든 구술 기록을 다룬 논문은
+// 이 화면의 본줄기다(쳐낸 10편 대 남긴 27편). 체육 계열은 제목과 무관하게 걸러 온 대로 둔다
+// (위 JOURNAL_FIELD_BLOCKLIST).
+const APPLIED_FIELD_BLOCKLIST = [
+  "복지", "특수교육", "특수아동", "장애", "재활", "청각", "언어치료",
+  "평생교육", "평생학습", "성인계속", "성인교육", "Andragogy", "HRD",
+];
+
 // 학술논문을 수집 대상으로 볼지 판정한다. RISS 정확검색은 제목뿐 아니라 초록·주제어까지 걸리므로,
 // DBpia의 "논문명" 검색에 해당하는 좁힘(제목 조건)을 여기서 따로 건다.
 function isCollectedArticle(item) {
   if (ALWAYS_ALLOWED_JOURNALS.has(item.journalName)) return true;
   if (!/구술|생애사/.test(item.title)) return false;
   const field = `${item.journalName} ${item.institution}`;
-  return !JOURNAL_FIELD_BLOCKLIST.some((word) => field.includes(word));
+  if (JOURNAL_FIELD_BLOCKLIST.some((word) => field.includes(word))) return false;
+  if (/구술/.test(item.title)) return true;
+  return !APPLIED_FIELD_BLOCKLIST.some((word) => field.includes(word));
 }
 
 async function fetchAllListPages(colName, phrase, kind) {
