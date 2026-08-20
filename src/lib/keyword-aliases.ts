@@ -65,6 +65,12 @@ export const KEYWORD_ALIASES: Record<string, string> = {
   "20세기민중생활사": "민중생활사",
 
   생애구술사: "구술생애사", // 앞뒤가 뒤집힌 같은 말
+
+  // 「생애사 연구」는 「생애사」와 가리키는 바가 같다. 위의 「생애사적 연구」·「생애사 연구방법」
+  // 들은 여기까지 이어져 내려온다 — 별칭은 사슬로 따라간다.
+  "생애사 연구": "생애사",
+  "생애사연구.": "생애사", // 마침표가 붙어 들어와 띄어쓰기 규칙에 걸리지 않는다
+  "생애사 (연구)": "생애사", // 괄호가 낱말 하나를 감싸 버린 것
 };
 
 // 띄어쓰기만 다른 표기는 사람이 적지 않아도 묶인다 — 공백을 지운 형태가 같으면 한 덩이로 본다.
@@ -90,9 +96,30 @@ function stripGloss(keyword: string): string {
   return keyword;
 }
 
+// 별칭 표를 띄어쓰기를 지운 형태로 찾을 수 있게 바꿔 둔다. 표에 「생애사 연구」 한 줄만
+// 적어도 「생애사연구」가 함께 걸린다 — 표기마다 줄을 늘리지 않아도 된다.
+const ALIAS_BY_KEY = new Map(
+  Object.entries(KEYWORD_ALIASES).map(([from, to]) => [spacingKey(from), to]),
+);
+
+// 별칭은 사슬로 따라간다. 「생애사 연구방법」 → 「생애사 연구」 → 「생애사」처럼 대표어가
+// 다시 다른 이름으로 옮겨 갈 수 있어서다. 표를 잘못 적어 고리가 생겨도 멈추게 해 둔다.
+function resolveAlias(keyword: string): string {
+  let current = stripGloss(keyword.trim());
+  const seen = new Set<string>();
+  for (;;) {
+    const key = spacingKey(current);
+    if (seen.has(key)) return current;
+    seen.add(key);
+    const next = ALIAS_BY_KEY.get(key);
+    if (next === undefined) return current;
+    current = stripGloss(next.trim());
+  }
+}
+
 // 주제어 하나하나에 대표어를 달아 준다. 대표어를 고르는 순서는,
-//   1. 별칭 표에 적혀 있으면 그것
-//   2. 번역 괄호를 걷어낸 형태
+//   1. 번역 괄호를 걷어낸 형태
+//   2. 별칭 표를 사슬 끝까지 따라간 이름
 //   3. 공백을 지운 형태가 같은 것들끼리 묶고, 그중 편수가 가장 많은 표기
 //      (생애사 연구 131편 ← 생애사연구 25편). 편수가 같으면 먼저 나온 것.
 export function buildCanonicalMap(papers: PaperData[]): Map<string, string> {
@@ -109,7 +136,7 @@ export function buildCanonicalMap(papers: PaperData[]): Map<string, string> {
   // 낸 이름이 또 다른 표기와 띄어쓰기만 다를 수 있어(농촌여성노인 → 농촌 여성) 단계를 잇는다.
   const aliased = new Map<string, string>();
   for (const keyword of order) {
-    aliased.set(keyword, stripGloss(KEYWORD_ALIASES[keyword] ?? keyword));
+    aliased.set(keyword, resolveAlias(keyword));
   }
 
   // 띄어쓰기 덩이마다 대표 표기를 고른다. 앞 단계가 만들어 낸 이름은 원본에 없을 수도 있어,
