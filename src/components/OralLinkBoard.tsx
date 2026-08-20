@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { SegmentLinkRow, SourceOption } from "@/lib/db";
@@ -55,12 +56,15 @@ function SegmentCard({ entry, events }: { entry: SegmentEntry; events: EventOpti
           onUnlink={(eventId) => unlinkTargetFromEvent(eventId, "segment", entry.id)}
           emptyHint={<>연표에 사건이 없습니다.</>}
         />
-        <a
+        {/* 같은 앱 안이라 Link로 넘어간다 — 맨 <a>로 두면 문서를 통째로 다시 받는 동안
+            이 관리 화면이 그대로 남아 있다가 목록으로 튄다. 다른 화면의 구술 링크는
+            이미 Link를 쓴다(TimelineExperience·MaterialSearch). */}
+        <Link
           href={`/segments?focus=${entry.id}`}
           className="pb-1 font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
         >
-          본문 보기 ↗
-        </a>
+          본문 보기 →
+        </Link>
       </div>
     </>
   );
