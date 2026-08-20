@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PaperData } from "@/lib/types";
 import { buildCanonicalMap, canonicalKeywords } from "@/lib/keyword-aliases";
+import { buildDuplicateFolding } from "@/lib/paper-duplicates";
 import {
   ADD_BUTTON_CLASSNAME,
   DOT_CONFIRMED,
@@ -148,8 +149,16 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
 
   // 쳐낸 논문도 함께 받아 온다(되돌리려면 목록이 있어야 한다) — 세는 자리·주제어 클라우드는
   // 보이는 논문만 기준으로 삼는다.
-  const visiblePool = useMemo(() => papers.filter((p) => !p.hiddenAt), [papers]);
+  const livePapers = useMemo(() => papers.filter((p) => !p.hiddenAt), [papers]);
   const hiddenPapers = useMemo(() => papers.filter((p) => p.hiddenAt), [papers]);
+
+  // 같은 논문이 두 번 잡힌 것은 한 편만 세우고 나머지는 접는다. 쳐낸 논문은 애초에 목록에
+  // 없으니 대표가 될 수 없다 — 접기는 살아 있는 것들 사이에서만 따진다.
+  const duplicates = useMemo(() => buildDuplicateFolding(livePapers), [livePapers]);
+  const visiblePool = useMemo(
+    () => livePapers.filter((p) => !duplicates.folded.has(p.id)),
+    [livePapers, duplicates],
+  );
 
   // 표기가 갈린 주제어를 대표어로 묶는 표 — 클라우드·연관·필터·논문 칩이 모두 이걸 통해 본다.
   // 쳐낸 논문의 주제어도 대표를 정하는 데 함께 센다(되돌리면 같은 이름으로 돌아와야 한다).
@@ -365,6 +374,19 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                         {paper.paperType}
                       </span>
                       <span className="font-mono text-[11px] text-grey">{paper.year ?? "연도 미상"}</span>
+                      {/* 같은 논문이 여러 번 잡혀 접힌 자리 — 무엇이 접혔는지 짚어 준다. 지운 것이
+                          아니라 겹쳐 둔 것이라, 쳐냄의 빨강이 아니라 회색 칩으로 둔다. */}
+                      {(duplicates.foldedUnder.get(paper.id)?.length ?? 0) > 0 && (
+                        <span
+                          title={duplicates.foldedUnder
+                            .get(paper.id)!
+                            .map((d) => `${d.author} · ${d.journalName ?? d.institution ?? ""} ${d.year ?? ""}`.trim())
+                            .join("\n")}
+                          className="rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey"
+                        >
+                          중복 {duplicates.foldedUnder.get(paper.id)!.length}편 접힘
+                        </span>
+                      )}
                       <FlagToggle
                         active={paper.isImportant}
                         onToggle={(next) => togglePaperImportant(paper.id, next)}
