@@ -346,8 +346,7 @@ export interface InactiveSegment {
   dateValue: string;
 }
 
-// 비활성 구술함. 사료와 같은 자리·같은 규칙이되, 지우는 문은 더 좁다 — CSV 동기화로 들어온
-// 발췌는 화면에서 지울 수 없다는 규칙(segment-actions)이 여기에도 그대로 적용된다.
+// 비활성 구술함. 사료와 같은 자리·같은 규칙이다 — 내린 것만 여기 서고, 완전 삭제도 여기서만 연다.
 export async function getInactiveSegments(): Promise<InactiveSegment[]> {
   const { data, error } = await supabase
     .from("segments")

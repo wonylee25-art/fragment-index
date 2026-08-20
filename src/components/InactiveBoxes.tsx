@@ -133,8 +133,7 @@ export function InactiveBoxes({
       <Box title="비활성 구술함" count={segments.length}>
         <>
           <p className="mt-2 font-mono text-[11px] leading-5 text-grey">
-            구술 목록·연표에서 빠져 있을 뿐 DB에는 그대로 있습니다. CSV 동기화로 들어온 발췌는
-            여기서도 지울 수 없습니다 — 원본 CSV에서 빼야 합니다.
+            구술 목록·연표에서 빠져 있을 뿐 DB에는 그대로 있습니다.
           </p>
           <ul className="mt-2 flex flex-col gap-1">
             {segments.map((segment) => (
@@ -142,23 +141,12 @@ export function InactiveBoxes({
                 key={segment.id}
                 onRestore={() => reactivateSegment(segment.id)}
                 deleteButton={
-                  // 화면에서 직접 넣은 발췌(manual-)만 지울 수 있다 — segment-actions의 규칙을
-                  // 버튼 자리에서 미리 지킨다. 눌러야 막히는 것보다 없는 편이 정직하다.
-                  segment.id.startsWith("manual-") ? (
-                    <ConfirmDeleteButton
-                      onDelete={() => deleteSegment(segment.id)}
-                      confirmMessage={`“${segment.itemTitle}”을(를) DB에서 완전히 지웁니다. 발췌 본문·화자·각주와 연결선이 함께 사라지고, 되돌릴 수 없습니다.`}
-                      label="완전 삭제"
-                      className="font-mono text-[11px] text-orange-fill underline decoration-dotted underline-offset-4 hover:opacity-70 disabled:opacity-50"
-                    />
-                  ) : (
-                    <span
-                      title="CSV 동기화로 들어온 발췌입니다. 원본 CSV에서 빼세요."
-                      className="cursor-help font-mono text-[11px] text-line"
-                    >
-                      CSV 동기화분
-                    </span>
-                  )
+                  <ConfirmDeleteButton
+                    onDelete={() => deleteSegment(segment.id)}
+                    confirmMessage={`“${segment.itemTitle}”을(를) DB에서 완전히 지웁니다. 발췌 본문·화자·각주와 연결선이 함께 사라지고, 되돌릴 수 없습니다.`}
+                    label="완전 삭제"
+                    className="font-mono text-[11px] text-orange-fill underline decoration-dotted underline-offset-4 hover:opacity-70 disabled:opacity-50"
+                  />
                 }
               >
                 <span className="mr-2 font-mono text-[11px] tabular-nums text-grey">

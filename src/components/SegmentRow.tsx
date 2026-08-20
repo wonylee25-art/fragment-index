@@ -50,12 +50,6 @@ function SpeakerNames({ people }: { people: PersonBrief[] }) {
   );
 }
 
-// 화면에서 직접 넣은 발췌는 id가 "manual-"로 시작한다(segment-actions.ts). CSV
-// 동기화분은 CSV의 segment_id를 그대로 쓰므로 이 접두어가 둘을 가른다.
-function isManual(id: string) {
-  return id.startsWith("manual-");
-}
-
 export function SegmentRow({
   data,
   zebra,
@@ -152,40 +146,34 @@ export function SegmentRow({
 
         {/* 행의 아랫줄 — 왼쪽은 이 발췌가 어디서 왔는지, 오른쪽은 이 발췌를 손보는 일.
             읽는 데 필요한 것은 위(화자·이견·각주)에 두고, 손대는 것은 여기로 모은다. */}
-        {(data.sourceRef || isManual(data.id)) && (
-          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-mono text-[11px] text-grey">
-            <span className="min-w-0">
-              {data.sourceRef &&
-                (data.sourceRef.url ? (
-                  <a
-                    href={data.sourceRef.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline decoration-dotted underline-offset-4 hover:text-ink"
-                  >
-                    {data.sourceRef.title} ↗
-                  </a>
-                ) : (
-                  <span>{data.sourceRef.title}</span>
-                ))}
-            </span>
+        <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 font-mono text-[11px] text-grey">
+          <span className="min-w-0">
+            {data.sourceRef &&
+              (data.sourceRef.url ? (
+                <a
+                  href={data.sourceRef.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline decoration-dotted underline-offset-4 hover:text-ink"
+                >
+                  {data.sourceRef.title} ↗
+                </a>
+              ) : (
+                <span>{data.sourceRef.title}</span>
+              ))}
+          </span>
 
-            {/* 화면에서 넣은 발췌만 고치고 지울 수 있다 — CSV 동기화분은 여기서 손대도
-                다음 동기화 때 되돌아간다(segment-actions.ts 참고).
-                점선 밑줄을 쓰지 않는다: 이 화면에서 점선 밑줄은 "올려 보면 더 있다"는
-                뜻이고(각주·출처), 눌러서 무언가 일어나는 것과 섞이면 안 된다. */}
-            {isManual(data.id) && (
-              <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
-                {onEdit && (
-                  <button type="button" onClick={onEdit} className="hover:text-ink">
-                    고치기
-                  </button>
-                )}
-                <SegmentDeleteButton segmentId={data.id} noteCount={data.noteList.length} />
-              </span>
+          {/* 점선 밑줄을 쓰지 않는다: 이 화면에서 점선 밑줄은 "올려 보면 더 있다"는
+              뜻이고(각주·출처), 눌러서 무언가 일어나는 것과 섞이면 안 된다. */}
+          <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
+            {onEdit && (
+              <button type="button" onClick={onEdit} className="hover:text-ink">
+                고치기
+              </button>
             )}
-          </div>
-        )}
+            <SegmentDeleteButton segmentId={data.id} noteCount={data.noteList.length} />
+          </span>
+        </div>
 
         {/* 관련자료는 붙어 있을 때만 여닫는다 — "관련자료 0"은 눌러도 아무 일이 없다 */}
         {data.relatedItems.length > 0 && (

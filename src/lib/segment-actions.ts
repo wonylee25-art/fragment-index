@@ -8,8 +8,9 @@ import { linkTargetToEvent } from "./link-actions";
 // 구술 발췌를 사람이 직접 등록한다. 사료(archive_items)와 달리 구술은 "누가 묻고 누가
 // 답했는가"와 "어느 책 몇 쪽에서 왔는가"가 자료의 일부라, 받는 것이 훨씬 많다.
 //
-// scripts/sync-csv.mjs가 CSV 동기화분에 쓰는 id는 CSV의 segment_id 그대로라,
-// "manual-" 접두어를 쓰면 화면에서 직접 추가한 발췌가 그 upsert와 절대 충돌하지 않는다.
+// 원본은 Supabase 하나뿐이다. 예전에는 구글 시트에서 내보낸 CSV가 segments를 덮어써서
+// 화면에서 고치고 지우는 문을 "manual-" 접두어로 막아 두었는데(2026-08-19에 sync-csv.mjs가
+// 구술을 놓았다), 되감을 것이 없어진 뒤로 그 빗장은 손댈 수 없는 행만 남기고 있었다. 걷어냈다.
 
 export type SpeakerRoleLabel = "구술자" | "면담자";
 
@@ -136,12 +137,6 @@ export async function updateSegment(input: UpdateSegmentInput): Promise<void> {
   const segmentText = input.segmentText.trim();
   if (!segmentText) throw new Error("구술 본문을 입력하세요.");
 
-  // CSV 동기화분은 막는다. sync-csv.mjs가 CSV의 segment_id로 upsert하기 때문에 여기서
-  // 고쳐 봐야 다음 동기화 때 원래 값으로 되돌아간다 — 고쳐진 줄 알고 넘어가는 게 더 나쁘다.
-  if (!input.id.startsWith("manual-")) {
-    throw new Error("CSV 동기화로 들어온 발췌는 화면에서 고칠 수 없습니다. 원본 CSV를 고치세요.");
-  }
-
   const sourceId = await resolveSourceId(input);
   const narrators = input.speakers.filter((s) => s.role === "구술자");
   const interviewers = input.speakers.filter((s) => s.role === "면담자");
@@ -239,10 +234,6 @@ export async function reactivateSegment(id: string) {
 // on delete cascade라 함께 사라진다. links만 손으로 지운다 — 사건-자료 연결선은
 // 사료와 구술을 함께 담느라 target_id가 FK가 아니어서(polymorphic) 남아 버린다.
 export async function deleteSegment(id: string): Promise<void> {
-  if (!id.startsWith("manual-")) {
-    throw new Error("CSV 동기화로 들어온 발췌는 화면에서 지울 수 없습니다. 원본 CSV에서 빼세요.");
-  }
-
   const { error: linkError } = await supabaseAdmin
     .from("links")
     .delete()
