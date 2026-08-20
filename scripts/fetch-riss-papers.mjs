@@ -89,6 +89,17 @@ const APPLIED_FIELD_BLOCKLIST = [
   "평생교육", "평생학습", "성인계속", "성인교육", "Andragogy", "HRD",
 ];
 
+// 제목에 이 말이 박힌 논문은 지면을 보지 않고 거른다 — "학습생애사"는 평생학습 연구가 생애사를
+// 학습경험 조사 도구로 쓸 때 붙이는 이름이라, 어느 지면에 실리든 다루는 것이 구술 기록이 아니다
+// (2026-08-20 사용자 지시. 쳐낸 10편 대 남긴 2편). 주제어로도 한 번 더 거르지만
+// (APPLIED_LEARNING_KEYWORDS), 제목에서 걸리면 상세페이지를 요청할 것도 없이 목록에서 끝난다.
+const TITLE_BLOCKLIST = ["학습생애사"];
+
+function hasBlockedTitle(item) {
+  if (ALWAYS_ALLOWED_JOURNALS.has(item.journalName)) return false;
+  return TITLE_BLOCKLIST.some((word) => item.title.includes(word));
+}
+
 // 학술논문을 수집 대상으로 볼지 판정한다. RISS 정확검색은 제목뿐 아니라 초록·주제어까지 걸리므로,
 // DBpia의 "논문명" 검색에 해당하는 좁힘(제목 조건)을 여기서 따로 건다.
 function isCollectedArticle(item) {
@@ -165,6 +176,7 @@ async function main() {
       // 연도를 못 읽은 건(year === null)은 컷에 안 걸리게 둔다 — 몰라서 버리는 것보다 받아서
       // 화면에서 쳐내는 편이 낫다.
       if (item.year !== null && item.year < MIN_PUBLICATION_YEAR) continue;
+      if (hasBlockedTitle(item)) continue;
       if (item.kind === "학위논문") {
         if (isExcludedInstitution(item.institution)) continue;
         theses.set(item.controlNo, item);
