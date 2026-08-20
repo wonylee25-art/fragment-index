@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PaperData } from "@/lib/types";
+import { buildCanonicalMap, canonicalKeywords } from "@/lib/keyword-aliases";
 import {
   ADD_BUTTON_CLASSNAME,
   DOT_CONFIRMED,
@@ -80,10 +81,11 @@ function sortPapers(papers: PaperData[], mode: SortMode): PaperData[] {
 // "이 배지가 무슨 색이었더라"만 늘렸다. 넷 다 같은 회색 칩으로 두고 글자로 읽는다.
 const PAPER_TYPE_CLASSNAME = "bg-surface text-grey";
 
-function buildFrequency(papers: PaperData[]) {
+// 한 논문 안에서 「농촌 여성」과 「농촌여성노인」이 같은 대표어로 접히면 한 번만 센다.
+function buildFrequency(papers: PaperData[], canonical: Map<string, string>) {
   const freq = new Map<string, number>();
   for (const p of papers) {
-    for (const k of p.keywords) {
+    for (const k of canonicalKeywords(p.keywords, canonical)) {
       freq.set(k, (freq.get(k) ?? 0) + 1);
     }
   }
@@ -91,10 +93,10 @@ function buildFrequency(papers: PaperData[]) {
 }
 
 // 같은 논문에 함께 등장한 주제어 쌍의 횟수 — "연관 단어" 파악용.
-function buildCooccurrence(papers: PaperData[]) {
+function buildCooccurrence(papers: PaperData[], canonical: Map<string, string>) {
   const co = new Map<string, Map<string, number>>();
   for (const p of papers) {
-    const uniq = Array.from(new Set(p.keywords));
+    const uniq = canonicalKeywords(p.keywords, canonical);
     for (const a of uniq) {
       for (const b of uniq) {
         if (a === b) continue;
@@ -149,8 +151,12 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const visiblePool = useMemo(() => papers.filter((p) => !p.hiddenAt), [papers]);
   const hiddenPapers = useMemo(() => papers.filter((p) => p.hiddenAt), [papers]);
 
-  const frequency = useMemo(() => buildFrequency(visiblePool), [visiblePool]);
-  const cooccurrence = useMemo(() => buildCooccurrence(visiblePool), [visiblePool]);
+  // 표기가 갈린 주제어를 대표어로 묶는 표 — 클라우드·연관·필터·논문 칩이 모두 이걸 통해 본다.
+  // 쳐낸 논문의 주제어도 대표를 정하는 데 함께 센다(되돌리면 같은 이름으로 돌아와야 한다).
+  const canonical = useMemo(() => buildCanonicalMap(papers), [papers]);
+
+  const frequency = useMemo(() => buildFrequency(visiblePool, canonical), [visiblePool, canonical]);
+  const cooccurrence = useMemo(() => buildCooccurrence(visiblePool, canonical), [visiblePool, canonical]);
 
   const cloudKeywords = useMemo(() => {
     return Array.from(frequency.entries())
@@ -165,11 +171,11 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
 
   const filteredPapers = useMemo(() => {
     return (hiddenOnly ? hiddenPapers : visiblePool).filter((p) => {
-      if (activeKeyword && !p.keywords.includes(activeKeyword)) return false;
+      if (activeKeyword && !canonicalKeywords(p.keywords, canonical).includes(activeKeyword)) return false;
       if (importantOnly && !p.isImportant) return false;
       return true;
     });
-  }, [visiblePool, hiddenPapers, hiddenOnly, activeKeyword, importantOnly]);
+  }, [visiblePool, hiddenPapers, hiddenOnly, activeKeyword, importantOnly, canonical]);
 
   const sortedPapers = useMemo(() => sortPapers(filteredPapers, sortMode), [filteredPapers, sortMode]);
 
@@ -430,7 +436,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
 
                     {paper.keywords.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {paper.keywords.map((k) => (
+                        {canonicalKeywords(paper.keywords, canonical).map((k) => (
                           <button
                             key={k}
                             type="button"
