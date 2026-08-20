@@ -17,6 +17,7 @@
 import { existsSync } from "node:fs";
 import { politeFetch, parseListItems, parseVolumeIssue, stripTags } from "./lib/riss-http.mjs";
 import { RISS_PAPERS_CSV_PATH, readRissPapersCsv, writeRissPapersCsv } from "./lib/riss-papers-csv.mjs";
+import { readCutPapers, writeCutPapers } from "./lib/cut-papers.mjs";
 
 const QUERIES = [
   { colName: "bib_t", phrase: "구술사", kind: "학위논문" },
@@ -31,17 +32,10 @@ const INSTITUTION_BLOCKLIST = [
   "체육", "스포츠", "무용", "태권도", "골프", "무도",
 ];
 
-// INSTITUTION_BLOCKLIST는 발행기관명만 보므로 못 거르는, 개별 체육인의 생애사(유도·축구·탁구 등
-// 인물 중심 스포츠 전기) — 2026-07-25 사용자가 화면에서 직접 삭제해 확인한 값. 재실행 때마다
-// 다시 긁히지 않도록 control_no로 고정 제외한다.
-const MANUALLY_EXCLUDED_CONTROL_NOS = new Set([
-  "76da86f493d49ab0ffe0bdc3ef48d419", // 강원도 유도인의 구술생애사
-  "e8184fe5b8914777ffe0bdc3ef48d419", // 체육인 한상준의 생애사
-  "adfc3ca865676f16ffe0bdc3ef48d419", // 돈키호테, 체육선생의 삶
-  "54432d3847100587ffe0bdc3ef48d419", // 탁구인 윤길중의 생애사
-  "93989f0ea07cd072ffe0bdc3ef48d419", // 김왕주 축구감독의 생애사
-  "7173d42142b2fbe14884a65323211ff0", // 철원군유도 발전과정 : 개인생애사를 중심으로
-]);
+// 한 번 쳐낸 논문은 다시 긁지 않는다 — 화면에서 손으로 쳐낸 것과 아래 주제어 규칙이 거른 것이
+// 모두 data/cut-papers.json에 등록번호로 적혀 있다(scripts/lib/cut-papers.mjs 참고).
+// 손으로 쳐낸 것을 명부에 옮기려면 수집 전에 npm run dump:cut을 돌린다.
+const CUT_PAPERS = readCutPapers();
 
 // 2026-08-19까지 학술논문은 이 두 발행물만 받았다. 이제는 조건을 통과 못 해도 무조건 넣는
 // "구술사 전문지" 목록으로 남는다 — 제목에 구술·생애사가 없는 방법론 논문도 여기 실린 건 다 받는다.
@@ -64,6 +58,22 @@ const JOURNAL_FIELD_BLOCKLIST = [
   "간호", "의학", "재활", "치의학", "한의", "약학", "수의",
   "공학", "건축", "디자인", "미술",
 ];
+
+// 2026-08-20에 사용자가 350편 남짓을 손으로 쳐냈다. 그 중 한 갈래는 규칙으로 딱 떨어진다 —
+// 생애사를 "질적 연구 방법"으로 빌려 쓴 평생학습·성인교육 계열 논문(학습생애사·직업생애사로
+// 부르며, 연구 대상은 학습자·교사의 학습경험과 전문성이지 구술 기록이 아니다). 아래 주제어가
+// 붙은 논문은 쳐낸 쪽이 35편, 남긴 쪽이 1편이라 걸러도 잃는 것이 거의 없다.
+// 나머지 갈래(사회복지·특수교육·상담 지면의 생애사 응용, 개인 전기)는 남긴 논문과 절반씩
+// 섞여 있어 규칙으로 세우지 않았다 — 화면에서 손으로 쳐내고 명부에 쌓는 쪽이 낫다.
+const APPLIED_LEARNING_KEYWORDS = new Set([
+  "학습생애사", "직업생애사", "평생학습", "학습경험", "경험학습", "전문성 발달", "전문성", "문화적 학습",
+]);
+
+function isAppliedLearningStudy(item, keywords) {
+  if (ALWAYS_ALLOWED_JOURNALS.has(item.journalName)) return false;
+  if (/구술/.test(item.title)) return false;
+  return keywords.some((k) => APPLIED_LEARNING_KEYWORDS.has(k));
+}
 
 // 학술논문을 수집 대상으로 볼지 판정한다. RISS 정확검색은 제목뿐 아니라 초록·주제어까지 걸리므로,
 // DBpia의 "논문명" 검색에 해당하는 좁힘(제목 조건)을 여기서 따로 건다.
@@ -135,7 +145,7 @@ async function main() {
   for (const q of QUERIES) {
     const items = await fetchAllListPages(q.colName, q.phrase, q.kind);
     for (const item of items) {
-      if (MANUALLY_EXCLUDED_CONTROL_NOS.has(item.controlNo)) continue;
+      if (CUT_PAPERS[item.controlNo]) continue;
       // 연도를 못 읽은 건(year === null)은 컷에 안 걸리게 둔다 — 몰라서 버리는 것보다 받아서
       // 화면에서 쳐내는 편이 낫다.
       if (item.year !== null && item.year < MIN_PUBLICATION_YEAR) continue;
@@ -168,6 +178,12 @@ async function main() {
       detail = await fetchDetail(item);
     } catch (err) {
       console.warn(`  실패, 건너뜀: ${err.message}`);
+      continue;
+    }
+    if (isAppliedLearningStudy(item, detail.keywords)) {
+      console.log("  주제어가 평생학습 계열이라 거름 — data/cut-papers.json에 적는다");
+      CUT_PAPERS[item.controlNo] = { title: item.title, reason: "평생학습 계열 주제어" };
+      writeCutPapers(CUT_PAPERS);
       continue;
     }
     existing.set(paperId, {
