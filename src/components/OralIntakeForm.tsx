@@ -7,7 +7,13 @@ import { serializeUtterances } from "@/lib/segment-text";
 import { PersonBrief, PersonKind, SegmentCardData, Utterance } from "@/lib/types";
 import { SourceOption } from "@/lib/db";
 import { EventOption } from "./EventPicker";
-import { SpeakerOption, UtteranceDraft, UtteranceEditor } from "./UtteranceEditor";
+import {
+  describeSpeaker,
+  ROLE_ONLY,
+  SpeakerOption,
+  UtteranceDraft,
+  UtteranceEditor,
+} from "./UtteranceEditor";
 
 // 구술 추가. 구술 목록 위에서 열리고, 구술이 구술인 이유를 다 받는다 — 어느 책 몇 쪽에서
 // 왔는지, 누가 묻고 누가 답했는지, 원본에 각주가 어디에 달려 있었는지.
@@ -41,16 +47,18 @@ function toSpeakerOptions(people: PersonBrief[], role: SpeakerRoleLabel): Speake
 // 저장된 본문을 다시 줄 단위 입력기로 되돌린다. 저장할 때 화자는 이름 문자열로 눌러
 // 담기므로(segment-text.ts) 이름을 명단의 id로 되짚는다.
 //
-// 이름이 안 걸리는 줄은 지문으로 둔다. 역할만 보고 "그 역할의 첫 화자"로 떨어뜨리면
-// 지문이 구술자 발화로 바뀐다 — 지문은 접두사 없이 저장되고, 접두사 없는 줄은 파서가
-// speaker 없는 narrator로 돌려주기 때문에 둘의 모양이 같다. 고칠 수 있는 것은 화면에서
-// 넣은 발췌뿐이고, 그것들은 발화마다 이름이 붙어 있으므로 이름이 없으면 지문이 맞다.
+// 이름이 안 걸리는 줄은 역할로 되돌린다 — "구술자: …"처럼 이름 없이 역할만 붙은 줄은
+// 파서가 speaker 없는 narrator/interviewer로 돌려주므로 이름 없는 역할 화자로 세운다.
+// 접두사가 아예 없던 줄만 지문(stage)이라 화자가 없다.
 function toUtteranceDrafts(utterances: Utterance[], roster: SpeakerOption[]): UtteranceDraft[] {
   const idByName = new Map(roster.map((s) => [s.name, s.id]));
-  const drafts = utterances.map(({ text, speaker }) => ({
-    speakerId: (speaker ? idByName.get(speaker) : undefined) ?? null,
-    text,
-  }));
+  const drafts = utterances.map(({ text, speaker, role }) => {
+    const named = speaker ? idByName.get(speaker) : undefined;
+    if (named) return { speakerId: named, text };
+    if (role === "narrator") return { speakerId: ROLE_ONLY.구술자, text };
+    if (role === "interviewer") return { speakerId: ROLE_ONLY.면담자, text };
+    return { speakerId: null, text };
+  });
   return drafts.length > 0 ? drafts : [{ speakerId: null, text: "" }];
 }
 
@@ -91,7 +99,7 @@ export function OralIntakeForm({
           ...toSpeakerOptions(editing.narrators, "구술자"),
           ...toSpeakerOptions(editing.interviewers, "면담자"),
         ])
-      : [{ speakerId: null, text: "" }],
+      : [{ speakerId: ROLE_ONLY.구술자, text: "" }],
   );
   const [notes, setNotes] = useState<string[]>(editing?.noteList ?? []);
   const [dateValue, setDateValue] = useState(editing?.dateValue ?? "");
@@ -105,19 +113,24 @@ export function OralIntakeForm({
   const selectedEvent = events.find((e) => e.id === eventId) ?? null;
   const roster = useMemo(() => [...narrators, ...interviewers], [narrators, interviewers]);
 
-  // 첫 화자가 정해지면 비어 있던 첫 줄이 그 사람 말이 되게 한다 — 지문으로 시작하는 구술은 드물다.
-  function seedFirstLine(speakerId: string) {
+  // 이름 없이 "구술자"로 적어 두었던 줄들을, 그 역할의 첫 인물이 정해지는 순간 그 사람 말로
+  // 바꾼다 — 본문을 먼저 옮겨 적고 이름을 나중에 확인하는 순서가 흔한데, 그때 앞서 적은 줄만
+  // 이름 없이 남으면 한 면담이 두 가지로 저장된다. 둘째 화자부터는 건드리지 않는다(누구 말인지
+  // 단정할 수 없다).
+  function adoptRoleOnlyLines(speaker: SpeakerOption, isFirstOfRole: boolean) {
+    if (!isFirstOfRole) return;
     setUtterances((rows) =>
-      rows.length === 1 && rows[0].speakerId === null && rows[0].text === ""
-        ? [{ speakerId, text: "" }]
-        : rows,
+      rows.map((r) => (r.speakerId === ROLE_ONLY[speaker.role] ? { ...r, speakerId: speaker.id } : r)),
     );
   }
 
+  // 명단에서 뺀 사람의 줄은 역할만 남긴다 — 지문으로 떨어뜨리면 누가 말한 줄인지가 사라진다.
   function removeSpeaker(id: string, role: SpeakerRoleLabel) {
     const setter = role === "구술자" ? setNarrators : setInterviewers;
     setter((prev) => prev.filter((s) => s.id !== id));
-    setUtterances((rows) => rows.map((r) => (r.speakerId === id ? { ...r, speakerId: null } : r)));
+    setUtterances((rows) =>
+      rows.map((r) => (r.speakerId === id ? { ...r, speakerId: ROLE_ONLY[role] } : r)),
+    );
   }
 
   function addFootnote() {
@@ -130,12 +143,15 @@ export function OralIntakeForm({
   async function save(intent: "link" | "hold" | "update") {
     const speakerById = new Map(roster.map((s) => [s.id, s]));
     const utteranceList: Utterance[] = utterances.map(({ speakerId, text }) => {
-      const speaker = speakerId ? speakerById.get(speakerId) : undefined;
-      if (!speaker) return { role: "stage", text };
+      const { label, role } = describeSpeaker(speakerId, speakerById);
+      if (!role) return { role: "stage", text };
+      // 이름 없이 역할만 고른 줄은 speaker를 비워 둔다 — serializeUtterances가 "구술자: …"로
+      // 눌러 담고, 인물 전거와 엮이지 않는다.
+      const named = speakerId !== null && speakerById.has(speakerId);
       return {
-        role: speaker.role === "면담자" ? "interviewer" : "narrator",
+        role: role === "면담자" ? "interviewer" : "narrator",
         text,
-        speaker: speaker.name,
+        ...(named ? { speaker: label } : {}),
       };
     });
 
@@ -175,7 +191,7 @@ export function OralIntakeForm({
           : "보류함에 저장됨 — 사료 연결 화면에서 사건에 붙일 수 있습니다",
       );
       // 같은 면담에서 발췌를 여러 개 뜨는 게 보통이라 사건·출처·화자는 남긴다.
-      setUtterances([{ speakerId: narrators[0]?.id ?? null, text: "" }]);
+      setUtterances([{ speakerId: narrators[0]?.id ?? ROLE_ONLY.구술자, text: "" }]);
       setNotes([]);
       setPage("");
       setKeywords("");
@@ -316,8 +332,8 @@ export function OralIntakeForm({
           speakers={narrators}
           people={people}
           onAdd={(s) => {
+            adoptRoleOnlyLines(s, narrators.length === 0);
             setNarrators((prev) => [...prev, s]);
-            seedFirstLine(s.id);
           }}
           onRemove={(id) => removeSpeaker(id, "구술자")}
           onCreated={(person) => setPeople((prev) => [...prev, person])}
@@ -326,7 +342,10 @@ export function OralIntakeForm({
           role="면담자"
           speakers={interviewers}
           people={people}
-          onAdd={(s) => setInterviewers((prev) => [...prev, s])}
+          onAdd={(s) => {
+            adoptRoleOnlyLines(s, interviewers.length === 0);
+            setInterviewers((prev) => [...prev, s]);
+          }}
           onRemove={(id) => removeSpeaker(id, "면담자")}
           onCreated={(person) => setPeople((prev) => [...prev, person])}
         />
