@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { SegmentRow } from "./SegmentRow";
 import { OralIntakeForm } from "./OralIntakeForm";
 import { EventOption } from "./EventPicker";
@@ -23,19 +24,31 @@ const SORT_OPTIONS: { value: SortDirection; label: string }[] = [
   { value: "desc", label: "최신순" },
 ];
 
+// URL의 ?focus= 만 브라우저에서 읽어 위로 올린다. 이 값을 페이지의 searchParams로 받으면
+// /segments 라우트 전체가 요청 시점 렌더링으로 내려가 목록을 열 때마다 DB 왕복을 기다리게
+// 된다(segments/page.tsx 참고). useSearchParams는 프리렌더된 라우트에서 가장 가까운 Suspense
+// 경계까지를 클라이언트 렌더로 돌리므로, 아무것도 그리지 않는 이 잎만 경계 안에 둔다 —
+// 목록 자체는 빌드 때 만든 HTML 그대로 나온다.
+function FocusParam({ onChange }: { onChange: (id: string | null) => void }) {
+  const focus = useSearchParams().get("focus");
+  useEffect(() => {
+    onChange(focus);
+  }, [focus, onChange]);
+  return null;
+}
+
 export function SegmentListClient({
   segments,
-  focusId,
   persons,
   sources,
   events,
 }: {
   segments: SegmentCardData[];
-  focusId?: string;
   persons: PersonBrief[];
   sources: SourceOption[];
   events: EventOption[];
 }) {
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [activeKeyword, setActiveKeyword] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -78,6 +91,10 @@ export function SegmentListClient({
 
   return (
     <div>
+      <Suspense fallback={null}>
+        <FocusParam onChange={setFocusId} />
+      </Suspense>
+
       {/* 목록 위 도구는 한 줄로 끝낸다 — 검색·정렬·추가. 연표(TimelineExperience)가 먼저
           같은 모양으로 줄였고, 두 목록이 다른 규칙으로 열려 있을 이유가 없다.
           키워드는 개수가 정해져 있지 않아 이 줄 아래로 내린다 — 한 줄에 끼워 넣으면
