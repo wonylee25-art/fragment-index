@@ -39,6 +39,52 @@ const SECTION_TITLE_CLASSNAME =
 
 const EMPTY_SOURCE = { title: "", creator: "", publisher: "", url: "" };
 
+// 이름 칸에 적는 중인 것. [추가]를 누르기 전의 상태라 아직 명단에도 DB에도 없다.
+// 폼이 들고 있는다 — 이 칸에만 두면 저장할 때 적어둔 것이 남아 있는지 알 길이 없어,
+// 누르지 않은 채 저장한 신상이 조용히 버려진다.
+export interface SpeakerDraft {
+  kind: PersonKind;
+  name: string;
+  affiliation: string;
+}
+
+const EMPTY_DRAFT: SpeakerDraft = { kind: "실명", name: "", affiliation: "" };
+
+// 이름은 비우고 표기 방식은 남긴다 — 한 면담의 화자는 대개 같은 방식으로 불린다.
+function clearedDraft(draft: SpeakerDraft): SpeakerDraft {
+  return { ...draft, name: "", affiliation: "" };
+}
+
+// 적어둔 이름을 명단에 올린다. [추가] 버튼과 저장 직전 마무리가 같은 길을 쓴다 —
+// 두 곳이 각자 만들면 한쪽만 고쳐져서 "버튼으로는 되는데 저장하면 사라지는" 자리가 생긴다.
+async function commitDraft(
+  draft: SpeakerDraft,
+  role: SpeakerRoleLabel,
+  people: PersonBrief[],
+  speakers: SpeakerOption[],
+): Promise<{ speaker: SpeakerOption; created?: PersonBrief } | null> {
+  const typed = draft.name.trim();
+  if (!typed) return null;
+
+  // 실명·가명만 이름으로 이어 붙인다. 미상·익명은 이름이 같아도 늘 새로 만든다 —
+  // 같은 사람임이 확실할 때는 후보 목록에서 직접 고르는 길이 따로 있다.
+  if (REUSES_BY_NAME[draft.kind]) {
+    const existing = people.find((p) => p.name === typed);
+    if (existing) {
+      if (speakers.some((s) => s.id === existing.id)) throw new Error("이미 명단에 있습니다.");
+      return { speaker: { id: existing.id, name: existing.name, role } };
+    }
+  }
+
+  const person = await createPerson({
+    name: typed,
+    affiliation: draft.affiliation,
+    role,
+    kind: draft.kind,
+  });
+  return { speaker: { id: person.id, name: person.name, role }, created: person };
+}
+
 // 화자 명단을 역할이 붙은 형태로 되돌린다.
 function toSpeakerOptions(people: PersonBrief[], role: SpeakerRoleLabel): SpeakerOption[] {
   return people.map((p) => ({ id: p.id, name: p.name, role }));
@@ -92,6 +138,8 @@ export function OralIntakeForm({
     toSpeakerOptions(editing?.interviewers ?? [], "면담자"),
   );
   const [people, setPeople] = useState<PersonBrief[]>(persons);
+  const [narratorDraft, setNarratorDraft] = useState<SpeakerDraft>(EMPTY_DRAFT);
+  const [interviewerDraft, setInterviewerDraft] = useState<SpeakerDraft>(EMPTY_DRAFT);
 
   const [utterances, setUtterances] = useState<UtteranceDraft[]>(() =>
     editing
@@ -140,41 +188,87 @@ export function OralIntakeForm({
 
   // 고치기에서는 사건을 붙이지 않는다 — 이미 붙어 있는 연결선을 여기서 또 다루면
   // 어느 쪽이 최종인지 알 수 없어진다(segment-actions.ts의 updateSegment 참고).
-  async function save(intent: "link" | "hold" | "update") {
-    const speakerById = new Map(roster.map((s) => [s.id, s]));
-    const utteranceList: Utterance[] = utterances.map(({ speakerId, text }) => {
-      const { label, role } = describeSpeaker(speakerId, speakerById);
-      if (!role) return { role: "stage", text };
-      // 이름 없이 역할만 고른 줄은 speaker를 비워 둔다 — serializeUtterances가 "구술자: …"로
-      // 눌러 담고, 인물 전거와 엮이지 않는다.
-      const named = speakerId !== null && speakerById.has(speakerId);
-      return {
-        role: role === "면담자" ? "interviewer" : "narrator",
-        text,
-        ...(named ? { speaker: label } : {}),
-      };
-    });
+  // 이름 칸에 적어만 두고 [추가]를 누르지 않은 화자를 저장 직전에 명단에 올린다. 적어 넣은
+  // 신상을 버튼 하나 안 눌렀다고 조용히 버리면, 저장은 됐는데 구술자가 없는 발췌가 남는다.
+  // 상태 갱신은 다음 렌더에나 반영되므로, 이번 저장에 쓸 명단은 여기서 직접 들고 간다.
+  async function flushDrafts() {
+    let narratorList = narrators;
+    let interviewerList = interviewers;
+    let lines = utterances;
 
-    const segmentText = serializeUtterances(utteranceList);
-    if (!segmentText) {
-      setError("구술 본문을 입력하세요.");
-      return;
+    const pendingDrafts = [
+      { draft: narratorDraft, role: "구술자" as const },
+      { draft: interviewerDraft, role: "면담자" as const },
+    ];
+
+    for (const { draft, role } of pendingDrafts) {
+      const current = role === "구술자" ? narratorList : interviewerList;
+      const result = await commitDraft(draft, role, people, current);
+      if (!result) continue;
+
+      if (result.created) {
+        const created = result.created;
+        setPeople((prev) => [...prev, created]);
+      }
+      // 이름 없이 역할만 붙여 둔 줄은 그 역할의 첫 사람이 정해지는 순간 그 사람 말이 된다
+      // ([추가]로 올릴 때의 adoptRoleOnlyLines와 같은 규칙).
+      if (current.length === 0) {
+        lines = lines.map((r) =>
+          r.speakerId === ROLE_ONLY[role] ? { ...r, speakerId: result.speaker.id } : r,
+        );
+      }
+      if (role === "구술자") {
+        narratorList = [...narratorList, result.speaker];
+        setNarrators(narratorList);
+        setNarratorDraft(clearedDraft(draft));
+      } else {
+        interviewerList = [...interviewerList, result.speaker];
+        setInterviewers(interviewerList);
+        setInterviewerDraft(clearedDraft(draft));
+      }
     }
 
-    const common = {
-      dateValue,
-      segmentText,
-      page,
-      keywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
-      speakers: roster.map((s) => ({ personId: s.id, role: s.role })),
-      noteList: notes,
-      sourceId: sourceMode === "existing" ? sourceId || null : null,
-      sourceDraft: sourceMode === "new" ? source : null,
-    };
+    setUtterances(lines);
+    return { roster: [...narratorList, ...interviewerList], lines, narratorList };
+  }
 
+  async function save(intent: "link" | "hold" | "update") {
     setPending(true);
     setError(null);
     try {
+      const { roster: savingRoster, lines, narratorList } = await flushDrafts();
+
+      const speakerById = new Map(savingRoster.map((s) => [s.id, s]));
+      const utteranceList: Utterance[] = lines.map(({ speakerId, text }) => {
+        const { label, role } = describeSpeaker(speakerId, speakerById);
+        if (!role) return { role: "stage", text };
+        // 이름 없이 역할만 고른 줄은 speaker를 비워 둔다 — serializeUtterances가 "구술자: …"로
+        // 눌러 담고, 인물 전거와 엮이지 않는다.
+        const named = speakerId !== null && speakerById.has(speakerId);
+        return {
+          role: role === "면담자" ? "interviewer" : "narrator",
+          text,
+          ...(named ? { speaker: label } : {}),
+        };
+      });
+
+      const segmentText = serializeUtterances(utteranceList);
+      if (!segmentText) {
+        setError("구술 본문을 입력하세요.");
+        return;
+      }
+
+      const common = {
+        dateValue,
+        segmentText,
+        page,
+        keywords: keywords.split(",").map((k) => k.trim()).filter(Boolean),
+        speakers: savingRoster.map((s) => ({ personId: s.id, role: s.role })),
+        noteList: notes,
+        sourceId: sourceMode === "existing" ? sourceId || null : null,
+        sourceDraft: sourceMode === "new" ? source : null,
+      };
+
       if (intent === "update" && editing) {
         await updateSegment({ ...common, id: editing.id });
         // 고친 값은 목록 행에 그대로 나타나야 하므로 폼을 접는다. 서버 액션이
@@ -191,7 +285,7 @@ export function OralIntakeForm({
           : "보류함에 저장됨 — 사료 연결 화면에서 사건에 붙일 수 있습니다",
       );
       // 같은 면담에서 발췌를 여러 개 뜨는 게 보통이라 사건·출처·화자는 남긴다.
-      setUtterances([{ speakerId: narrators[0]?.id ?? ROLE_ONLY.구술자, text: "" }]);
+      setUtterances([{ speakerId: narratorList[0]?.id ?? ROLE_ONLY.구술자, text: "" }]);
       setNotes([]);
       setPage("");
       setKeywords("");
@@ -331,6 +425,8 @@ export function OralIntakeForm({
           role="구술자"
           speakers={narrators}
           people={people}
+          draft={narratorDraft}
+          onDraftChange={setNarratorDraft}
           onAdd={(s) => {
             adoptRoleOnlyLines(s, narrators.length === 0);
             setNarrators((prev) => [...prev, s]);
@@ -342,6 +438,8 @@ export function OralIntakeForm({
           role="면담자"
           speakers={interviewers}
           people={people}
+          draft={interviewerDraft}
+          onDraftChange={setInterviewerDraft}
           onAdd={(s) => {
             adoptRoleOnlyLines(s, interviewers.length === 0);
             setInterviewers((prev) => [...prev, s]);
@@ -546,6 +644,8 @@ function SpeakerField({
   role,
   speakers,
   people,
+  draft,
+  onDraftChange,
   onAdd,
   onRemove,
   onCreated,
@@ -553,16 +653,17 @@ function SpeakerField({
   role: SpeakerRoleLabel;
   speakers: SpeakerOption[];
   people: PersonBrief[];
+  // 적는 중인 이름은 폼이 들고 있다 — 저장할 때 아직 안 올린 것이 있는지 알아야 하기 때문.
+  draft: SpeakerDraft;
+  onDraftChange: (next: SpeakerDraft) => void;
   onAdd: (speaker: SpeakerOption) => void;
   onRemove: (id: string) => void;
   onCreated: (person: PersonBrief) => void;
 }) {
-  const [kind, setKind] = useState<PersonKind>("실명");
-  const [name, setName] = useState("");
-  const [affiliation, setAffiliation] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { kind, name, affiliation } = draft;
   const help = KIND_HELP[kind];
 
   // 이름을 치는 동안 걸리는 전거를 아래에 깐다. 이름이 정확히 같은 것을 위로 올린다 —
@@ -583,35 +684,22 @@ function SpeakerField({
     }
     setError(null);
     onAdd({ id: person.id, name: person.name, role });
-    setName("");
-    setAffiliation("");
+    onDraftChange(clearedDraft(draft));
   }
 
   async function handleAdd() {
-    const typed = name.trim();
-    if (!typed) {
+    if (!name.trim()) {
       setError("이름을 입력하세요.");
       return;
     }
     setError(null);
-
-    // 실명·가명만 이름으로 이어 붙인다. 미상·익명은 이름이 같아도 늘 새로 만든다 —
-    // 같은 사람임이 확실할 때는 아래 후보에서 직접 고르는 길이 따로 있다.
-    if (REUSES_BY_NAME[kind]) {
-      const existing = people.find((p) => p.name === typed);
-      if (existing) {
-        pick(existing);
-        return;
-      }
-    }
-
     setPending(true);
     try {
-      const person = await createPerson({ name: typed, affiliation, role, kind });
-      onCreated(person);
-      onAdd({ id: person.id, name: person.name, role });
-      setName("");
-      setAffiliation("");
+      const result = await commitDraft(draft, role, people, speakers);
+      if (!result) return;
+      if (result.created) onCreated(result.created);
+      onAdd(result.speaker);
+      onDraftChange(clearedDraft(draft));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -656,7 +744,7 @@ function SpeakerField({
             <button
               key={k}
               type="button"
-              onClick={() => setKind(k)}
+              onClick={() => onDraftChange({ ...draft, kind: k })}
               className={`border px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
                 kind === k
                   ? "border-ink bg-ink text-background"
@@ -672,7 +760,7 @@ function SpeakerField({
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => onDraftChange({ ...draft, name: e.target.value })}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -695,7 +783,15 @@ function SpeakerField({
         <input
           type="text"
           value={affiliation}
-          onChange={(e) => setAffiliation(e.target.value)}
+          onChange={(e) => onDraftChange({ ...draft, affiliation: e.target.value })}
+          onKeyDown={(e) => {
+            // 이름 칸과 같이 Enter로 올린다 — 여기서 Enter가 폼을 제출해 버리면
+            // 적어둔 신상이 명단에 오르지 못한 채 발췌만 저장된다.
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void handleAdd();
+            }
+          }}
           placeholder={`${help.affiliation} — 새 인물일 때만`}
           className={INPUT_CLASSNAME}
         />
