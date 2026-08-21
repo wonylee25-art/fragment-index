@@ -28,23 +28,34 @@ const KIND_TITLE: Record<NonNullable<PersonBrief["kind"]>, string> = {
   미상: "이름이 알려지지 않은 화자입니다.",
 };
 
-// 화자 이름을 가운뎃점으로 잇되, 실명이 아닌 사람에게는 뒤에 표시를 붙인다.
-function SpeakerNames({ people }: { people: PersonBrief[] }) {
+// 한 역할의 화자를 한 사람씩 한 줄로 세운다.
+//
+// 「구술자」·「면담자」를 글자로 박는다 — 예전에는 이름 사이의 화살표 하나가 그 구분을
+// 다 맡았는데, 이 아카이브의 화자는 「미상(40대 남성)」처럼 이름이 이름 노릇을 못 하는
+// 경우가 많아 화살표를 놓치면 누가 묻고 누가 답했는지가 뒤집힌다. 화자가 셋이 되든
+// 이름이 비어 있든 읽는 법이 안 바뀌는 쪽을 골랐다.
+//
+// 소속도 함께 세운다. 실명이면 소속·직위이고, 익명·미상이면 그 이름이 어느 자료 몇 쪽의
+// 누구인지를 가리키는 단서다 — 같은 이름표가 여러 줄 쌓이면 이름만으로는 가려지지 않는다.
+function SpeakerLines({ role, people }: { role: string; people: PersonBrief[] }) {
   return (
     <>
-      {people.map((person, i) => (
-        <span key={person.id}>
-          {i > 0 && " · "}
-          {person.name}
-          {person.kind && (
-            <span
-              title={KIND_TITLE[person.kind]}
-              className="ml-1 border border-line px-1 align-[1px] text-[9px] font-normal text-grey"
-            >
-              {person.kind}
-            </span>
-          )}
-        </span>
+      {people.map((person) => (
+        <div key={person.id} className="flex gap-2">
+          <span className="w-12 shrink-0">{role}</span>
+          <span className="min-w-0">
+            <span className="font-medium text-ink">{person.name}</span>
+            {person.kind && (
+              <span
+                title={KIND_TITLE[person.kind]}
+                className="ml-1 border border-line px-1 align-[1px] text-[9px] font-normal"
+              >
+                {person.kind}
+              </span>
+            )}
+            {person.affiliation && <span className="ml-1.5">{person.affiliation}</span>}
+          </span>
+        </div>
       ))}
     </>
   );
@@ -94,21 +105,6 @@ export function SegmentRow({
             inactiveLabel="중요"
             dotClassName={DOT_MINE}
           />
-          {/* 구술을 알아보는 가장 빠른 단서는 제목이 아니라 누가 말했는가다. 화자가 적혀
-              있으면 그것을 먼저 보이고, 없는 발췌(CSV 동기화분)만 제목으로 되돌아간다. */}
-          {data.narrators.length > 0 ? (
-            <span className="font-medium text-ink">
-              <SpeakerNames people={data.narrators} />
-              {data.interviewers.length > 0 && (
-                <span className="text-grey">
-                  {" ← "}
-                  <SpeakerNames people={data.interviewers} />
-                </span>
-              )}
-            </span>
-          ) : (
-            <span>{data.itemTitle}</span>
-          )}
           {data.hasDiscrepancy && (
             <span className={`${DISCREPANCY_LABEL_CLASSNAME} font-medium`} title={data.discrepancyNote}>
               🔍 이견 발견
@@ -130,6 +126,19 @@ export function SegmentRow({
             >
               📝 각주 {data.noteList.length}
             </span>
+          )}
+        </div>
+
+        {/* 구술을 알아보는 가장 빠른 단서는 제목이 아니라 누가 말했는가다. 화자가 적혀
+            있으면 그것을 먼저 보이고, 없는 발췌(CSV 동기화분)만 제목으로 되돌아간다. */}
+        <div className="mb-1.5 font-mono text-[11px] text-grey">
+          {data.narrators.length > 0 || data.interviewers.length > 0 ? (
+            <>
+              <SpeakerLines role="구술자" people={data.narrators} />
+              <SpeakerLines role="면담자" people={data.interviewers} />
+            </>
+          ) : (
+            <span>{data.itemTitle}</span>
           )}
         </div>
 
