@@ -31,8 +31,17 @@ function groupKey(paper: PaperData): string {
 }
 
 // 내가 손댄 흔적. 접었다가 메모나 인용구가 화면에서 사라지면 안 되므로 이런 논문을 먼저 살린다.
-function hasMyMarks(paper: PaperData): boolean {
-  return Boolean(paper.userMemo) || paper.isImportant || paper.isRead || paper.quotes.length > 0;
+//
+// 매달아 둔 수록글도 그 흔적에 든다. 같은 책이 RISS에 두 번 잡혀 있을 때, 장을 달아둔 판이
+// 접히는 쪽으로 걸리면 그 장들이 목록에서 통째로 사라진다 — 장은 부모 아래에서만 서기 때문이다.
+function hasMyMarks(paper: PaperData, withChildren: Set<string>): boolean {
+  return (
+    Boolean(paper.userMemo) ||
+    paper.isImportant ||
+    paper.isRead ||
+    paper.quotes.length > 0 ||
+    withChildren.has(paper.id)
+  );
 }
 
 // 적힌 항목이 많은 쪽 — 같은 논문이면 서지가 더 채워진 판을 남기는 편이 낫다.
@@ -63,8 +72,8 @@ function hasHangulAuthor(paper: PaperData): boolean {
 
 // 한 묶음에서 남길 한 편을 고른다. 내가 손댄 것 > 한글 저자명 > 항목이 많은 것 > 먼저 들어온 것.
 // 내가 손댄 것이 맨 앞인 이유는, 접힌 쪽에 붙은 메모와 인용구가 화면에서 사라지기 때문이다.
-function pickSurvivor(a: PaperData, b: PaperData): PaperData {
-  if (hasMyMarks(a) !== hasMyMarks(b)) return hasMyMarks(a) ? a : b;
+function pickSurvivor(a: PaperData, b: PaperData, withChildren: Set<string>): PaperData {
+  if (hasMyMarks(a, withChildren) !== hasMyMarks(b, withChildren)) return hasMyMarks(a, withChildren) ? a : b;
   if (hasHangulAuthor(a) !== hasHangulAuthor(b)) return hasHangulAuthor(a) ? a : b;
   const diff = richness(a) - richness(b);
   if (diff !== 0) return diff > 0 ? a : b;
@@ -77,8 +86,13 @@ export interface DuplicateFolding {
 }
 
 export function buildDuplicateFolding(papers: PaperData[]): DuplicateFolding {
+  const withChildren = new Set(papers.map((p) => p.parentId).filter((id): id is string => Boolean(id)));
+
   const groups = new Map<string, PaperData[]>();
   for (const paper of papers) {
+    // 수록글은 여기서 다루지 않는다. 제목이 「서론」·「머리말」처럼 짧고 흔해서, 제목으로 묶으면
+    // 다른 책의 같은 이름 장끼리 한 편으로 접힌다. 애초에 목록에 낱개로 서지도 않는다.
+    if (paper.parentId) continue;
     if (DUPLICATE_EXCEPTIONS.has(titleKey(paper.title))) continue;
     const key = groupKey(paper);
     const bucket = groups.get(key);
@@ -90,7 +104,7 @@ export function buildDuplicateFolding(papers: PaperData[]): DuplicateFolding {
   const foldedUnder = new Map<string, PaperData[]>();
   for (const bucket of groups.values()) {
     if (bucket.length < 2) continue;
-    const survivor = bucket.reduce(pickSurvivor);
+    const survivor = bucket.reduce((a, b) => pickSurvivor(a, b, withChildren));
     const others = bucket.filter((p) => p.id !== survivor.id);
     for (const other of others) folded.add(other.id);
     foldedUnder.set(survivor.id, others);

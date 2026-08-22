@@ -139,7 +139,7 @@ export function QuoteList({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="self-start font-mono text-[11px] text-line underline decoration-dotted underline-offset-4 hover:text-ink"
+          className="self-start font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
         >
           + 인용구 추가
         </button>

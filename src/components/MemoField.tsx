@@ -86,7 +86,7 @@ export function MemoField({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className="mt-1.5 font-mono text-[11px] text-line underline decoration-dotted underline-offset-4 hover:text-ink"
+      className="mt-1.5 font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
     >
       + 메모 추가
     </button>

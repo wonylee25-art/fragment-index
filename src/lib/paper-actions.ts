@@ -16,6 +16,7 @@ export interface AddPaperInput {
   degreeLevel: string;
   publisherLocation: string;
   translator: string;
+  editor: string;
   researchPeriod: string;
   researchTeam: string;
   researchSummary: string;
@@ -51,6 +52,7 @@ function toPaperRow(input: AddPaperInput) {
     degree_level: isThesis ? input.degreeLevel.trim() || null : null,
     publisher_location: isBook ? input.publisherLocation.trim() || null : null,
     translator: isBook ? input.translator.trim() || null : null,
+    editor: isBook ? input.editor.trim() || null : null,
     research_period: isReport ? input.researchPeriod.trim() || null : null,
     research_team: isReport ? input.researchTeam.trim() || null : null,
     research_summary: isReport ? input.researchSummary.trim() || null : null,
@@ -102,6 +104,54 @@ export async function hidePaper(id: string) {
 
 export async function restorePaper(id: string) {
   const { error } = await supabaseAdmin.from("papers").update({ hidden_at: null }).eq("id", id);
+  if (error) throw error;
+  revalidatePath("/research");
+}
+
+// ---------- 단행본에 매다는 장·수록글 ----------
+//
+// 논문 추가(addPaper)와 나누어 둔다. 장이 받는 것은 넉 줄뿐인데(제목·저자·쪽수·링크)
+// AddPaperInput을 그대로 쓰면 유형별 칸 열댓 개가 딸려 오고, 그 값들이 부모의 것과
+// 어긋난 채 저장될 길이 열린다. Server Action은 클라이언트에서 바로 부를 수 있는 공개
+// 엔드포인트라(memo-actions.ts 참고), 무엇을 쓸 수 있는지를 좁혀 두는 편이 안전하다.
+export interface ChapterInput {
+  title: string;
+  author: string; // 비우면 "장" — 책 저자가 쓴 것으로 보고 인용 형식이 갈린다(citation.ts)
+  pages: string;
+  rissUrl: string;
+}
+
+function toChapterRow(input: ChapterInput) {
+  return {
+    paper_type: "수록글" as const,
+    title: input.title.trim(),
+    author: input.author.trim() || null,
+    pages: input.pages.trim() || null,
+    riss_url: input.rissUrl.trim() || null,
+    keywords: [], // 장에는 주제어를 받지 않는다 — 클라우드의 주제어는 RISS가 준 것들이라 성격이 일정하다
+  };
+}
+
+// 연도·출판사·출판지는 일부러 비워 둔다. 부모에서 읽어 쓰기 때문에(citation.formatCitation),
+// 여기에 베껴 두면 책의 서지를 고쳤을 때 장에 남은 옛 값이 그대로 인용된다.
+export async function addChapter(parentId: string, input: ChapterInput) {
+  const row = toChapterRow(input);
+  if (!row.title) throw new Error("제목을 입력하세요.");
+
+  const { error } = await supabaseAdmin.from("papers").insert({
+    id: `manual-${randomUUID()}`,
+    parent_id: parentId,
+    ...row,
+  });
+  if (error) throw error;
+  revalidatePath("/research");
+}
+
+export async function updateChapter(id: string, input: ChapterInput) {
+  const row = toChapterRow(input);
+  if (!row.title) throw new Error("제목을 입력하세요.");
+
+  const { error } = await supabaseAdmin.from("papers").update(row).eq("id", id);
   if (error) throw error;
   revalidatePath("/research");
 }

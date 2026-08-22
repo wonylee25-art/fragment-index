@@ -87,7 +87,10 @@ export interface PlaceRef {
   lng: number;
 }
 
-export type PaperType = "학위논문" | "학술논문" | "단행본" | "보고서";
+// "수록글"은 다른 넷과 갈래가 다르다 — 앞의 넷은 스스로 한 편이지만 수록글은 언제나
+// 단행본 하나에 매달려 있다(PaperData.parentId). 그래서 논문 추가 폼의 유형 선택지에는
+// 나오지 않고, 책 행의 「+ 수록글 추가」로만 생긴다.
+export type PaperType = "학위논문" | "학술논문" | "단행본" | "보고서" | "수록글";
 
 // 논문에서 발췌한 인용구 — userMemo(논문당 자유 메모 한 덩어리)와 달리
 // 논문 하나에 여러 개, 페이지 번호와 함께 개별 항목으로 쌓인다.
@@ -114,9 +117,14 @@ export interface PaperData {
   // https://koanth.org/?page_id=1048
   publisherLocation?: string; // 출판지 (예: 서울)
   translator?: string; // 역서일 때 역자
+  editor?: string; // 엮은이 — 논문집처럼 저자와 편자가 다를 때만. 수록글 인용의 "OOO 편"이 여기서 온다.
   researchPeriod?: string; // 보고서일 때만 — 연구기간, 예: "2023.03~2023.12"
   researchTeam?: string; // 보고서일 때만 — 연구진 (연구책임자 제외 공동연구원), 쉼표로 구분
   researchSummary?: string; // 보고서일 때만 — 연구 요약(초록에 해당)
+  // 이 논문이 매달린 단행본의 id — 수록글일 때만 채워진다(20260823_add_chapters_to_papers.sql).
+  // 목록에서는 부모 아래로 접혀 들어가고, 세는 자리와 주제어 클라우드에서는 빠진다.
+  parentId: string | null;
+  pages?: string; // 수록글일 때만 — 수록 쪽수, 예: "45-72"
   keywords: string[];
   rissUrl: string;
   userMemo?: string; // 이용자가 이 논문에 대해 직접 적는 개인 메모

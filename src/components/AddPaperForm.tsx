@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PaperData, PaperType } from "@/lib/types";
 import { addPaper, updatePaper } from "@/lib/paper-actions";
 
+// "수록글"은 여기 없다 — 단행본 행의 「+ 수록글 추가」로만 생긴다(PaperChapters).
 const PAPER_TYPES: PaperType[] = ["학술논문", "학위논문", "단행본", "보고서"];
 
 const EMPTY_FORM = {
@@ -17,6 +18,7 @@ const EMPTY_FORM = {
   degreeLevel: "",
   publisherLocation: "",
   translator: "",
+  editor: "",
   researchPeriod: "",
   researchTeam: "",
   researchSummary: "",
@@ -36,6 +38,7 @@ function formFromPaper(paper: PaperData): typeof EMPTY_FORM {
     degreeLevel: paper.degreeLevel ?? "",
     publisherLocation: paper.publisherLocation ?? "",
     translator: paper.translator ?? "",
+    editor: paper.editor ?? "",
     researchPeriod: paper.researchPeriod ?? "",
     researchTeam: paper.researchTeam ?? "",
     researchSummary: paper.researchSummary ?? "",
@@ -81,6 +84,7 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
         degreeLevel: form.degreeLevel,
         publisherLocation: form.publisherLocation,
         translator: form.translator,
+        editor: form.editor,
         researchPeriod: form.researchPeriod,
         researchTeam: form.researchTeam,
         researchSummary: form.researchSummary,
@@ -204,7 +208,7 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
 
       {form.paperType === "단행본" && (
         // 한국문화인류학회 인용 형식(저자, 발행연도, 제목, 출판지: 출판사) 참고 — https://koanth.org/?page_id=1048
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <input
             type="text"
             value={form.publisherLocation}
@@ -217,6 +221,15 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
             value={form.translator}
             onChange={(e) => update("translator", e.target.value)}
             placeholder="역자 (역서일 때만)"
+            className={INPUT_CLASSNAME}
+          />
+          {/* 엮은이는 저자와 다를 때만 적는다 — 수록글 인용의 "OOO 편"이 여기서 온다(citation.ts).
+              저서라면 비워 두면 되고, 그러면 인용에서 그 자리가 통째로 빠진다. */}
+          <input
+            type="text"
+            value={form.editor}
+            onChange={(e) => update("editor", e.target.value)}
+            placeholder="엮은이 (논문집일 때만)"
             className={INPUT_CLASSNAME}
           />
         </div>

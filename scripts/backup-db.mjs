@@ -72,6 +72,19 @@ async function fetchAll(table, { orderBy = "id", filter } = {}) {
   return rows;
 }
 
+// 위 그물에 안 걸린 부모를 마저 떠 온다. RISS로 들어온 책(riss-)에 수록글을 매달면 자식만
+// manual-이라 부모는 백업에서 빠지는데, 그러면 복원할 때 갈 곳 없는 장이 된다
+// (papers.parent_id는 papers를 참조한다 — 20260823_add_chapters_to_papers.sql).
+// or() 필터로는 "자식이 있는 행"을 물을 수 없어서, 뜬 자식들의 parent_id를 모아 한 번 더 받는다.
+async function fetchMissingParents(rows) {
+  const have = new Set(rows.map((r) => r.id));
+  const missing = [...new Set(rows.map((r) => r.parent_id).filter(Boolean))].filter((id) => !have.has(id));
+  if (missing.length === 0) return [];
+  const { data, error } = await supabase.from("papers").select("*").in("id", missing);
+  if (error) throw new Error(`papers(부모): ${error.message}`);
+  return data;
+}
+
 async function main() {
   const tables = {};
   const counts = {};
@@ -85,6 +98,7 @@ async function main() {
 
   for (const { table, filter } of PARTIAL_TABLES) {
     const rows = await fetchAll(table, { filter });
+    if (table === "papers") rows.push(...(await fetchMissingParents(rows)));
     tables[table] = rows;
     counts[table] = rows.length;
     console.log(`  ${table.padEnd(18)} ${rows.length}행 (사람이 손댄 것만)`);
