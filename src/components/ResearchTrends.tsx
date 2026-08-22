@@ -31,7 +31,7 @@ import { addQuote, deleteQuote, updateQuote } from "@/lib/quote-actions";
 
 const MIN_MENTIONS = 2; // 노이즈를 줄이기 위해 2회 이상 등장한 주제어만 클라우드에 노출
 const MIN_FONT_PX = 11;
-const MAX_FONT_PX = 27;
+const MAX_FONT_PX = 18;
 
 // 한 번에 그리는 논문 편수. 460편을 다 펼치면 행마다 붙는 플래그·수정·삭제·키워드·인용구
 // 버튼이 5천 개가 되어, 정렬을 한 번 누를 때마다 그 전부가 다시 그려지고 스크롤도 바닥에
