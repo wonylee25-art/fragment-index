@@ -211,18 +211,6 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   // 쳐낸 논문의 주제어도 대표를 정하는 데 함께 센다(되돌리면 같은 이름으로 돌아와야 한다).
   const canonical = useMemo(() => buildCanonicalMap(papers), [papers]);
 
-  const frequency = useMemo(() => buildFrequency(visiblePool, canonical), [visiblePool, canonical]);
-  const cooccurrence = useMemo(() => buildCooccurrence(visiblePool, canonical), [visiblePool, canonical]);
-
-  const cloudKeywords = useMemo(() => {
-    return Array.from(frequency.entries())
-      .filter(([, count]) => count >= MIN_MENTIONS)
-      .sort((a, b) => b[1] - a[1]);
-  }, [frequency]);
-
-  const maxCount = cloudKeywords[0]?.[1] ?? 1;
-  const relatedCounts = activeKeyword ? cooccurrence.get(activeKeyword) : undefined;
-
   // 장에 찍은 ★도 함께 센다 — 목록에서는 책 아래에 접혀 있어도, 표시를 한 것은 나다.
   const liveChapters = useMemo(() => livePapers.filter((p) => p.parentId), [livePapers]);
   const importantCount = useMemo(
@@ -235,6 +223,41 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   // 「한국 전쟁」으로 쳐도 「한국전쟁」은 걸리지 않는다 — 그럴 때는 붙여서 치면 된다.
   const terms = useMemo(() => deferredQuery.trim().toLowerCase().split(/\s+/).filter(Boolean), [deferredQuery]);
   const haystacks = useMemo(() => new Map(papers.map((p) => [p.id, searchHaystack(p)])), [papers]);
+
+  // 클라우드가 서 있는 바닥. 좁혀 놓았으면(중요만·쳐냄·검색) 그 안에 실제로 남은 논문만
+  // 센다 — 한 편도 걸리지 않는 주제어가 클라우드에 남아 있으면, 눌러도 빈 목록이 나오고
+  // 연관 표시(초록)까지 살아 있어 있지도 않은 연결을 가리킨다.
+  //
+  // 고른 주제어(activeKeyword)만은 여기서 빼고 센다. 그것까지 걸어 두면 클라우드가 고른
+  // 낱말과 그 연관어로 오그라들어, 다른 주제어로 갈아타는 길이 사라진다.
+  const narrowed = importantOnly || hiddenOnly || terms.length > 0;
+  const keywordPool = useMemo(() => {
+    if (!narrowed) return visiblePool;
+    const pool = hiddenOnly ? hiddenPapers : [...visiblePool, ...liveChapters];
+    return pool.filter((p) => {
+      if (importantOnly && !p.isImportant) return false;
+      const hay = haystacks.get(p.id) ?? "";
+      return terms.every((t) => hay.includes(t));
+    });
+  }, [narrowed, visiblePool, hiddenPapers, liveChapters, hiddenOnly, importantOnly, terms, haystacks]);
+
+  const frequency = useMemo(() => buildFrequency(keywordPool, canonical), [keywordPool, canonical]);
+  const cooccurrence = useMemo(() => buildCooccurrence(keywordPool, canonical), [keywordPool, canonical]);
+
+  const cloudKeywords = useMemo(() => {
+    // 2회 문턱은 700편을 통째로 볼 때 잡스러운 낱말을 걷어 내려던 것이다. 좁혀 놓은 뒤에는
+    // 한 편에만 붙은 주제어도 그 한 편으로 가는 길이므로 그대로 세운다.
+    const floor = narrowed ? 1 : MIN_MENTIONS;
+    return Array.from(frequency.entries())
+      .filter(([, count]) => count >= floor)
+      .sort((a, b) => b[1] - a[1]);
+  }, [frequency, narrowed]);
+
+  const maxCount = cloudKeywords[0]?.[1] ?? 1;
+  const relatedCounts = activeKeyword ? cooccurrence.get(activeKeyword) : undefined;
+  // 고른 주제어가 지금 클라우드에 서 있을 때만 나머지를 흐린다. 좁힌 조건에서 그 주제어가
+  // 아예 빠져 버렸으면 이을 것도 없으니, 남은 것을 흐려 봐야 "못 누른다"는 오해만 준다.
+  const dimOthers = activeKeyword !== null && frequency.has(activeKeyword);
 
   // 좁힐 때는 걸린 장을 책 아래에서 꺼내 낱개로 세운다. 접힌 채로 두면 ★를 찍어 둔 장이
   // 「★ 중요만」에서 사라지고, 쳐낸 장은 되돌릴 자리가 아예 없어진다.
@@ -375,14 +398,16 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
           }`}
         >
           {cloudKeywords.length === 0 ? (
-            <p className="font-mono text-xs text-grey">데이터가 아직 없습니다.</p>
+            <p className="font-mono text-xs text-grey">
+              {narrowed ? "이 조건에 걸리는 주제어가 없습니다." : "데이터가 아직 없습니다."}
+            </p>
           ) : (
             cloudKeywords.map(([keyword, count]) => {
               const fontSize = MIN_FONT_PX + (MAX_FONT_PX - MIN_FONT_PX) * Math.sqrt(count / maxCount);
               const isActive = keyword === activeKeyword;
               const coCount = relatedCounts?.get(keyword);
               const isRelated = !isActive && coCount !== undefined;
-              const isDimmed = activeKeyword !== null && !isActive && !isRelated;
+              const isDimmed = dimOthers && !isActive && !isRelated;
 
               return (
                 <button
