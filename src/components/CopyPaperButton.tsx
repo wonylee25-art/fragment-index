@@ -4,19 +4,23 @@ import { useState } from "react";
 import { PaperData } from "@/lib/types";
 import { formatNotionExport } from "@/lib/citation";
 
-// 인용(출처 형식) + 인용구를 노션에 붙여넣기 좋은 마크다운(블록쿼트)으로 클립보드에 복사.
-// 노션 API 연동 없이 단방향 내보내기만 지원 — 실제 붙여넣기는 이용자가 노션에서 직접 한다.
+// 논문 한 편을 통째로 — 서지(인용 형식) + 메모 + 인용구 — 클립보드에 옮긴다. 붙여넣으면
+// 노션에서 인용문이 블록쿼트로 잡히는 마크다운이지만, 이름에 "노션"을 넣지 않는다. 노션에
+// 매인 기능이 아니라 어디에 붙여도 되는 복사이고, 메모·인용구 낱개에 붙은 「복사」와도 같은
+// 말로 읽혀야 한다 — 서 있는 자리(논문 머리줄 / 덩어리 옆)가 무엇을 옮기는지를 말해 준다.
 //
 // chapters: 단행본 행에서 누르면 그 아래 수록글의 메모·인용구까지 함께 나간다.
 // parent: 수록글 행에서 누르면 서지의 절반(연도·출판사)이 부모에 있으므로 함께 넘긴다.
-export function CopyForNotionButton({
+export function CopyPaperButton({
   paper,
   parent,
   chapters,
+  className,
 }: {
   paper: PaperData;
   parent?: PaperData;
   chapters?: PaperData[];
+  className?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -30,9 +34,10 @@ export function CopyForNotionButton({
     <button
       type="button"
       onClick={handleCopy}
-      className="mt-1 font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
+      title="서지·메모·인용구를 통째로 복사"
+      className={className}
     >
-      {copied ? "복사됨 ✓" : "노션에 복사"}
+      {copied ? "복사됨 ✓" : "복사"}
     </button>
   );
 }

@@ -5,7 +5,7 @@ import { PaperData } from "@/lib/types";
 import { DOT_CONFIRMED, DOT_MINE } from "@/lib/design-tokens";
 import { MemoField } from "./MemoField";
 import { QuoteList } from "./QuoteList";
-import { CopyForNotionButton } from "./CopyForNotionButton";
+import { CopyPaperButton } from "./CopyPaperButton";
 import { FlagToggle } from "./FlagToggle";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { savePaperMemo } from "@/lib/memo-actions";
@@ -137,6 +137,9 @@ export function ChapterRow({
           >
             수정
           </button>
+          {/* 수정 · 복사 · 삭제 — 메모·인용구 옆의 차례와 같게 둔다. 여기 것은 이 글을 통째로
+              (서지·메모·인용구) 옮긴다. */}
+          <CopyPaperButton paper={chapter} parent={book} className={`${CHIP_CLASSNAME} hover:bg-line hover:text-ink`} />
           {chapter.hiddenAt ? (
             <button
               type="button"
@@ -184,7 +187,6 @@ export function ChapterRow({
           onEdit={(id, quoteText, page) => updateQuote(id, quoteText, page)}
           onDelete={(id) => deleteQuote(id)}
         />
-        <CopyForNotionButton paper={chapter} parent={book} />
       </div>
     </li>
   );

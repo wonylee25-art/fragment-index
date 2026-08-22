@@ -17,7 +17,7 @@ import {
 } from "@/lib/design-tokens";
 import { MemoField } from "./MemoField";
 import { QuoteList } from "./QuoteList";
-import { CopyForNotionButton } from "./CopyForNotionButton";
+import { CopyPaperButton } from "./CopyPaperButton";
 import { FlagToggle } from "./FlagToggle";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { AddPaperForm } from "./AddPaperForm";
@@ -530,6 +530,13 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       >
                         수정
                       </button>
+                      {/* 수정 · 복사 · 삭제 — 메모·인용구 옆의 차례와 같게 둔다. 여기 것은 이 논문을
+                          통째로(서지·메모·인용구) 옮긴다. */}
+                      <CopyPaperButton
+                        paper={paper}
+                        chapters={chaptersByBook.get(paper.id)}
+                        className="rounded-sm bg-surface px-1.5 py-0.5 font-mono text-[10px] text-grey hover:bg-line hover:text-ink"
+                      />
                       {paper.hiddenAt ? (
                         <button
                           type="button"
@@ -608,7 +615,6 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       onEdit={(id, quoteText, page) => updateQuote(id, quoteText, page)}
                       onDelete={(id) => deleteQuote(id)}
                     />
-                    <CopyForNotionButton paper={paper} chapters={chaptersByBook.get(paper.id)} />
                   </div>
 
                   {/* 장을 매다는 것은 단행본에만 열어 둔다. 학술논문·학위논문은 그 자체가 한 편이라

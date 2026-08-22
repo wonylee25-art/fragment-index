@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { PaperQuote } from "@/lib/types";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import { CopyTextButton } from "./CopyTextButton";
+import { formatQuoteMark } from "@/lib/citation";
 
 // 텍스트+페이지 입력 폼 — 새 인용구 추가와 기존 인용구 수정에서 공유한다.
 function QuoteEditor({
@@ -109,20 +111,27 @@ export function QuoteList({
               <p className="font-mono text-xs leading-4 whitespace-pre-wrap text-ink">{q.quoteText}</p>
               {q.page && <p className="mt-0.5 font-mono text-[10px] text-grey">p.{q.page}</p>}
             </div>
-            <button
-              type="button"
-              onClick={() => setEditingId(q.id)}
-              className="font-mono text-[10px] text-grey hover:text-ink"
-            >
-              수정
-            </button>
-            <ConfirmDeleteButton
-              onDelete={() => onDelete(q.id)}
-              confirmMessage="이 인용구를 삭제할까요? 되돌릴 수 없습니다."
-              label="삭제"
-              pendingLabel="삭제 중…"
-              className="font-mono text-[10px] text-grey hover:text-red-text"
-            />
+            {/* 수정 · 복사 · 삭제를 세로로 세운다. 가로로 눕히면 셋이 인용구의 오른쪽을 길게
+                잘라먹어 글줄이 그만큼 일찍 꺾인다 — 읽는 것은 인용구고, 이 셋은 곁다리다.
+                차례는 손이 자주 가는 것부터 위에, 되돌릴 수 없는 것이 맨 아래.
+                글과는 한 칸 더 띄운다 — 붙여 두면 인용구의 마지막 글자와 「수정」이 한 줄로 읽힌다. */}
+            <div className="ml-2 flex flex-col items-end gap-0.5">
+              <button
+                type="button"
+                onClick={() => setEditingId(q.id)}
+                className="font-mono text-[10px] text-grey hover:text-ink"
+              >
+                수정
+              </button>
+              <CopyTextButton text={formatQuoteMark(q)} />
+              <ConfirmDeleteButton
+                onDelete={() => onDelete(q.id)}
+                confirmMessage="이 인용구를 삭제할까요? 되돌릴 수 없습니다."
+                label="삭제"
+                pendingLabel="삭제 중…"
+                className="font-mono text-[10px] text-grey hover:text-red-text"
+              />
+            </div>
           </div>
         ),
       )}

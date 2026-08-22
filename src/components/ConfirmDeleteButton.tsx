@@ -67,7 +67,9 @@ export function ConfirmDeleteButton({
   }
 
   return (
-    <span ref={wrapRef} className="relative inline-block">
+    // inline-flex — inline-block으로 두면 상자 안에 글줄의 아랫여백(baseline)이 한 겹 더 생겨,
+    // 나란히 선 수정·복사보다 「삭제」만 몇 px 내려앉는다.
+    <span ref={wrapRef} className="relative inline-flex">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

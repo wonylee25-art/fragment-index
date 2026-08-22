@@ -105,13 +105,23 @@ export function formatNotionExport(
   return parts.join("\n\n");
 }
 
+// 메모·인용구 한 덩어리의 꼴. 논문을 통째로 옮길 때(formatNotionExport)와 덩어리 하나만
+// 옮길 때(CopyTextButton)가 같은 모양으로 나가야, 노션에 섞여 붙어도 한 종류로 읽힌다.
+export function formatMemoMark(memo: string): string {
+  return `📝 ${memo}`;
+}
+
+export function formatQuoteMark(quote: { quoteText: string; page?: string }): string {
+  return `> "${quote.quoteText}"${quote.page ? ` (p.${quote.page})` : ""}`;
+}
+
 function marks(p: PaperData): string[] {
   const parts: string[] = [];
   if (p.userMemo) {
-    parts.push(`📝 ${p.userMemo}`);
+    parts.push(formatMemoMark(p.userMemo));
   }
   for (const q of p.quotes) {
-    parts.push(`> "${q.quoteText}"${q.page ? ` (p.${q.page})` : ""}`);
+    parts.push(formatQuoteMark(q));
   }
   return parts;
 }
