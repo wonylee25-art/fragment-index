@@ -20,7 +20,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "구술 아카이브",
+  // 좌상단 로고와 같은 이름을 브라우저 탭에도 그대로 둔다. 북마크했을 때
+  // 화면의 표제와 다른 이름이 뜨면 같은 사이트로 보이지 않는다.
+  title: "FRAGMENT INDEX — 구술 아카이브",
   description: "여러 자료를 그물망처럼 연결하는 개인용 시멘틱 아카이브",
 };
 
