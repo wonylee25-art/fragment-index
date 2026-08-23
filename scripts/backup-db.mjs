@@ -42,6 +42,7 @@ const FULL_TABLES = {
   sources: "id",
   archive_items: "id",
   paper_quotes: "id",
+  user_memos: "id",
   links: "id",
 };
 
@@ -50,7 +51,9 @@ const PARTIAL_TABLES = [
   {
     table: "timeline_events",
     // ev_ = 화면에서 직접 만든 사건. 나머지는 오늘의역사에서 들여온 재고 중 사람이 손댄 것.
-    filter: "id.like.ev_*,adopted_at.not.is.null,user_saved.eq.true,highlighted.eq.true,user_memo.not.is.null,hidden_at.not.is.null",
+    // 메모는 2026-08-23부터 user_memos 표에 따로 쌓인다 — 여기서는 걸리지 않고,
+    // 메모만 적어 둔 사건은 아래 fetchMemoOwners가 마저 떠 온다.
+    filter: "id.like.ev_*,adopted_at.not.is.null,user_saved.eq.true,highlighted.eq.true,hidden_at.not.is.null",
   },
   {
     table: "papers",
@@ -85,6 +88,18 @@ async function fetchMissingParents(rows) {
   return data;
 }
 
+// 메모가 걸린 주인 행을 마저 떠 온다. user_memos는 통째로 뜨는데(위 FULL_TABLES) 그 주인인
+// 사건·논문은 "사람이 손댄 것만" 뜨는 표라, 메모 하나만 적어 둔 행은 그 그물에 안 걸린다 —
+// 그대로 두면 복원할 때 갈 곳 없는 메모가 된다(user_memos의 외래키). 부모 없는 수록글을
+// 되찾아 오는 fetchMissingParents와 같은 이치다.
+async function fetchMemoOwners(memos, table, column, have) {
+  const missing = [...new Set(memos.map((m) => m[column]).filter(Boolean))].filter((id) => !have.has(id));
+  if (missing.length === 0) return [];
+  const { data, error } = await supabase.from(table).select("*").in("id", missing);
+  if (error) throw new Error(`${table}(메모 주인): ${error.message}`);
+  return data;
+}
+
 async function main() {
   const tables = {};
   const counts = {};
@@ -98,6 +113,9 @@ async function main() {
 
   for (const { table, filter } of PARTIAL_TABLES) {
     const rows = await fetchAll(table, { filter });
+    const memoColumn = table === "papers" ? "paper_id" : "timeline_event_id";
+    rows.push(...(await fetchMemoOwners(tables.user_memos, table, memoColumn, new Set(rows.map((r) => r.id)))));
+    // 부모 찾기는 메모 주인까지 담은 뒤에 돈다 — 메모만 적어 둔 수록글의 부모도 함께 떠야 한다.
     if (table === "papers") rows.push(...(await fetchMissingParents(rows)));
     tables[table] = rows;
     counts[table] = rows.length;

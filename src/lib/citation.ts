@@ -117,8 +117,8 @@ export function formatQuoteMark(quote: { quoteText: string; page?: string }): st
 
 function marks(p: PaperData): string[] {
   const parts: string[] = [];
-  if (p.userMemo) {
-    parts.push(formatMemoMark(p.userMemo));
+  for (const m of p.memos) {
+    parts.push(formatMemoMark(m.memoText));
   }
   for (const q of p.quotes) {
     parts.push(formatQuoteMark(q));

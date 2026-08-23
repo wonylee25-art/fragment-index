@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { PaperData } from "@/lib/types";
 import { DOT_CONFIRMED, DOT_MINE } from "@/lib/design-tokens";
-import { MemoField } from "./MemoField";
+import { MemoList } from "./MemoList";
 import { QuoteList } from "./QuoteList";
 import { CopyPaperButton } from "./CopyPaperButton";
 import { FlagToggle } from "./FlagToggle";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { savePaperMemo } from "@/lib/memo-actions";
+import { addPaperMemo, deleteMemo, updateMemo } from "@/lib/memo-actions";
 import { togglePaperImportant, togglePaperRead } from "@/lib/flag-actions";
 import { addChapter, ChapterInput, hidePaper, restorePaper, updateChapter } from "@/lib/paper-actions";
 import { addQuote, deleteQuote, updateQuote } from "@/lib/quote-actions";
@@ -180,7 +180,12 @@ export function ChapterRow({
       </div>
 
       <div>
-        <MemoField initialValue={chapter.userMemo} onSave={(memo) => savePaperMemo(chapter.id, memo)} />
+        <MemoList
+          memos={chapter.memos}
+          onAdd={(memo) => addPaperMemo(chapter.id, memo)}
+          onEdit={(id, memo) => updateMemo(id, memo)}
+          onDelete={(id) => deleteMemo(id)}
+        />
         <QuoteList
           quotes={chapter.quotes}
           onAdd={(quoteText, page) => addQuote(chapter.id, quoteText, page)}

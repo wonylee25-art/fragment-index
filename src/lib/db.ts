@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
 import { edtfSortKey, edtfYear } from "./edtf";
-import { ArchiveItemType, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials } from "./types";
+import { ArchiveItemType, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials, UserMemo } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -85,7 +85,6 @@ interface DbTimelineEvent {
   has_discrepancy: boolean;
   keywords: string[];
   user_saved: boolean;
-  user_memo: string | null;
   highlighted: boolean;
   summary_highlights: unknown;
 }
@@ -116,7 +115,6 @@ interface DbSegment {
   discrepancy_note: string | null;
   notes: string | null;
   keywords: string[];
-  user_memo: string | null;
   is_important: boolean;
   highlights: unknown;
 }
@@ -195,15 +193,17 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
     { data: materials, error: materialsError },
     { data: links, error: linksError },
     { data: sources, error: sourcesError },
+    memosByEvent,
   ] = await Promise.all([
     // 채택한 사건만 연표에 오른다. 국편 오늘의역사에서 들여온 수천 건은 adopted_at이 비어
     // 있어 여기 안 걸리고, 사료에 붙는 순간(linkTargetToEvent) 채워지며 올라온다.
-    supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, user_memo, highlighted, summary_highlights").is("hidden_at", null).not("adopted_at", "is", null).order("id"),
+    supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, highlighted, summary_highlights").is("hidden_at", null).not("adopted_at", "is", null).order("id"),
     // 치운 사료는 연표에서도 빠진다. 연결선은 그대로 두므로 되살리면 붙어 있던 사건으로 돌아온다.
     supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url").is("hidden_at", null),
     supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
     // 출처 대장 — 사건에 번호(SRC007)로만 적혀 있는 출처를 실제 서지로 푸는 데 쓴다.
     supabase.from("sources").select("id, type, title, creator, publisher, date_value, identifier"),
+    fetchMemosBy("timeline_event_id"),
   ]);
   if (eventsError) throw eventsError;
   if (materialsError) throw materialsError;
@@ -250,7 +250,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
       linkedSegmentIds: segmentIdsByEvent.get(e.id) ?? [],
       linkedMaterials: materialsByEvent.get(e.id) ?? [],
       savedByUser: e.user_saved,
-      userMemo: e.user_memo ?? undefined,
+      memos: memosByEvent.get(e.id) ?? [],
       highlighted: e.highlighted,
       summaryHighlights: sanitizeHighlights(e.summary_highlights),
     };
@@ -526,7 +526,6 @@ interface DbPaper {
   keywords: string[];
   riss_url: string | null;
   hidden_at: string | null;
-  user_memo: string | null;
   is_important: boolean;
   is_read: boolean;
   publisher_location: string | null;
@@ -539,6 +538,33 @@ interface DbPaper {
   editor: string | null;
   pages: string | null;
   created_at: string;
+}
+
+// 메모는 세 화면이 한 표를 나눠 쓴다 — 주인 칸(timeline_event_id/segment_id/paper_id)만
+// 다르고 나머지는 같다(20260823_add_user_memos.sql).
+interface DbUserMemo {
+  id: string;
+  memo_text: string;
+  created_at: string;
+}
+
+// 한 화면이 쓰는 주인 칸 하나로 메모를 받아 주인별로 묶는다. 적은 차례대로 세운다.
+async function fetchMemosBy(ownerColumn: "timeline_event_id" | "segment_id" | "paper_id"): Promise<Map<string, UserMemo[]>> {
+  const { data, error } = await supabase
+    .from("user_memos")
+    .select(`id, ${ownerColumn}, memo_text, created_at`)
+    .not(ownerColumn, "is", null)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+
+  const byOwner = new Map<string, UserMemo[]>();
+  for (const row of (data as (DbUserMemo & Record<string, string>)[]) ?? []) {
+    const ownerId = row[ownerColumn];
+    const list = byOwner.get(ownerId) ?? [];
+    list.push({ id: row.id, memoText: row.memo_text, createdAt: row.created_at });
+    byOwner.set(ownerId, list);
+  }
+  return byOwner;
 }
 
 interface DbPaperQuote {
@@ -565,7 +591,7 @@ export async function getPapers(): Promise<PaperData[]> {
     const { data: page, error } = await supabase
       .from("papers")
       .select(
-        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, user_memo, is_important, is_read, hidden_at, publisher_location, translator, volume_issue, research_period, research_team, research_summary, parent_id, editor, pages, created_at",
+        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, is_important, is_read, hidden_at, publisher_location, translator, volume_issue, research_period, research_team, research_summary, parent_id, editor, pages, created_at",
       )
       .order("year", { ascending: false })
       .order("id", { ascending: true }) // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
@@ -575,6 +601,8 @@ export async function getPapers(): Promise<PaperData[]> {
     data.push(...rows);
     if (rows.length < PAGE) break;
   }
+
+  const memosByPaper = await fetchMemosBy("paper_id");
 
   const { data: quotes, error: quotesError } = await supabase
     .from("paper_quotes")
@@ -601,7 +629,7 @@ export async function getPapers(): Promise<PaperData[]> {
     keywords: p.keywords ?? [],
     rissUrl: p.riss_url ?? "",
     hiddenAt: p.hidden_at,
-    userMemo: p.user_memo ?? undefined,
+    memos: memosByPaper.get(p.id) ?? [],
     isImportant: p.is_important,
     isRead: p.is_read,
     publisherLocation: p.publisher_location ?? undefined,
@@ -716,12 +744,13 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     { data: persons, error: personsError },
     { data: sources, error: sourcesError },
     { data: segmentPersons, error: segmentPersonsError },
+    memosBySegment,
   ] = await Promise.all([
     // 비활성 구술함에 넣은 발췌(hidden_at)는 목록·연표·연결 화면 어디에도 뜨지 않는다.
     supabase
       .from("segments")
       .select(
-        "id, item_title, date_value, page, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, user_memo, is_important, highlights",
+        "id, item_title, date_value, page, source_id, narrator_id, interviewer_id, segment_text, has_discrepancy, discrepancy_note, notes, keywords, is_important, highlights",
       )
       .is("hidden_at", null)
       .order("id"),
@@ -730,6 +759,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
     supabase.from("persons").select("id, title, affiliation, subject"),
     supabase.from("sources").select("id, title, identifier"),
     supabase.from("segment_persons").select("segment_id, person_id"),
+    fetchMemosBy("segment_id"),
   ]);
   if (segmentsError) throw segmentsError;
   if (personsError) throw personsError;
@@ -819,7 +849,7 @@ export async function getOralSegments(): Promise<SegmentCardData[]> {
       page: s.page ?? undefined,
       sourceId: s.source_id ?? undefined,
       relatedItems: [], // 자료는 사건을 거쳐서만 붙는다 — 사건 쪽 linkedMaterials를 본다
-      userMemo: s.user_memo ?? undefined,
+      memos: memosBySegment.get(s.id) ?? [],
       isImportant: s.is_important,
       // jsonb라 무엇이든 들어올 수 있다 — 화면이 믿고 쓰기 전에 여기서 한 번 거른다.
       highlights: sanitizeHighlights(s.highlights),

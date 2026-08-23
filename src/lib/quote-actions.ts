@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
 
-// 논문 하나에 여러 개 쌓이는 인용구 CRUD. userMemo(paper당 자유 메모 한 덩어리)와 달리
-// paper_quotes 테이블에 개별 행으로 저장해 페이지 번호와 함께 낱개로 관리한다.
+// 논문 하나에 여러 개 쌓이는 인용구 CRUD. 메모(user_memos)와 마찬가지로 개별 행으로
+// 저장하되, 옮겨 온 남의 말이라 페이지 번호를 함께 들고 다닌다.
 
 export async function addQuote(paperId: string, quoteText: string, page: string) {
   const text = quoteText.trim();

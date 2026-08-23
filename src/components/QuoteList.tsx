@@ -72,8 +72,8 @@ function QuoteEditor({
   );
 }
 
-// 논문당 여러 개 쌓이는 인용구 목록 + 추가/수정 폼. MemoField(논문당 메모 한 덩어리)와 달리
-// 항목별로 페이지 번호를 붙여 개별 수정·삭제할 수 있다.
+// 논문당 여러 개 쌓이는 인용구 목록 + 추가/수정 폼. 메모 목록(MemoList)과 같은 꼴로 서고,
+// 다른 것은 색(노랑)과 항목마다 붙는 페이지 번호뿐이다.
 export function QuoteList({
   quotes,
   onAdd,

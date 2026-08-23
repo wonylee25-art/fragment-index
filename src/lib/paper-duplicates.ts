@@ -36,7 +36,7 @@ function groupKey(paper: PaperData): string {
 // 접히는 쪽으로 걸리면 그 장들이 목록에서 통째로 사라진다 — 장은 부모 아래에서만 서기 때문이다.
 function hasMyMarks(paper: PaperData, withChildren: Set<string>): boolean {
   return (
-    Boolean(paper.userMemo) ||
+    paper.memos.length > 0 ||
     paper.isImportant ||
     paper.isRead ||
     paper.quotes.length > 0 ||

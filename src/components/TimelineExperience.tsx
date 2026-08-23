@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Tag } from "./Tag";
 import { OffTimelineFinder } from "./OffTimelineFinder";
-import { MemoField } from "./MemoField";
+import { MemoList } from "./MemoList";
 import { AddEventPanel, EventRowControls } from "./EventEditor";
 import { FlagToggle } from "./FlagToggle";
 import { hideEvents } from "@/lib/event-actions";
@@ -12,8 +12,8 @@ import { setEventsHighlighted } from "@/lib/flag-actions";
 import { saveEventSummaryHighlights } from "@/lib/highlight-actions";
 import { HighlightableText } from "./HighlightableText";
 import { UnlinkButton } from "./UnlinkButton";
-import { saveTimelineMemo } from "@/lib/memo-actions";
-import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData } from "@/lib/types";
+import { addTimelineMemo, deleteMemo, updateMemo } from "@/lib/memo-actions";
+import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData, UserMemo } from "@/lib/types";
 import { edtfSortKey, edtfYearFloat, formatEdtfToKorean } from "@/lib/edtf";
 import { narratorPullQuote } from "@/lib/quotes";
 import { formatEventSource } from "@/lib/citation";
@@ -350,12 +350,19 @@ function SavedBadge() {
 
 // 큐레이터 메모를 읽기 전용으로 보여준다 — 사용자뷰에서는 사건 해설로, 편집 화면에서는
 // 도구를 펼치지 않은 행에서 "적어둔 것이 있다"는 표시로 쓰인다. 고치는 것은 도구를 편 뒤.
-function CuratorMemo({ memo }: { memo?: string }) {
-  if (!memo) return null;
+function CuratorMemo({ memos }: { memos: UserMemo[] }) {
+  if (memos.length === 0) return null;
   return (
-    <p className="mt-1.5 rounded-sm border border-line bg-yellow-tint p-2 font-mono text-xs leading-4 whitespace-pre-wrap text-ink">
-      {memo}
-    </p>
+    <div className="mt-1.5 flex flex-col gap-1">
+      {memos.map((m) => (
+        <p
+          key={m.id}
+          className="rounded-sm border border-line bg-yellow-tint p-2 font-mono text-xs leading-4 whitespace-pre-wrap text-ink"
+        >
+          {m.memoText}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -536,7 +543,7 @@ function EventEntry({
               onClick={() => choose("memo")}
               className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
             >
-              {event.userMemo ? "메모" : "메모 추가"}
+              {event.memos.length > 0 ? "메모" : "메모 추가"}
             </button>
             <button
               type="button"
@@ -633,16 +640,18 @@ function EventEntry({
       {/* 메모·도구 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간
           너비에만 맞춘다. 보여줄 것이 없으면 칸 자체를 만들지 않는다 — 빈 칸을 두면
           행마다 gap-y만큼 빈 줄이 하나씩 더 생긴다. */}
-      {(action !== null || event.userMemo) && (
+      {(action !== null || event.memos.length > 0) && (
         <div className="sm:col-start-2 sm:col-end-5">
           {action === "memo" ? (
-            <MemoField
+            <MemoList
               startEditing
-              initialValue={event.userMemo}
-              onSave={(memo) => saveTimelineMemo(event.id, memo)}
+              memos={event.memos}
+              onAdd={(memo) => addTimelineMemo(event.id, memo)}
+              onEdit={(id, memo) => updateMemo(id, memo)}
+              onDelete={(id) => deleteMemo(id)}
             />
           ) : action === null ? (
-            <CuratorMemo memo={event.userMemo} />
+            <CuratorMemo memos={event.memos} />
           ) : (
             <EventRowControls event={event} action={action} onClose={() => setAction(null)} />
           )}

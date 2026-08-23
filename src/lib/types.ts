@@ -20,6 +20,16 @@ export interface Highlight {
   end: number;
 }
 
+// 이용자가 화면에서 직접 적는 메모 한 덩어리. 사건·발췌·논문 어디에 적든 같은 것이라
+// 한 표(user_memos)에 쌓이고, 어디에 적었는지는 주인 칸으로만 갈린다
+// (20260823_add_user_memos.sql). 예전에는 행마다 컬럼 하나였는데, 그때는 둘째 메모를
+// 첫째 아래에 이어 붙이는 수밖에 없어 따로 고치고 지울 수가 없었다.
+export interface UserMemo {
+  id: string;
+  memoText: string;
+  createdAt: string; // 적은 차례대로 세우는 데 쓴다
+}
+
 export type ArchiveItemType = "구술" | "신문" | "문서" | "이미지" | "학술" | "지도" | "박물" | "음원" | "영상";
 
 export interface RelatedItem {
@@ -75,7 +85,8 @@ export interface SegmentCardData {
   sourceId?: string;
   relatedItems: RelatedItem[];
   // 이용자가 화면에서 직접 적는 개인 메모 — 원본 자료에 딸려온 notes(각주)와 달리 순수 개인 작업용.
-  userMemo?: string;
+  // 한 발췌에 여러 개 쌓인다(UserMemo 주석 참고).
+  memos: UserMemo[];
   isImportant: boolean; // 이용자가 "중요"로 표시했는지 — 연표의 저장됨 배지와 같은 성격
   highlights: Highlight[]; // 본문에 그은 형광펜. 그은 것이 없으면 빈 배열.
 }
@@ -92,8 +103,8 @@ export interface PlaceRef {
 // 나오지 않고, 책 행의 「+ 수록글 추가」로만 생긴다.
 export type PaperType = "학위논문" | "학술논문" | "단행본" | "보고서" | "수록글";
 
-// 논문에서 발췌한 인용구 — userMemo(논문당 자유 메모 한 덩어리)와 달리
-// 논문 하나에 여러 개, 페이지 번호와 함께 개별 항목으로 쌓인다.
+// 논문에서 발췌한 인용구 — 남의 말을 옮긴 것이라 페이지 번호를 함께 달고 다닌다.
+// 내가 쓴 말(UserMemo)과는 화면에서 색으로 갈린다(노랑/회색).
 export interface PaperQuote {
   id: string;
   quoteText: string;
@@ -127,7 +138,7 @@ export interface PaperData {
   pages?: string; // 수록글일 때만 — 수록 쪽수, 예: "45-72"
   keywords: string[];
   rissUrl: string;
-  userMemo?: string; // 이용자가 이 논문에 대해 직접 적는 개인 메모
+  memos: UserMemo[]; // 이용자가 이 논문에 대해 직접 적는 개인 메모 — 여러 개 쌓인다
   isImportant: boolean; // 이용자가 "중요"로 표시했는지
   isRead: boolean; // 이용자가 "읽음"으로 표시했는지
   // 이용자가 목록에서 쳐낸 논문 — 행은 남고 화면과 동기화에서만 빠진다. 원본이 CSV라서
@@ -174,7 +185,7 @@ export interface TimelineEventData {
   linkedSegmentIds: string[]; // 그물망 연결(links, link_basis=인물/장소/사건)로 이어진 구술 발췌
   linkedMaterials: RelatedItem[]; // 같은 연결에서 딸려오는 사료(이미지/신문/지도 등) — 교차 블록에 이미지로 노출
   savedByUser: boolean; // 사료 연결 "사료 검색"에서 사람이 직접 저장했거나 직접 만든 사건인지 — 연표에서 강조 표시
-  userMemo?: string; // 이용자가 이 사건에 대해 직접 적는 개인 메모
+  memos: UserMemo[]; // 이용자가 이 사건에 대해 직접 적는 개인 메모 — 여러 개 쌓인다
   // 이용자가 이 사건에 그은 밑줄 — 사건명 아래 노란 실선으로 그려진다. 구술의 isImportant와
   // 같은 성격(발췌/사건 하나를 통째로 표시)이고, 본문 안 구절을 가리키는 Highlight와는 다르다.
   highlighted: boolean;

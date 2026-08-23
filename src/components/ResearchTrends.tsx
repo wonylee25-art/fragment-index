@@ -15,7 +15,7 @@ import {
   TEXT_SUBHEAD_CLASSNAME,
   INPUT_CLASSNAME,
 } from "@/lib/design-tokens";
-import { MemoField } from "./MemoField";
+import { MemoList } from "./MemoList";
 import { QuoteList } from "./QuoteList";
 import { CopyPaperButton } from "./CopyPaperButton";
 import { FlagToggle } from "./FlagToggle";
@@ -23,7 +23,7 @@ import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { AddPaperForm } from "./AddPaperForm";
 import { ChapterRow, PaperChapters } from "./PaperChapters";
 import { Switch } from "./Switch";
-import { savePaperMemo } from "@/lib/memo-actions";
+import { addPaperMemo, deleteMemo, updateMemo } from "@/lib/memo-actions";
 import { togglePaperImportant, togglePaperRead } from "@/lib/flag-actions";
 import { refreshResearchData } from "@/lib/research-sync-actions";
 import { hidePaper, restorePaper } from "@/lib/paper-actions";
@@ -101,7 +101,7 @@ function searchHaystack(p: PaperData): string {
     p.degreeLevel,
     p.researchTeam,
     p.researchSummary,
-    p.userMemo,
+    ...p.memos.map((m) => m.memoText),
     ...p.keywords,
     ...p.quotes.map((q) => q.quoteText),
   ]
@@ -608,7 +608,12 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                   </div>
 
                   <div>
-                    <MemoField initialValue={paper.userMemo} onSave={(memo) => savePaperMemo(paper.id, memo)} />
+                    <MemoList
+                      memos={paper.memos}
+                      onAdd={(memo) => addPaperMemo(paper.id, memo)}
+                      onEdit={(id, memo) => updateMemo(id, memo)}
+                      onDelete={(id) => deleteMemo(id)}
+                    />
                     <QuoteList
                       quotes={paper.quotes}
                       onAdd={(quoteText, page) => addQuote(paper.id, quoteText, page)}
