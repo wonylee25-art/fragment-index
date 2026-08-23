@@ -102,6 +102,20 @@ function matchesQuery(event: TimelineEventData, query: string): boolean {
 // admin : 후보 연결선까지 담긴 데이터를 받고, 메모 편집·저장한 자료 필터가 열린다.
 export type TimelineMode = "read" | "admin";
 
+// 표의 칸 나눔. 사건 관리(admin)에서는 사료·구술 두 칸을 접는다 — 거기서 하는 일은 사건 자체를
+// 고르고 고치는 것이고, 무엇이 붙어 있는지는 옆의 「사료 연결」·「구술 연결」 탭이 맡는다.
+// 다섯 칸을 다 세워 두면 정작 손대는 칸(사건명·내용)이 그만큼 좁아진다.
+const ROW_GRID_CLASSNAME: Record<TimelineMode, string> = {
+  read: "sm:grid-cols-[220px_84px_1fr_1fr_280px]",
+  admin: "sm:grid-cols-[84px_1fr_1fr]",
+};
+
+// 메모·도구 칸이 눕는 자리 — 날짜부터 내용까지. 사료 칸이 접히면 시작 칸도 한 칸 당겨진다.
+const TOOLS_SPAN_CLASSNAME: Record<TimelineMode, string> = {
+  read: "sm:col-start-2 sm:col-end-5",
+  admin: "sm:col-start-1 sm:col-end-4",
+};
+
 export function TimelineExperience({
   events,
   segments,
@@ -276,8 +290,10 @@ export function TimelineExperience({
             onClear={() => setCollection(new Set())}
           />
         ) : (
-          <div className="mt-4 hidden grid-cols-[220px_84px_1fr_1fr_280px] gap-x-5 border-b-2 border-ink pb-1.5 font-mono text-[10px] uppercase tracking-wider text-grey sm:grid">
-            <span>사료</span>
+          <div
+            className={`mt-4 hidden grid-cols-1 gap-x-5 border-b-2 border-ink pb-1.5 font-mono text-[10px] uppercase tracking-wider text-grey sm:grid ${ROW_GRID_CLASSNAME[mode]}`}
+          >
+            {mode === "read" && <span>사료</span>}
             {/* 행마다 붙는 체크박스와 같은 자리에 "보이는 것 모두" 스위치를 둔다 — 검색·필터로 좁힌
                 다음 여기서 한 번에 고르면, 이 줄이 곧바로 선택 도구로 바뀐다. */}
             <div className="flex items-center gap-2">
@@ -304,7 +320,7 @@ export function TimelineExperience({
             </div>
             <span>사건명</span>
             <span>내용</span>
-            <span>구술</span>
+            {mode === "read" && <span>구술</span>}
           </div>
         )}
 
@@ -434,20 +450,22 @@ function EventEntry({
       // MINE_ROW_CLASSNAME). 사건명에만 밑줄을 그었을 때는 표를 훑는 눈에 걸리지
       // 않았다 — 사건명 칸은 표의 다섯 칸 중 하나라, 그 안의 3px 선은 옆 칸(사료·날짜·
       // 출처)까지 훑는 시선에 묻힌다.
-      className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 sm:grid-cols-[220px_84px_1fr_1fr_280px] ${
+      className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 ${ROW_GRID_CLASSNAME[mode]} ${
         event.highlighted ? MINE_ROW_CLASSNAME : ""
       }`}
     >
       {/* 사료 — 다른 아카이브에서 가져온 자료. 다른 컬럼보다 넓게 잡아 이미지가 잘 보이게 한다 */}
-      <div className="flex flex-col gap-2.5">
-        {event.linkedMaterials.length === 0 ? (
-          <span className="font-mono text-[10px] text-line">—</span>
-        ) : (
-          event.linkedMaterials.map((material) => (
-            <MaterialThumb key={material.id} material={material} eventId={event.id} mode={mode} />
-          ))
-        )}
-      </div>
+      {mode === "read" && (
+        <div className="flex flex-col gap-2.5">
+          {event.linkedMaterials.length === 0 ? (
+            <span className="font-mono text-[10px] text-line">—</span>
+          ) : (
+            event.linkedMaterials.map((material) => (
+              <MaterialThumb key={material.id} material={material} eventId={event.id} mode={mode} />
+            ))
+          )}
+        </div>
+      )}
 
       {/* 날짜 + 강조 스위치(사용자뷰 전용) */}
       <div className="flex items-start gap-2">
@@ -627,21 +645,23 @@ function EventEntry({
       </div>
 
       {/* 구술 — 교차하는 구술 인용. 다른 컬럼보다 넓게 잡아 발췌가 잘 읽히게 한다 */}
-      <div className="flex flex-col gap-3">
-        {linkedSegments.length === 0 ? (
-          <span className="font-mono text-[10px] text-line">—</span>
-        ) : (
-          linkedSegments.map((segment) => (
-            <OralQuote key={segment.id} segment={segment} eventId={event.id} mode={mode} />
-          ))
-        )}
-      </div>
+      {mode === "read" && (
+        <div className="flex flex-col gap-3">
+          {linkedSegments.length === 0 ? (
+            <span className="font-mono text-[10px] text-line">—</span>
+          ) : (
+            linkedSegments.map((segment) => (
+              <OralQuote key={segment.id} segment={segment} eventId={event.id} mode={mode} />
+            ))
+          )}
+        </div>
+      )}
 
       {/* 메모·도구 — 사료(썸네일)·구술(인용) 컬럼까지 넓히지 않고 날짜·사건명·내용 구간
           너비에만 맞춘다. 보여줄 것이 없으면 칸 자체를 만들지 않는다 — 빈 칸을 두면
           행마다 gap-y만큼 빈 줄이 하나씩 더 생긴다. */}
       {(action !== null || event.memos.length > 0) && (
-        <div className="sm:col-start-2 sm:col-end-5">
+        <div className={TOOLS_SPAN_CLASSNAME[mode]}>
           {action === "memo" ? (
             <MemoList
               startEditing
@@ -795,9 +815,14 @@ function SelectionHeader({
   // 숨기려고 맨 위까지 되돌아가지 않아도 된다. 위 여백은 margin 대신 padding으로 두어야
   // 붙었을 때 그 틈으로 행이 비쳐 보이지 않는다.
   return (
-    <div className="sticky top-0 z-20 hidden grid-cols-[220px_1fr] gap-x-5 border-b-2 border-ink bg-background pb-1.5 pt-4 sm:grid">
-      {/* 사료 칸은 비워 둔다 — 체크박스가 아래 행들의 체크박스와 같은 세로선에 놓이게 */}
-      <span />
+    <div
+      className={`sticky top-0 z-20 hidden gap-x-5 border-b-2 border-ink bg-background pb-1.5 pt-4 sm:grid ${
+        mode === "read" ? "grid-cols-[220px_1fr]" : "grid-cols-1"
+      }`}
+    >
+      {/* 사료 칸이 서 있는 사용자뷰에서는 그만큼 비워 둔다 — 체크박스가 아래 행들의
+          체크박스와 같은 세로선에 놓이게 */}
+      {mode === "read" && <span />}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px]">
         <input
           type="checkbox"
