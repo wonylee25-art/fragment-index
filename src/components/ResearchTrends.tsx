@@ -21,7 +21,7 @@ import { CopyPaperButton } from "./CopyPaperButton";
 import { FlagToggle } from "./FlagToggle";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { AddPaperForm } from "./AddPaperForm";
-import { ChapterRow, PaperChapters } from "./PaperChapters";
+import { ChapterControls, ChapterPanel, ChapterRow } from "./PaperChapters";
 import { Switch } from "./Switch";
 import { addPaperMemo, deleteMemo, updateMemo } from "@/lib/memo-actions";
 import { togglePaperImportant, togglePaperRead } from "@/lib/flag-actions";
@@ -153,6 +153,10 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [addingPaper, setAddingPaper] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // 수록글을 펼쳐 둔 책과, 지금 새 수록글을 적고 있는 책. 여닫는 칩은 책 서지 아래(왼쪽 열)에
+  // 서고 펼친 목록은 두 열을 가로질러 눕는데, 둘이 같은 상태를 봐야 해서 여기서 든다.
+  const [openBooks, setOpenBooks] = useState<ReadonlySet<string>>(new Set());
+  const [addingChapterFor, setAddingChapterFor] = useState<string | null>(null);
   const [importantOnly, setImportantOnly] = useState(false);
   // 쳐낸 논문만 보는 자리. 훑다가 잘못 누른 것을 여기서 되돌린다.
   const [hiddenOnly, setHiddenOnly] = useState(false);
@@ -298,6 +302,14 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   ]);
 
   const sortedPapers = useMemo(() => sortPapers(filteredPapers, sortMode), [filteredPapers, sortMode]);
+
+  function toggleBookOpen(bookId: string) {
+    setOpenBooks((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(bookId)) next.add(bookId);
+      return next;
+    });
+  }
 
   // 좁히는 조건이나 정렬이 바뀌면 첫 묶음으로 되돌린다. 효과(useEffect)로 되돌리면 100편을
   // 한 번 그린 뒤 다시 그리게 되므로, 렌더 중에 이전 조건과 비교해 바로 맞춘다.
@@ -605,6 +617,21 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                     {paper.paperType === "보고서" && paper.researchSummary && (
                       <p className="mt-1.5 text-xs leading-5 text-grey">{paper.researchSummary}</p>
                     )}
+
+                    {/* 장을 매다는 것은 단행본에만 열어 둔다. 학술논문·학위논문은 그 자체가 한 편이라
+                        쪼갤 자리가 없고, 쳐낸 책은 되돌리는 것이 먼저다. */}
+                    {paper.paperType === "단행본" && !paper.hiddenAt && (
+                      <ChapterControls
+                        chapters={chaptersByBook.get(paper.id) ?? []}
+                        open={openBooks.has(paper.id)}
+                        adding={addingChapterFor === paper.id}
+                        onToggle={() => toggleBookOpen(paper.id)}
+                        onStartAdd={() => {
+                          setAddingChapterFor(paper.id);
+                          setOpenBooks((prev) => new Set(prev).add(paper.id));
+                        }}
+                      />
+                    )}
                   </div>
 
                   <div>
@@ -622,10 +649,14 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                     />
                   </div>
 
-                  {/* 장을 매다는 것은 단행본에만 열어 둔다. 학술논문·학위논문은 그 자체가 한 편이라
-                      쪼갤 자리가 없고, 쳐낸 책은 되돌리는 것이 먼저다. */}
                   {paper.paperType === "단행본" && !paper.hiddenAt && (
-                    <PaperChapters book={paper} chapters={chaptersByBook.get(paper.id) ?? []} />
+                    <ChapterPanel
+                      book={paper}
+                      chapters={chaptersByBook.get(paper.id) ?? []}
+                      open={openBooks.has(paper.id)}
+                      adding={addingChapterFor === paper.id}
+                      onCloseAdd={() => setAddingChapterFor(null)}
+                    />
                   )}
                 </li>
               ),

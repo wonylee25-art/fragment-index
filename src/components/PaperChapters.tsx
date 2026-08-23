@@ -35,39 +35,73 @@ export function sortChapters(chapters: PaperData[]): PaperData[] {
 //
 // 목차가 아니라 따로 챙긴 것들이다. 1장과 5장만 있어도 빠진 게 아니라서 번호를 새로 매기지
 // 않고, 적어 둔 쪽수를 그대로 보인다.
-export function PaperChapters({ book, chapters }: { book: PaperData; chapters: PaperData[] }) {
-  const [open, setOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
+//
+// 여닫는 칩(ChapterControls)과 펼쳐지는 목록(ChapterPanel)이 갈라져 있는 것은 둘이 서는
+// 자리가 달라서다. 칩은 책 서지 바로 아래(왼쪽 열)에 붙어야 하고, 펼친 목록은 장마다 메모칸을
+// 들고 있어 두 열을 가로질러야 한다. 한 덩어리로 두면 칩까지 격자의 다음 줄로 밀려 나가,
+// 오른쪽 메모칸이 긴 만큼 책 제목과 「+ 수록글 추가」 사이에 빈 자리가 생겼다.
+// 여닫힌 상태는 그래서 부모(ResearchTrends)가 든다.
+
+// 책 서지 아래에 서는 칩 두 개. 매단 것이 없는 책에는 「+ 수록글 추가」만 뜬다.
+export function ChapterControls({
+  chapters,
+  open,
+  adding,
+  onToggle,
+  onStartAdd,
+}: {
+  chapters: PaperData[];
+  open: boolean;
+  adding: boolean;
+  onToggle: () => void;
+  onStartAdd: () => void;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      {chapters.length > 0 && (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className={`${CHIP_CLASSNAME} hover:bg-line hover:text-ink`}
+        >
+          {open ? "▾" : "▸"} 수록글 {chapters.length}편
+        </button>
+      )}
+      {!adding && (
+        <button
+          type="button"
+          onClick={onStartAdd}
+          className="font-mono text-[10px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
+        >
+          + 수록글 추가
+        </button>
+      )}
+    </div>
+  );
+}
+
+// 펼친 수록글 목록과 새로 매다는 폼. 보일 것이 없으면 아무것도 그리지 않는다 —
+// 빈 칸을 남기면 그것만으로 격자에 줄이 하나 더 생겨 책 행이 그만큼 두꺼워진다.
+export function ChapterPanel({
+  book,
+  chapters,
+  open,
+  adding,
+  onCloseAdd,
+}: {
+  book: PaperData;
+  chapters: PaperData[];
+  open: boolean;
+  adding: boolean;
+  onCloseAdd: () => void;
+}) {
   const sorted = sortChapters(chapters);
+  if (!adding && !(open && sorted.length > 0)) return null;
 
   return (
-    <div className="mt-2 sm:col-span-2">
-      <div className="flex flex-wrap items-center gap-2">
-        {sorted.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            className={`${CHIP_CLASSNAME} hover:bg-line hover:text-ink`}
-          >
-            {open ? "▾" : "▸"} 수록글 {sorted.length}편
-          </button>
-        )}
-        {!adding && (
-          <button
-            type="button"
-            onClick={() => {
-              setAdding(true);
-              setOpen(true);
-            }}
-            className="font-mono text-[10px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
-          >
-            + 수록글 추가
-          </button>
-        )}
-      </div>
-
-      {adding && <ChapterForm parentId={book.id} onClose={() => setAdding(false)} />}
+    <div className="sm:col-span-2">
+      {adding && <ChapterForm parentId={book.id} onClose={onCloseAdd} />}
 
       {open && sorted.length > 0 && (
         <ul className="mt-1 flex flex-col border-l-2 border-line">
