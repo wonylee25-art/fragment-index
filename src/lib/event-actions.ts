@@ -64,7 +64,6 @@ export async function createEvent(input: EventInput): Promise<string> {
     id,
     ...normalize(input),
     has_discrepancy: false,
-    user_saved: true, // 사람이 직접 만든 사건 — 연표에서 "저장됨"으로 구분된다
     adopted_at: new Date().toISOString(), // 손으로 만든 사건은 만드는 즉시 연표에 오른다
   });
   if (error) throw error;
@@ -220,7 +219,6 @@ export async function adoptEventById(id: string) {
     .update({
       adopted_at: (row as { adopted_at: string | null }).adopted_at ?? new Date().toISOString(),
       hidden_at: null,
-      user_saved: true,
     })
     .eq("id", id);
   if (error) throw error;

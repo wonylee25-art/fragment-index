@@ -32,12 +32,11 @@ export async function saveThEvent(entry: ThTimelineEntry) {
     source_reference: "오늘의역사(국사편찬위원회)",
     has_discrepancy: false,
     keywords: [],
-    user_saved: true, // 사람이 직접 골라 저장한 사건 — 연표에서 별도 표시
     adopted_at: new Date().toISOString(), // 골라서 저장한 것이므로 곧바로 연표에 오른다
   });
   if (error && error.code !== "23505") throw error; // 23505 = 중복(이미 저장됨) — 조용히 무시
   revalidatePath("/admin/review");
-  revalidatePath("/"); // 연표(메인화면)에 "저장됨" 사건으로 바로 뜬다
+  revalidatePath("/"); // 골라서 저장한 것이므로 연표(메인화면)에 바로 뜬다
 }
 
 // 자료를 DB에 넣고, 폼에서 고른 사건이 있으면 연결선까지 한 번에 만든다.

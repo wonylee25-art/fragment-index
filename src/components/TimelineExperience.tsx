@@ -23,7 +23,6 @@ import { downloadCsv, rowsToCsv } from "@/lib/csv";
 import {
   ARCHIVE_ITEM_ICON,
   CHIP_CLASSNAME,
-  DOT_CONFIRMED,
   DOT_MINE,
   INPUT_CLASSNAME,
   MATERIAL_THUMB_CLASSNAME,
@@ -138,7 +137,7 @@ async function dropRowsFromTimeline(rows: TimelineRow[]) {
 // 사용자뷰(read)와 관리페이지(admin)가 같은 컴포넌트를 쓴다 — 연표 표시 로직(눈금·필터·표)은
 // 양쪽이 똑같고, 다른 것은 조작 UI뿐이라 화면을 복제하는 대신 모드로 가른다.
 // read  : 확정 연결선만 담긴 데이터를 받아 읽기만 한다. 메모는 해설로 보여주되 편집 불가.
-// admin : 후보 연결선까지 담긴 데이터를 받고, 메모 편집·저장한 자료 필터가 열린다.
+// admin : 후보 연결선까지 담긴 데이터를 받고, 메모 편집과 사건 손질 UI가 열린다.
 export type TimelineMode = "read" | "admin";
 
 // 표의 칸 나눔. 사건 관리(admin)에서는 사료·구술 두 칸을 접는다 — 거기서 하는 일은 사건 자체를
@@ -408,21 +407,6 @@ export function TimelineExperience({
   );
 }
 
-// 사료 연결에서 저장했거나 직접 만든 사건 표시 — 그냥 나열되지 않고
-// 눈에 띄게(초록 점 + 왼쪽 테두리, EventEntry에서 함께 적용) 구분한다.
-// 색면(점)에 반드시 글자를 붙인다 — 초록과 빨강은 적록색약에서 서로 무너진다.
-function SavedBadge() {
-  return (
-    <span
-      title="사료 연결에서 저장했거나 직접 만든 사건"
-      className={`ml-2 align-middle font-normal ${CHIP_CLASSNAME} bg-green-tint`}
-    >
-      <span className={DOT_CONFIRMED} aria-hidden />
-      저장됨
-    </span>
-  );
-}
-
 // 큐레이터 메모를 읽기 전용으로 보여준다 — 사용자뷰에서는 사건 해설로, 편집 화면에서는
 // 도구를 펼치지 않은 행에서 "적어둔 것이 있다"는 표시로 쓰인다. 고치는 것은 도구를 편 뒤.
 function CuratorMemo({ memos }: { memos: UserMemo[] }) {
@@ -594,7 +578,6 @@ function EventEntry({
           ) : (
             event.eventName
           )}
-          {mode === "admin" && event.savedByUser && <SavedBadge />}
         </h3>
 
         {/* 사건명 아래에 뜨는 메뉴. 상자 안에 절대배치라 표를 굴려도 제 사건명을 따라간다.

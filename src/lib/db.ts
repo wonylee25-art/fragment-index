@@ -84,7 +84,6 @@ interface DbTimelineEvent {
   source_pages: string | null;
   has_discrepancy: boolean;
   keywords: string[];
-  user_saved: boolean;
   highlighted: boolean;
   summary_highlights: unknown;
 }
@@ -204,7 +203,7 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
   ] = await Promise.all([
     // 채택한 사건만 연표에 오른다. 국편 오늘의역사에서 들여온 수천 건은 adopted_at이 비어
     // 있어 여기 안 걸리고, 사료에 붙는 순간(linkTargetToEvent) 채워지며 올라온다.
-    supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, user_saved, highlighted, summary_highlights").is("hidden_at", null).not("adopted_at", "is", null).order("id"),
+    supabase.from("timeline_events").select("id, event_name, date_value, summary, source_reference, source_url, source_type, source_author, source_pages, has_discrepancy, keywords, highlighted, summary_highlights").is("hidden_at", null).not("adopted_at", "is", null).order("id"),
     // 치운 사료는 연표에서도 빠진다. 연결선은 그대로 두므로 되살리면 붙어 있던 사건으로 돌아온다.
     supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url").is("hidden_at", null),
     supabase.from("links").select("event_id, target_type, target_id, status").in("status", visibleStatuses),
@@ -256,7 +255,6 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
       keywordTags: e.keywords ?? [],
       linkedSegmentIds: segmentIdsByEvent.get(e.id) ?? [],
       linkedMaterials: materialsByEvent.get(e.id) ?? [],
-      savedByUser: e.user_saved,
       memos: memosByEvent.get(e.id) ?? [],
       highlighted: e.highlighted,
       summaryHighlights: sanitizeHighlights(e.summary_highlights),

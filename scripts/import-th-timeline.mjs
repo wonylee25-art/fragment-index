@@ -130,7 +130,6 @@ async function main() {
       source_reference: SOURCE_REFERENCE,
       has_discrepancy: false,
       keywords: [],
-      user_saved: false,
       adopted_at: null, // 창고행 — 붙이는 순간 연표로 올라온다
     });
   }

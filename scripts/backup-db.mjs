@@ -54,7 +54,7 @@ const PARTIAL_TABLES = [
     // ev_ = 화면에서 직접 만든 사건. 나머지는 오늘의역사에서 들여온 재고 중 사람이 손댄 것.
     // 메모는 2026-08-23부터 user_memos 표에 따로 쌓인다 — 여기서는 걸리지 않고,
     // 메모만 적어 둔 사건은 아래 fetchMemoOwners가 마저 떠 온다.
-    filter: "id.like.ev_*,adopted_at.not.is.null,user_saved.eq.true,highlighted.eq.true,hidden_at.not.is.null",
+    filter: "id.like.ev_*,adopted_at.not.is.null,highlighted.eq.true,hidden_at.not.is.null",
   },
   {
     table: "papers",
