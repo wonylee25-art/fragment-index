@@ -134,6 +134,9 @@ export function footButtonClass(on: boolean): string {
 
 // 카드 겉. 크기가 고정이고, 펼친 것은 카드 위에 덧창으로 얹힌다 — 펼친 것이 격자를 밀어내면
 // 접었을 때 눈이 보던 카드가 어디로 갔는지 알 수 없다.
+// 덧창을 무엇 하러 열었나. 읽으러 열었으면 본문이, 붙이러 열었으면 사건 고르기가 먼저 선다.
+export type OverlayMode = "read" | "link";
+
 export function CardShell({
   itemType,
   strength = 0,
@@ -154,13 +157,16 @@ export function CardShell({
   // 누른 것이 덧창까지 열어버린다(단추 안의 단추는 HTML에서도 어긋난 짜임이다).
   head: ReactNode;
   // 바닥칸 왼쪽의 세 손잡이. 덧창을 여닫는 것도 이 안에서 하므로 여는 손잡이를 함께 넘긴다.
-  foot: (control: { open: boolean; toggle: () => void }) => ReactNode;
+  foot: (control: { open: boolean; toggle: () => void; openLink: () => void }) => ReactNode;
   sourceUrl?: string;
-  // 덧창에 담기는 것. 읽는 일과 붙이는 일이 한 자리에서 끝나야 해서 둘 다 여기 들어간다.
-  overlay: ReactNode;
+  // 덧창에 담기는 것. 읽는 일과 붙이는 일이 한 자리에서 끝나야 해서 둘 다 여기 들어가되,
+  // 무엇을 하러 열었는지에 따라 먼저 서는 것이 다르다(mode) — [사료 연결]로 열면 사건
+  // 고르기가 위에 펼쳐진 채 서고, 표제·발췌를 눌러 열면 본문이 먼저 선다.
+  overlay: (mode: OverlayMode) => ReactNode;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<OverlayMode>("read");
   // 오른쪽 끝 칸에서는 덧창이 화면 밖으로 나간다 — 그 칸만 오른쪽에 맞춰 편다. 칸 수는
   // 화면 폭이 정하므로 셈해 두지 않고, 열 때 카드가 실제로 선 자리를 재서 정한다.
   const [flip, setFlip] = useState(false);
@@ -171,7 +177,16 @@ export function CardShell({
   const [offsetTop, setOffsetTop] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const toggle = () => setOpen((v) => !v);
+  // 읽으러 열기 — 표제·발췌를 누른 자리.
+  const toggle = () => {
+    setMode("read");
+    setOpen((v) => !(v && mode === "read"));
+  };
+  // 붙이러 열기 — 바닥칸 [사료 연결].
+  const openLink = () => {
+    setOpen((v) => !(v && mode === "link"));
+    setMode("link");
+  };
 
   useLayoutEffect(() => {
     if (!open || !cardRef.current || !overlayRef.current) return;
@@ -185,7 +200,7 @@ export function CardShell({
     const highest = 8 - hostTop; // 이보다 올리면 창 위로 넘는다
     const lowest = window.innerHeight - 8 - height - hostTop; // 이보다 내리면 창 아래로 넘는다
     setOffsetTop(Math.round(Math.min(Math.max(0, highest), Math.max(highest, lowest))));
-  }, [open]);
+  }, [open, mode]);
 
   // 덧창은 옆 카드를 덮으므로 닫는 길이 여럿이어야 한다 — 바깥을 누르거나 Esc.
   useEffect(() => {
@@ -231,7 +246,7 @@ export function CardShell({
 
         <div className="mt-auto flex shrink-0 items-center justify-between gap-2 border-t border-ink">
           <div className={`flex min-w-0 items-center gap-1 ${CELL_CLASSNAME}`}>
-            {foot({ open, toggle })}
+            {foot({ open, toggle, openLink })}
           </div>
           {sourceUrl && (
             <a
@@ -270,7 +285,7 @@ export function CardShell({
                 ✕
               </button>
             </div>
-            {overlay}
+            {overlay(mode)}
           </div>
         )}
       </div>

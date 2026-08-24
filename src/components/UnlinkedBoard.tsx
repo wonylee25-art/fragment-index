@@ -119,16 +119,16 @@ function MaterialCard({
           checkbox={checkbox}
         />
       }
-      foot={({ toggle }) => (
+      foot={({ openLink }) => (
         <>
           {/* 칠해진 것이 이 사료가 지금 선 함이다 — 누르는 자리이면서 상태 표시이기도 하다 */}
           <button
             type="button"
-            onClick={toggle}
+            onClick={openLink}
             title="덧창에서 사건을 골라 붙입니다"
             className={footButtonClass(box === "linked")}
           >
-            사료 연결{entry.links?.length ? ` ${entry.links.length}` : ""}
+            사건 연결{entry.links?.length ? ` ${entry.links.length}` : ""}
           </button>
           <button
             type="button"
@@ -158,27 +158,57 @@ function MaterialCard({
           </span>
         </>
       )}
-      overlay={
-        <>
-          <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
-            <FieldLabel en="title" ko="표제" />
-            <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
-              {entry.title}
-            </p>
-            <p className="mt-1 font-mono text-[10.5px] text-grey">{entry.metaLine}</p>
-          </div>
-          <div className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
+      overlay={(mode) => {
+        // 칸의 차례는 늘 같다: 표제 → 본문 → 사건 연결. 무엇 하러 열었느냐(mode)는 차례가
+        // 아니라 사건 고르는 창이 펼쳐진 채 뜨느냐만 가른다 — 읽던 자리가 열 때마다
+        // 달라지면 같은 카드가 매번 다른 종이처럼 보인다.
+        const bodyCell = (
+          <div key="body" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="full text" ko="본문" />
             <div className="mt-1.5">
               <MaterialBody entry={entry} />
             </div>
           </div>
-          <div className={CELL_CLASSNAME}>
+        );
+        const linkCell = (
+          <div key="link" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="link" ko="사건 연결" />
             <div className="mt-1.5">
               <EventAttach
+                // 사건 목록 안 맨 위에 서는 손잡이 — 사건을 고르다 "이건 사건 없이 그냥
+                // 연표에 세우면 되겠다"고 판단하는 자리가 바로 거기다.
+                listTop={
+                  entry.onTimeline ? (
+                    <button
+                      type="button"
+                      onClick={() => void move(dropMaterialsFromTimeline)}
+                      disabled={pending}
+                      title="연표에서만 내립니다 — 자료도, 조정해 둔 연표 날짜도 그대로 남습니다"
+                      className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
+                    >
+                      연표에서 내리기
+                    </button>
+                  ) : entry.timelineReady ? (
+                    <button
+                      type="button"
+                      onClick={() => void move(adoptMaterialsToTimeline)}
+                      disabled={pending}
+                      title="사건에 붙이지 않고, 자료 자신을 연표에 한 행으로 세웁니다"
+                      className="border border-ink px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:bg-surface disabled:border-line disabled:text-grey"
+                    >
+                      연표에 올리기
+                    </button>
+                  ) : (
+                    <p className="font-mono text-[10.5px] text-grey">
+                      옮겨 적어 둔 본문이 없어 연표에는 올릴 수 없습니다
+                    </p>
+                  )
+                }
+
                 events={events}
                 linked={entry.links}
+                // 붙이러 열었으면 고르는 창이 이미 펼쳐진 채 선다 — 한 번 더 누르게 하지 않는다.
+                startOpen={mode === "link"}
                 // 사료에 날짜가 있으면 그 언저리 사건부터 보인다 — 6천 건에서 손으로 찾는 일을 줄인다.
                 nearDate={entry.dateValue}
                 onPick={(event) => linkTargetToEvent(event.id, entry.targetType, entry.id, "keyword")}
@@ -197,8 +227,20 @@ function MaterialCard({
               />
             </div>
           </div>
-        </>
-      }
+        );
+        return (
+          <>
+            <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
+              <FieldLabel en="title" ko="표제" />
+              <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
+                {entry.title}
+              </p>
+              <p className="mt-1 font-mono text-[10.5px] text-grey">{entry.metaLine}</p>
+            </div>
+            {[bodyCell, linkCell]}
+          </>
+        );
+      }}
     >
       {entry.imageUrl && (
         // 외부 아카이브 이미지를 그대로 건다(재호스팅하지 않음) — next/image 설정 없이 쓰려고 <img>.

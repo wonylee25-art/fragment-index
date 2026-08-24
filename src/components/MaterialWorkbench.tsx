@@ -59,7 +59,7 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
           head={
             <HeadRow sourceOrg={draft.sourceOrg} itemType={draft.itemType} dateText={dateText} />
           }
-          foot={({ toggle }) => (
+          foot={({ openLink }) => (
             <>
               <input type="hidden" name="eventId" value={eventId} />
               <input type="hidden" name="intent" value="link" />
@@ -67,12 +67,12 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
                   점 — 셋 다 누르는 순간 저장까지 함께 일어난다. */}
               <button
                 type="button"
-                onClick={toggle}
+                onClick={openLink}
                 disabled={saved}
                 title="덧창에서 사건을 골라 붙이면서 저장합니다"
                 className={`${footButtonClass(false)} disabled:cursor-default disabled:text-grey`}
               >
-                사료 연결
+                사건 연결
               </button>
               <button
                 type="submit"
@@ -101,35 +101,28 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
               )}
             </>
           )}
-          overlay={
-            <>
-              <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
-                <FieldLabel en="title" ko="표제" />
-                <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
-                  {draft.title}
+          overlay={(mode) => {
+            // 읽으러 열었으면 설명이, 붙이러 열었으면 사건 고르기가 먼저 선다.
+            const descCell = draft.description ? (
+              <div key="desc" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
+                <FieldLabel en="description" ko="설명" />
+                <p className="mt-1.5 whitespace-pre-line font-serif text-[13.5px] leading-[1.85] text-ink">
+                  {draft.description}
                 </p>
-                <p className="mt-1 font-mono text-[10.5px] text-grey">{metaLine}</p>
               </div>
-
-              {draft.description && (
-                <div className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
-                  <FieldLabel en="description" ko="설명" />
-                  <p className="mt-1.5 whitespace-pre-line font-serif text-[13.5px] leading-[1.85] text-ink">
-                    {draft.description}
-                  </p>
-                </div>
-              )}
-
-              <div className={CELL_CLASSNAME}>
+            ) : null;
+            const linkCell = (
+              <div key="link" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
                 <FieldLabel en="link" ko="사건 연결" />
                 <div className="mt-1.5">
                   {saved ? (
                     <span className="font-mono text-[11px] font-semibold text-ink">
-                      ✓ 저장됨 — 보류함에서 사건에 붙입니다
+                      ✓ 담김 — 보류함에서 사건에 붙입니다
                     </span>
                   ) : (
                     <EventAttach
                       events={events}
+                      startOpen={mode === "link"}
                       onPick={async (event) => {
                         setEventId(event.id);
                         // 값이 DOM에 반영된 다음에 제출한다 — 같은 tick에 부르면 빈 eventId가 실린다.
@@ -141,8 +134,20 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
                   )}
                 </div>
               </div>
-            </>
-          }
+            );
+            return (
+              <>
+                <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
+                  <FieldLabel en="title" ko="표제" />
+                  <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
+                    {draft.title}
+                  </p>
+                  <p className="mt-1 font-mono text-[10.5px] text-grey">{metaLine}</p>
+                </div>
+                {[descCell, linkCell]}
+              </>
+            );
+          }}
         >
           {draft.imageUrl && (
             // 외부 아카이브 이미지를 그대로 건다(재호스팅하지 않음) — next/image 설정 없이 쓰려고 <img>.

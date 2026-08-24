@@ -5,6 +5,7 @@ import { EventOption } from "./EventPicker";
 import { Pager } from "./Pager";
 import { edtfDayGap, formatDayGap, formatEdtfToKorean } from "@/lib/edtf";
 import { LinkedEventRef } from "@/lib/types";
+import { RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 
 // 항목 하나에 사건을 붙이고 끊는 손잡이. 예전에는 화면 왼쪽에 사건 목록을 하나 펼쳐두고
 // 거기서 고른 사건이 그 화면의 모든 항목에 똑같이 적용됐다 — 사료 열 건을 각각 다른 사건에
@@ -96,6 +97,7 @@ export function EventAttach({
   onClose,
   pickLabel = "+ 사건 연결",
   nearDate,
+  listTop,
 }: {
   events: EventOption[];
   linked?: LinkedEventRef[];
@@ -107,6 +109,9 @@ export function EventAttach({
   pickLabel?: string;
   // 이 날짜 언저리의 사건을 앞세운다 — 사료의 연대. 없으면 예전대로 최근 사건부터.
   nearDate?: string;
+  // 펼친 사건 목록 맨 위에 서는 것. 사건을 고르다 "이건 사건 없이 그냥 연표에 세우면
+  // 되겠다"고 판단하는 자리가 여기라, 그 손잡이를 목록 안에 들여놓는다(「연표에 올리기」).
+  listTop?: React.ReactNode;
 }) {
   const [mode, setMode] = useState<"none" | "link" | "unlink">(startOpen ? "link" : "none");
   const [filter, setFilter] = useState("");
@@ -257,6 +262,10 @@ export function EventAttach({
               닫기
             </button>
           </div>
+
+          {mode === "link" && listTop && (
+            <div className={`mt-1.5 border-b pb-1.5 ${RECORD_LINE_CLASSNAME}`}>{listTop}</div>
+          )}
 
           {/* 무엇이 앞에 서 있는지 적어 둔다 — 목록 순서가 바뀐 이유를 화면이 말하지 않으면
               "왜 이 사건이 먼저 뜨지"가 된다. 좁히기 칸에 말을 넣으면 이 줄도 사라진다. */}

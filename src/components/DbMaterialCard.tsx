@@ -14,7 +14,7 @@ import { EventOption } from "./EventPicker";
 // 자리인데, 손잡이는 세 함의 카드와 똑같다 — 여기서 이미 가진 자료를 보고 있는데 붙이려면
 // 다른 탭으로 건너가야 한다면, 같은 자료를 두 번 찾는 일이 된다.
 //
-// 다만 이 화면은 연결선을 함께 읽어오지 않아서(searchLocal은 사료만 본다) 「사료 연결」이
+// 다만 이 화면은 연결선을 함께 읽어오지 않아서(searchLocal은 사료만 본다) 「사건 연결」이
 // 지금 붙어 있는지는 칠로 알리지 않는다 — 덧창을 열면 EventAttach가 붙은 사건을 보여준다.
 export function DbMaterialCard({
   material,
@@ -50,15 +50,15 @@ export function DbMaterialCard({
           dateValue={material.dateValue}
         />
       }
-      foot={({ toggle }) => (
+      foot={({ openLink }) => (
         <>
           <button
             type="button"
-            onClick={toggle}
+            onClick={openLink}
             title="덧창에서 사건을 골라 붙입니다"
             className={footButtonClass(false)}
           >
-            사료 연결
+            사건 연결
           </button>
           <button
             type="button"
@@ -80,30 +80,23 @@ export function DbMaterialCard({
           </button>
         </>
       )}
-      overlay={
-        <>
-          <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
-            <FieldLabel en="title" ko="표제" />
-            <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
-              {material.title}
-            </p>
-            <p className="mt-1 font-mono text-[10.5px] text-grey">
-              {[ARCHIVE_ITEM_ICON[material.type], material.type, material.sourceOrg, material.dateValue]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-          <div className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
+      overlay={(mode) => {
+        // 칸의 차례는 늘 같다 — mode는 사건 고르는 창이 펼쳐진 채 뜨느냐만 가른다.
+        const bodyCell = (
+          <div key="body" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="full text" ko="본문" />
             <p className="mt-1.5 whitespace-pre-line font-serif text-[13.5px] leading-[1.85] text-ink">
               {body || "옮겨 적어 둔 본문이 없습니다."}
             </p>
           </div>
-          <div className={CELL_CLASSNAME}>
+        );
+        const linkCell = (
+          <div key="link" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="link" ko="사건 연결" />
             <div className="mt-1.5">
               <EventAttach
                 events={events}
+                startOpen={mode === "link"}
                 nearDate={material.dateValue}
                 onPick={(event) => linkTargetToEvent(event.id, "archive_item", material.id, "keyword")}
                 onUnlink={(eventId) => unlinkTargetFromEvent(eventId, "archive_item", material.id)}
@@ -121,8 +114,24 @@ export function DbMaterialCard({
               />
             </div>
           </div>
-        </>
-      }
+        );
+        return (
+          <>
+            <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
+              <FieldLabel en="title" ko="표제" />
+              <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
+                {material.title}
+              </p>
+              <p className="mt-1 font-mono text-[10.5px] text-grey">
+                {[ARCHIVE_ITEM_ICON[material.type], material.type, material.sourceOrg, material.dateValue]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            </div>
+            {[bodyCell, linkCell]}
+          </>
+        );
+      }}
     >
       {material.imageUrl && (
         // 외부 아카이브 이미지를 그대로 건다(재호스팅하지 않음) — next/image 설정 없이 쓰려고 <img>.
