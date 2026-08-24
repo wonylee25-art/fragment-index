@@ -146,7 +146,7 @@ export type TimelineMode = "read" | "admin";
 // 구술 칸에 고정폭을 주면 화면이 좁아졌을 때 남는 폭이 사건·내용에 거의 돌아가지 않아
 // 글자가 한 자씩 세로로 떨어진다 — 뒤 세 칸은 비율로 나눠 같이 줄어들게 둔다.
 const ROW_GRID_CLASSNAME: Record<TimelineMode, string> = {
-  read: "sm:grid-cols-[220px_84px_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1.5fr)]",
+  read: "sm:grid-cols-[220px_84px_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)]",
   admin: "sm:grid-cols-[84px_1fr_1fr]",
 };
 
