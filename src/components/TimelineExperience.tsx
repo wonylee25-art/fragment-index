@@ -143,8 +143,10 @@ export type TimelineMode = "read" | "admin";
 // 표의 칸 나눔. 사건 관리(admin)에서는 사료·구술 두 칸을 접는다 — 거기서 하는 일은 사건 자체를
 // 고르고 고치는 것이고, 무엇이 붙어 있는지는 옆의 「사료 연결」·「구술 연결」 탭이 맡는다.
 // 다섯 칸을 다 세워 두면 정작 손대는 칸(사건명·내용)이 그만큼 좁아진다.
+// 구술 칸에 고정폭을 주면 화면이 좁아졌을 때 남는 폭이 사건·내용에 거의 돌아가지 않아
+// 글자가 한 자씩 세로로 떨어진다 — 뒤 세 칸은 비율로 나눠 같이 줄어들게 둔다.
 const ROW_GRID_CLASSNAME: Record<TimelineMode, string> = {
-  read: "sm:grid-cols-[220px_84px_1fr_1fr_280px]",
+  read: "sm:grid-cols-[220px_84px_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1.5fr)]",
   admin: "sm:grid-cols-[84px_1fr_1fr]",
 };
 
