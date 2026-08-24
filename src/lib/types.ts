@@ -43,6 +43,11 @@ export interface RelatedItem {
   fullText?: string; // 자료 원문 — 신문기사처럼 본문을 옮겨 적어 둔 것. description은 이것의 앞머리다.
   keywords?: string[]; // 사건·구술과 같은 태그. 검색과, 날짜·키워드가 겹치는 사건 찾기에 쓴다.
   imageUrl?: string; // 원본 아카이브의 썸네일 (박물관 유물 등) — 재호스팅하지 않고 링크만 건다
+  // 아래 셋은 이 자료가 사건 없이 연표에 서는 일에만 쓴다
+  // (20260824_add_timeline_placement_to_archive_items.sql).
+  onTimeline: boolean; // "연표에 올림" 딱지가 찍혀 있는지
+  timelineDateValue: string; // 연표에서 설 날짜(EDTF). 위 dateValue(발행일)와 별개다
+  highlighted: boolean; // 연표에서 내가 그은 표시
 }
 
 // 구술자·면담자를 화면에 보이기 위한 최소 정보. 신상기록부에 있는 현주소·연락처·종교·
@@ -193,4 +198,44 @@ export interface TimelineEventData {
   // 어느 구절이 걸렸는지를 가리킨다 — 구술 본문의 highlights와 같은 갈래다.
   // 글이 한 덩이라 line은 늘 0이다.
   summaryHighlights: Highlight[];
+}
+
+// 연표 한 행. 사건만 서던 자리에 사료도 제 이름으로 선다.
+//
+// 갈래를 나눈 것은 칸의 뜻을 지키기 위해서다. 사료를 사건인 척 빚어 사건명 칸에 제목을
+// 넣는 길도 있었지만(그러면 화면 코드를 하나도 안 고쳐도 된다), 그러면 표를 훑을 때
+// 사건명 칸에 선 것이 사건인지 자료인지 알 수 없게 된다. 사료는 사료 칸에 서고 사건명
+// 칸은 비운다 — 비어 있다는 것 자체가 "아직 사건으로 묶이지 않았다"는 정보이고, 나중에
+// 묶이면 그 칸이 채워진다.
+//
+// 사료 중에서도 옮겨 적어 둔 본문이 있는 것만 선다(지금은 신문기사 90건이 그렇다).
+// 본문이 없으면 내용 칸이 비어, 날짜 하나만 놓인 빈 행이 된다 — 사진·유물은 사건에 붙어
+// 그 행의 사료 칸에 설 때 제 몫을 한다.
+//
+// dateValue는 두 갈래 모두 "연표에서 이 행이 서는 날짜"다. 사료에서는 자료 자신의
+// 날짜(발행일)가 아니라 사람이 따로 지정한 날짜가 여기 온다 — 신문 발행일은 기사가
+// 실린 날이지 그 일이 일어난 날이 아니라서다
+// (20260824_add_timeline_placement_to_archive_items.sql).
+export type TimelineRow =
+  | { kind: "event"; id: string; dateValue: string; event: TimelineEventData }
+  | {
+      kind: "material";
+      id: string;
+      dateValue: string;
+      material: RelatedItem; // 제목·유형·소장기관·원본 링크·발행일 — 사료 칸이 쓰는 값
+      body: string; // 내용 칸에 싣는 본문. 옮겨 적어 둔 원문이 있으면 그것, 없으면 요약
+      highlighted: boolean;
+      memos: UserMemo[];
+      // 이 자료가 붙어 있는 사건 이름들. 붙었다고 독립 행이 사라지지는 않는다 — 올리는 것과
+      // 붙이는 것은 별개의 판단이라서다. 다만 같은 자료가 연표에 두 자리(이 행과 그 사건 행의
+      // 사료 칸)에 뜨게 되므로, 어느 사건과 겹치는지를 행에 적어 내릴지 말지를 판단하게 한다.
+      linkedEventNames: string[];
+    };
+
+export type TimelineRowKind = TimelineRow["kind"];
+
+// 사료가 연표에 제 행으로 설 수 있는가 — 옮겨 적어 둔 본문이 있어야 한다.
+// 화면(보류함 버튼)과 서버(올리기 액션)와 질의(연표 조립)가 같은 잣대를 써야 해서 한곳에 둔다.
+export function hasTimelineBody(item: { fullText?: string | null; description?: string | null }): boolean {
+  return Boolean((item.fullText ?? "").trim() || (item.description ?? "").trim());
 }

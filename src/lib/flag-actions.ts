@@ -33,6 +33,19 @@ export async function setEventsHighlighted(ids: string[], value: boolean) {
   revalidatePath("/admin/timeline");
 }
 
+// 연표에 선 사료에 긋는 표시 — 사건의 highlighted와 같은 갈래다(내가 이 행을 짚었다).
+export async function setMaterialsHighlighted(ids: string[], value: boolean) {
+  if (ids.length === 0) return;
+  const { error } = await supabaseAdmin
+    .from("archive_items")
+    .update({ highlighted: value })
+    .in("id", ids);
+  if (error) throw error;
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+  revalidatePath("/admin/review");
+}
+
 export async function togglePaperRead(id: string, value: boolean) {
   const { error } = await supabaseAdmin.from("papers").update({ is_read: value }).eq("id", id);
   if (error) throw error;

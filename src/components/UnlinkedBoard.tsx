@@ -8,6 +8,7 @@ import { LinkTargetType, linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/
 import { ArchiveItemType, LinkedEventRef } from "@/lib/types";
 import { formatEdtfToKorean } from "@/lib/edtf";
 import { deactivateMaterials } from "@/lib/material-actions";
+import { adoptMaterialsToTimeline, dropMaterialsFromTimeline } from "@/lib/timeline-placement-actions";
 import { PickSection, isUnlinkedEntry } from "./LinkPickSection";
 
 // 보류함. 저장해 둔 사료가 쌓이는 곳. 사건에 붙었느냐로 두 무리를 갈라 나란히 세운다 —
@@ -40,6 +41,9 @@ export interface UnlinkedEntry {
   fullText?: string; // 옮겨 적어 둔 원문 — 있으면 요약 아래에서 펼쳐 읽는다
   // 이 항목이 붙어 있는 사건 전부(숨긴 사건 포함). 비어 있으면 어디에도 안 붙은 것이다.
   links?: LinkedEventRef[];
+  // 사건 없이 연표에 올려 둔 것인지(LinkPickSection의 PickEntry와 같은 뜻).
+  onTimeline?: boolean;
+  timelineReady?: boolean; // 연표에 올릴 수 있는 자료인지 — 옮겨 적어 둔 본문이 있어야 한다
 }
 
 // 신문 사료의 썸네일 자리. 지면 스캔은 가져올 수 없다 — 네이버 뉴스라이브러리는 robots.txt가
@@ -92,7 +96,16 @@ function MaterialCard({ entry, events }: { entry: UnlinkedEntry; events: EventOp
 
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-bold leading-snug text-ink">{entry.title}</p>
-        <p className="mt-1 font-mono text-[11px] text-grey">{entry.metaLine}</p>
+        <p className="mt-1 font-mono text-[11px] text-grey">
+          {entry.metaLine}
+          {/* 연표에 올려 둔 것은 여기서 바로 보여야 한다 — 안 그러면 같은 자료를 또 올린다.
+              사건에 붙었다는 배지와 나란히 서지만 뜻이 다르다(별개의 판단이다). */}
+          {entry.onTimeline && (
+            <span className="ml-2 border border-line px-1 py-0.5 text-[10px] font-bold text-ink">
+              연표
+            </span>
+          )}
+        </p>
 
         {(entry.description || entry.fullText) && (
           <div className="mt-2 border-l-2 border-line pl-2.5">
@@ -178,6 +191,8 @@ export function UnlinkedBoard({
     picked,
     setPicked,
     onDeactivate: deactivateMaterials,
+    onAdopt: adoptMaterialsToTimeline,
+    onDrop: dropMaterialsFromTimeline,
     targetType: "archive_item" as const,
     basis: "keyword" as const,
     renderCard: (entry: UnlinkedEntry) => <MaterialCard entry={entry} events={events} />,

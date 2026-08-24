@@ -8,17 +8,18 @@ import { MemoList } from "./MemoList";
 import { AddEventPanel, EventRowControls } from "./EventEditor";
 import { FlagToggle } from "./FlagToggle";
 import { hideEvents } from "@/lib/event-actions";
-import { setEventsHighlighted } from "@/lib/flag-actions";
+import { setEventsHighlighted, setMaterialsHighlighted } from "@/lib/flag-actions";
+import { dropMaterialsFromTimeline, setMaterialTimelineDate } from "@/lib/timeline-placement-actions";
 import { saveEventSummaryHighlights } from "@/lib/highlight-actions";
 import { HighlightableText } from "./HighlightableText";
 import { UnlinkButton } from "./UnlinkButton";
-import { addTimelineMemo, deleteMemo, updateMemo } from "@/lib/memo-actions";
-import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData, UserMemo } from "@/lib/types";
+import { addMaterialMemo, addTimelineMemo, deleteMemo, updateMemo } from "@/lib/memo-actions";
+import { ArchiveItemType, RelatedItem, SegmentCardData, TimelineEventData, TimelineRow, UserMemo } from "@/lib/types";
 import { edtfSortKey, edtfYearFloat, formatEdtfToKorean } from "@/lib/edtf";
 import { narratorPullQuote } from "@/lib/quotes";
 import { formatEventSource } from "@/lib/citation";
 import { osmUrl } from "@/lib/geo";
-import { downloadCsv, eventsToCsv } from "@/lib/csv";
+import { downloadCsv, rowsToCsv } from "@/lib/csv";
 import {
   ARCHIVE_ITEM_ICON,
   CHIP_CLASSNAME,
@@ -67,12 +68,12 @@ const MATERIAL_HEIGHT: Record<ArchiveItemType, string> = {
   학술: "h-16",
 };
 
-// 연도 범위 필터. 빈 칸은 그쪽 끝을 열어둔다는 뜻이고, 연도 미상 사건은 범위를 지정한 순간
+// 연도 범위 필터. 빈 칸은 그쪽 끝을 열어둔다는 뜻이고, 연도 미상인 행은 범위를 지정한 순간
 // 제외한다 — 몇 년인지 모르는 것을 "1950~1960년에 속한다"고 볼 수는 없기 때문.
-function matchesYearRange(event: TimelineEventData, from: number | null, to: number | null): boolean {
+function matchesYearRange(row: TimelineRow, from: number | null, to: number | null): boolean {
   if (from === null && to === null) return true;
-  if (!event.dateValue) return false;
-  const year = Math.floor(edtfYearFloat(event.dateValue));
+  if (!row.dateValue) return false;
+  const year = Math.floor(edtfYearFloat(row.dateValue));
   if (Number.isNaN(year)) return false;
   return (from === null || year >= from) && (to === null || year <= to);
 }
@@ -82,8 +83,24 @@ function parseYearInput(value: string): number | null {
   return Number.isNaN(year) ? null : year;
 }
 
-function matchesQuery(event: TimelineEventData, query: string): boolean {
+// 행 하나가 검색어에 걸리는가. 갈래마다 읽을 글이 다르다 — 사건은 사건명·내용·출처,
+// 사료는 제목과 옮겨 적어 둔 원문, 구술은 발췌 본문. 화면에 보이는 글은 다 걸려야 한다:
+// 사료 행은 내용 칸에 원문을 통째로 싣는데 검색이 요약만 본다면, 눈앞에 뜬 문장으로
+// 그 자료를 다시 찾을 수 없게 된다.
+function matchesQuery(row: TimelineRow, query: string): boolean {
   if (!query) return true;
+
+  if (row.kind === "material") {
+    const { material } = row;
+    return (
+      material.title.includes(query) ||
+      row.body.includes(query) ||
+      material.sourceOrg.includes(query) ||
+      (material.keywords ?? []).some((k) => k.includes(query))
+    );
+  }
+
+  const event = row.event;
   return (
     event.eventName.includes(query) ||
     event.summary.includes(query) ||
@@ -94,6 +111,28 @@ function matchesQuery(event: TimelineEventData, query: string): boolean {
     event.keywordTags.some((t) => t.includes(query)) ||
     event.places.some((p) => p.name.includes(query))
   );
+}
+
+// 이 행에 내가 표시를 그었는가. 사건은 timeline_events, 사료는 archive_items의
+// 같은 이름 칸에 담긴다.
+function rowHighlighted(row: TimelineRow): boolean {
+  return row.kind === "event" ? row.event.highlighted : row.highlighted;
+}
+
+// 고른 행들에 한꺼번에 표시를 긋거나 지운다. 갈래마다 쓰는 칸이 달라 셋으로 나눠 보낸다.
+async function setRowsHighlighted(rows: TimelineRow[], value: boolean) {
+  const ids = (kind: TimelineRow["kind"]) => rows.filter((r) => r.kind === kind).map((r) => r.id);
+  await Promise.all([
+    setEventsHighlighted(ids("event"), value),
+    setMaterialsHighlighted(ids("material"), value),
+  ]);
+}
+
+// 고른 행들을 연표에서 내린다. 사건은 숨기고(hidden_at), 사료는 "연표에 올림" 딱지를
+// 뗀다 — 조작 이름이 다를 뿐 뜻은 같다: 연표에서만 내리고 DB의 자료는 그대로 둔다.
+async function dropRowsFromTimeline(rows: TimelineRow[]) {
+  const ids = (kind: TimelineRow["kind"]) => rows.filter((r) => r.kind === kind).map((r) => r.id);
+  await Promise.all([hideEvents(ids("event")), dropMaterialsFromTimeline(ids("material"))]);
 }
 
 // 사용자뷰(read)와 관리페이지(admin)가 같은 컴포넌트를 쓴다 — 연표 표시 로직(눈금·필터·표)은
@@ -117,11 +156,13 @@ const TOOLS_SPAN_CLASSNAME: Record<TimelineMode, string> = {
 };
 
 export function TimelineExperience({
-  events,
+  rows,
   segments,
   mode = "read",
 }: {
-  events: TimelineEventData[];
+  // 사건과, 사건 없이 연표에 올린 사료·구술이 한 흐름으로 섞여 온다(getTimelineRows).
+  rows: TimelineRow[];
+  // 사건 행이 제게 붙은 구술 인용을 찾는 데 쓴다 — 연표에 서지 않은 발췌까지 다 들어 있다.
   segments: SegmentCardData[];
   mode?: TimelineMode;
 }) {
@@ -139,8 +180,8 @@ export function TimelineExperience({
   }, [segments]);
 
   const sortedAll = useMemo(
-    () => [...events].sort((a, b) => edtfSortKey(a.dateValue) - edtfSortKey(b.dateValue)),
-    [events],
+    () => [...rows].sort((a, b) => edtfSortKey(a.dateValue) - edtfSortKey(b.dateValue)),
+    [rows],
   );
 
   const yearRange = useMemo(
@@ -151,7 +192,7 @@ export function TimelineExperience({
   const visible = useMemo(() => {
     const q = query.trim();
     const base = sortedAll.filter(
-      (e) => matchesQuery(e, q) && matchesYearRange(e, yearRange.from, yearRange.to),
+      (r) => matchesQuery(r, q) && matchesYearRange(r, yearRange.from, yearRange.to),
     );
     return sortDirection === "asc" ? base : [...base].reverse();
   }, [sortedAll, sortDirection, query, yearRange]);
@@ -165,46 +206,50 @@ export function TimelineExperience({
     });
   }
 
-  // 지금 걸린 검색·필터를 그대로 살려 "보이는 것 전부"를 고른다 — 일괄 숨김의 재료가 된다.
-  const allVisibleSelected = visible.length > 0 && visible.every((e) => collection.has(e.id));
-  const someVisibleSelected = visible.some((e) => collection.has(e.id));
+  // 지금 걸린 검색·필터를 그대로 살려 "보이는 것 전부"를 고른다 — 일괄 내리기의 재료가 된다.
+  const allVisibleSelected = visible.length > 0 && visible.every((r) => collection.has(r.id));
+  const someVisibleSelected = visible.some((r) => collection.has(r.id));
+
+  const selectedRows = useMemo(
+    () => sortedAll.filter((r) => collection.has(r.id)),
+    [sortedAll, collection],
+  );
 
   function toggleSelectAllVisible() {
     setCollection((prev) => {
       const next = new Set(prev);
-      for (const event of visible) {
-        if (allVisibleSelected) next.delete(event.id);
-        else next.add(event.id);
+      for (const row of visible) {
+        if (allVisibleSelected) next.delete(row.id);
+        else next.add(row.id);
       }
       return next;
     });
   }
 
-  // 고른 사건을 한꺼번에 숨긴다. 화면에서만 내리는 것이라 되돌리기는 아래 "숨긴 사건" 목록에서.
+  // 고른 행을 한꺼번에 연표에서 내린다. 화면에서만 내리는 것이라 되돌리기는 사건이면
+  // 아래 "숨긴 사건" 목록에서, 사료·구술이면 보류함에서 다시 올리는 것으로 한다.
   async function handleBulkHide() {
-    await hideEvents([...collection]);
+    await dropRowsFromTimeline(selectedRows);
     setCollection(new Set());
   }
 
-  // 고른 사건에 한꺼번에 밑줄을 긋거나 지운다. 고른 것이 전부 이미 그어져 있으면 지우는
+  // 고른 행에 한꺼번에 밑줄을 긋거나 지운다. 고른 것이 전부 이미 그어져 있으면 지우는
   // 쪽으로 뒤집는다 — 같은 자리에서 긋고 지울 수 있어야 잘못 그은 뒤 되돌아갈 데가 있다.
-  const allSelectedHighlighted =
-    collection.size > 0 && sortedAll.filter((e) => collection.has(e.id)).every((e) => e.highlighted);
+  const allSelectedHighlighted = selectedRows.length > 0 && selectedRows.every(rowHighlighted);
 
   async function handleBulkHighlight() {
-    await setEventsHighlighted([...collection], !allSelectedHighlighted);
+    await setRowsHighlighted(selectedRows, !allSelectedHighlighted);
     setCollection(new Set());
   }
 
   // 컬렉션 이름은 CSV를 만들 때만 묻는다 — 늘 떠 있는 입력 칸으로 두면 쓰는 때보다
   // 자리만 차지하는 때가 훨씬 길다. 취소하면 내려받지 않는다.
   function handleExportCsv() {
-    const picked = sortedAll.filter((e) => collection.has(e.id));
-    const name = window.prompt(`CSV로 내보낼 ${picked.length}건의 이름`, collectionName);
+    const name = window.prompt(`CSV로 내보낼 ${selectedRows.length}건의 이름`, collectionName);
     if (name === null) return;
     const trimmed = name.trim() || "연표컬렉션";
     setCollectionName(trimmed);
-    downloadCsv(trimmed, eventsToCsv(picked));
+    downloadCsv(trimmed, rowsToCsv(selectedRows));
   }
 
   return (
@@ -304,8 +349,8 @@ export function TimelineExperience({
                   if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
                 }}
                 onChange={toggleSelectAllVisible}
-                title={allVisibleSelected ? "보이는 사건 선택 해제" : `보이는 ${visible.length}건 모두 선택`}
-                aria-label={allVisibleSelected ? "보이는 사건 선택 해제" : `보이는 ${visible.length}건 모두 선택`}
+                title={allVisibleSelected ? "보이는 행 선택 해제" : `보이는 ${visible.length}건 모두 선택`}
+                aria-label={allVisibleSelected ? "보이는 행 선택 해제" : `보이는 ${visible.length}건 모두 선택`}
                 className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
               />
               {/* 정렬은 위 줄에 나와 있지만, 표를 읽다 방향을 바꾸고 싶을 때 손이 가는 곳은
@@ -330,18 +375,26 @@ export function TimelineExperience({
             일치하는 연표 항목이 없습니다.
           </p>
         ) : (
-          visible.map((event) => (
-            <EventEntry
-              key={event.id}
-              event={event}
-              mode={mode}
-              linkedSegments={event.linkedSegmentIds
-                .map((id) => segmentById.get(id))
-                .filter((s): s is SegmentCardData => !!s)}
-              inCollection={collection.has(event.id)}
-              onToggleCollection={() => toggleCollection(event.id)}
-            />
-          ))
+          visible.map((row) => {
+            const shared = {
+              mode,
+              inCollection: collection.has(row.id),
+              onToggleCollection: () => toggleCollection(row.id),
+            };
+            if (row.kind === "material") {
+              return <MaterialEntry key={row.id} row={row} {...shared} />;
+            }
+            return (
+              <EventEntry
+                key={row.id}
+                event={row.event}
+                linkedSegments={row.event.linkedSegmentIds
+                  .map((id) => segmentById.get(id))
+                  .filter((s): s is SegmentCardData => !!s)}
+                {...shared}
+              />
+            );
+          })
         )}
       </div>
 
@@ -681,6 +734,417 @@ function EventEntry({
   );
 }
 
+// 사건 없이 연표에 선 사료·구술 행. 사건 행(EventEntry)과 격자·조작은 같고, 어느 칸을
+// 채우느냐만 다르다.
+//
+// 칸의 뜻을 지키는 것이 이 행의 규칙이다. 사료는 사료 칸에, 구술은 구술 칸에 서고 사건명
+// 칸은 비운다 — 자료 제목을 사건명 칸에 채워 넣으면 표를 훑을 때 사건인지 자료인지 알 수
+// 없게 되고, 비어 있다는 것 자체가 "아직 사건으로 묶이지 않았다"는 읽을 만한 정보다.
+// 편집 화면(admin)은 사료·구술 칸을 접어 두므로 거기서만 자료가 사건명 칸 자리에 서는데,
+// 그때는 앞에 「사료」·「구술」 딱지를 붙여 사건과 갈라 둔다.
+function RowKindChip({ label }: { label: string }) {
+  return <span className={`mr-1.5 align-middle font-normal ${CHIP_CLASSNAME} bg-surface`}>{label}</span>;
+}
+
+// 비어 있는 칸. 사건 행에서 붙은 자료가 없을 때 쓰는 것과 같은 표시다.
+function EmptyCell() {
+  return <span className="font-mono text-[10px] text-line">—</span>;
+}
+
+// 연표에 설 날짜를 고치는 자리. 자료 자신의 날짜(발행일·면담일)는 건드리지 않는다 —
+// 신문 발행일은 기사가 실린 날이지 그 일이 일어난 날이 아니라서, 연표에 세울 날짜는
+// 따로 받아 여기서 조정한다(timeline-placement-actions.ts).
+function TimelineDateEditor({
+  value,
+  ownDateLabel,
+  onSave,
+  onClose,
+}: {
+  value: string;
+  ownDateLabel: string;
+  onSave: (next: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await onSave(draft.trim());
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2 border border-line bg-surface p-2">
+      <label className="flex items-center gap-2">
+        <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-grey">연표 날짜</span>
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="1961-09-24"
+          className={`w-40 ${INPUT_CLASSNAME}`}
+        />
+      </label>
+      {/* EDTF라 폭을 가진 값도 그대로 쓴다 — 회고 기사는 한 점이 아니라 구간으로 서야 맞다 */}
+      <span className="font-mono text-[10px] text-grey">
+        1961-09 · 1978~1983 · 1970s 처럼 폭이 있어도 된다{ownDateLabel && ` · 자료 날짜 ${ownDateLabel}`}
+      </span>
+      <button
+        type="button"
+        onClick={() => void handleSave()}
+        disabled={saving}
+        className="ml-auto rounded-sm bg-ink px-2.5 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
+      >
+        {saving ? "저장 중…" : "저장"}
+      </button>
+      <button type="button" onClick={onClose} className="font-mono text-[11px] text-grey hover:text-ink">
+        취소
+      </button>
+    </div>
+  );
+}
+
+// 사건 없이 선 행이 함께 쓰는 메뉴 — 강조·메모·날짜·내리기. 사건의 그것과 자리도 손짓도
+// 같지만 "수정"이 없다: 자료의 제목·본문을 고치는 일은 그 자료의 자리(보류함·구술 목록)에서
+// 한다. 여기서 하는 것은 연표에 어떻게 세울지에 대한 판단뿐이다.
+function RowMenu({
+  open,
+  menuRef,
+  highlighted,
+  memoCount,
+  onHighlight,
+  onChoose,
+  onClose,
+}: {
+  open: boolean;
+  menuRef: React.RefObject<HTMLDivElement | null>;
+  highlighted: boolean;
+  memoCount: number;
+  onHighlight: () => void;
+  onChoose: (next: "memo" | "date" | "drop") => void;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      ref={menuRef}
+      role="menu"
+      className="absolute left-0 top-full z-20 mt-0.5 flex overflow-hidden rounded-sm border border-line bg-background shadow-md"
+    >
+      <button
+        type="button"
+        role="menuitem"
+        autoFocus
+        onClick={onHighlight}
+        className="px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+      >
+        {highlighted ? "강조 해제" : "강조"}
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => onChoose("memo")}
+        className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+      >
+        {memoCount > 0 ? "메모" : "메모 추가"}
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => onChoose("date")}
+        className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+      >
+        날짜
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => onChoose("drop")}
+        className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
+      >
+        내리기
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={onClose}
+        className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-grey hover:text-ink"
+      >
+        닫기
+      </button>
+    </div>
+  );
+}
+
+// 바깥을 누르거나 Esc를 치면 메뉴를 닫는다 — EventEntry의 그것과 같은 사정이라 함께 쓴다.
+function useDismissable(open: boolean, close: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current?.contains(e.target as Node)) return;
+      close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, close]);
+  return ref;
+}
+
+// 날짜 칸 — 고르기 체크박스, 연표에 선 날짜, 그리고 사용자뷰의 강조 스위치.
+function RowDateCell({
+  dateValue,
+  label,
+  mode,
+  highlighted,
+  onHighlight,
+  inCollection,
+  onToggleCollection,
+}: {
+  dateValue: string;
+  label: string;
+  mode: TimelineMode;
+  highlighted: boolean;
+  onHighlight: (next: boolean) => Promise<void>;
+  inCollection: boolean;
+  onToggleCollection: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <input
+        type="checkbox"
+        checked={inCollection}
+        onChange={onToggleCollection}
+        title={inCollection ? "컬렉션에서 빼기" : "컬렉션에 담기"}
+        aria-label={`${label} 고르기`}
+        className="mt-0.5 h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
+      />
+      <div className="min-w-0">
+        <span className="block font-mono text-[11px] leading-5 text-grey">
+          {formatEdtfToKorean(dateValue)}
+        </span>
+        {mode === "read" && (
+          <div className="mt-1">
+            <FlagToggle
+              key={String(highlighted)}
+              active={highlighted}
+              onToggle={onHighlight}
+              activeLabel="강조"
+              inactiveLabel="강조"
+              dotClassName={DOT_MINE}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 이 자료가 사건에도 붙어 있다는 알림. 붙었다고 이 행이 사라지지는 않는다 — 올리는 것과
+// 붙이는 것은 별개의 판단이라, 어느 하나가 다른 하나를 무르게 두지 않았다. 다만 그러면 같은
+// 자료가 연표에 두 자리(이 행과 그 사건 행의 사료 칸)에 뜨므로, 겹친다는 사실과 어느 사건과
+// 겹치는지를 적어 둔다. 내릴지 말지는 그걸 보고 사람이 정한다(행 메뉴의 「내리기」).
+function LinkedEventNote({ names }: { names: string[] }) {
+  if (names.length === 0) return null;
+  return (
+    <p className="font-mono text-[10px] leading-4 text-grey">
+      사건에도 붙어 있음 — {names.join(" · ")}
+    </p>
+  );
+}
+
+// 사료가 제 이름으로 서는 행. 사료 칸에 제목·기관·원본 링크·발행일이 서고, 내용 칸에는
+// 옮겨 적어 둔 본문이 통째로 실린다(요약만 실으면 기사 한복판의 증언이 화면에서 빠진다).
+function MaterialEntry({
+  row,
+  mode,
+  inCollection,
+  onToggleCollection,
+}: {
+  row: Extract<TimelineRow, { kind: "material" }>;
+  mode: TimelineMode;
+  inCollection: boolean;
+  onToggleCollection: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [action, setAction] = useState<"memo" | "date" | "drop" | null>(null);
+  const menuRef = useDismissable(menuOpen, () => setMenuOpen(false));
+  const { material } = row;
+  const published = material.dateValue ? formatEdtfToKorean(material.dateValue) : "";
+
+  function choose(next: "memo" | "date" | "drop") {
+    setMenuOpen(false);
+    setAction(next);
+  }
+
+  return (
+    <div
+      className={`grid grid-cols-1 gap-x-5 gap-y-3 border-b border-line py-4 ${ROW_GRID_CLASSNAME[mode]} ${
+        row.highlighted ? MINE_ROW_CLASSNAME : ""
+      }`}
+    >
+      {/* 사료 — 이 행의 주인공이 서는 자리다 */}
+      {mode === "read" && (
+        <div className="flex flex-col gap-2.5">
+          <MaterialThumb material={material} mode={mode} />
+          {published && (
+            <p className="font-mono text-[10px] leading-4 text-grey">{published} 발행</p>
+          )}
+          <LinkedEventNote names={row.linkedEventNames} />
+        </div>
+      )}
+
+      <RowDateCell
+        dateValue={row.dateValue}
+        label={material.title}
+        mode={mode}
+        highlighted={row.highlighted}
+        onHighlight={(next) => setMaterialsHighlighted([row.id], next)}
+        inCollection={inCollection}
+        onToggleCollection={onToggleCollection}
+      />
+
+      {/* 사건명 — 비워 둔다. 편집 화면은 사료 칸을 접으므로 여기가 자료의 자리가 된다. */}
+      <div className="min-w-0">
+        {mode === "admin" ? (
+          <div className="relative">
+            <h3 className={`${TEXT_SUBHEAD_CLASSNAME} font-bold leading-snug text-ink`}>
+              <RowKindChip label="사료" />
+              <button
+                type="button"
+                onClick={() => setMenuOpen(!menuOpen)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                title="눌러서 메뉴 열기"
+                className="cursor-pointer text-left hover:text-green-text"
+              >
+                {material.title}
+              </button>
+            </h3>
+            <RowMenu
+              open={menuOpen}
+              menuRef={menuRef}
+              highlighted={row.highlighted}
+              memoCount={row.memos.length}
+              onHighlight={() => {
+                setMenuOpen(false);
+                void setMaterialsHighlighted([row.id], !row.highlighted);
+              }}
+              onChoose={choose}
+              onClose={() => setMenuOpen(false)}
+            />
+            <p className="mt-1 font-mono text-[10px] text-grey">
+              {[material.type, material.sourceOrg, published && `${published} 발행`]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <LinkedEventNote names={row.linkedEventNames} />
+          </div>
+        ) : (
+          <EmptyCell />
+        )}
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {(material.keywords ?? []).map((t) => (
+            <Tag key={t} label={t} variant="keyword" />
+          ))}
+        </div>
+      </div>
+
+      {/* 내용 — 옮겨 적어 둔 본문 */}
+      <div className="min-w-0">
+        {row.body ? (
+          <p className={`whitespace-pre-line ${TEXT_BODY_CLASSNAME} leading-5 text-ink`}>{row.body}</p>
+        ) : (
+          <EmptyCell />
+        )}
+      </div>
+
+      {/* 구술 — 사건을 거치지 않은 행이라 여기 걸릴 것이 없다 */}
+      {mode === "read" && <EmptyCell />}
+
+      {(action !== null || row.memos.length > 0) && (
+        <div className={TOOLS_SPAN_CLASSNAME[mode]}>
+          {action === "memo" ? (
+            <MemoList
+              startEditing
+              memos={row.memos}
+              onAdd={(memo) => addMaterialMemo(row.id, memo)}
+              onEdit={(id, memo) => updateMemo(id, memo)}
+              onDelete={(id) => deleteMemo(id)}
+            />
+          ) : action === "date" ? (
+            <TimelineDateEditor
+              value={row.dateValue}
+              ownDateLabel={published}
+              onSave={(next) => setMaterialTimelineDate(row.id, next)}
+              onClose={() => setAction(null)}
+            />
+          ) : action === "drop" ? (
+            <DropRowConfirm
+              noun="사료"
+              onDrop={() => dropMaterialsFromTimeline([row.id])}
+              onClose={() => setAction(null)}
+            />
+          ) : (
+            <CuratorMemo memos={row.memos} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 연표에서 내리기 전에 한 번 묻는다 — 사건 숨김과 같은 무게의 일이고, 되돌리는 자리가
+// 화면 밖(보류함)이라 어디로 가는지 함께 알린다.
+function DropRowConfirm({
+  noun,
+  onDrop,
+  onClose,
+}: {
+  noun: string;
+  onDrop: () => Promise<unknown>;
+  onClose: () => void;
+}) {
+  const [pending, setPending] = useState(false);
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2 border border-line bg-surface p-2 font-mono text-[11px]">
+      <span className="text-ink">
+        이 {noun}를 연표에서 내립니다 — 자료는 그대로 남고, 보류함에서 다시 올릴 수 있습니다
+      </span>
+      <button
+        type="button"
+        onClick={async () => {
+          setPending(true);
+          try {
+            await onDrop();
+          } finally {
+            setPending(false);
+          }
+        }}
+        disabled={pending}
+        className="ml-auto rounded-sm bg-ink px-2.5 py-0.5 text-white hover:opacity-80 disabled:opacity-50"
+      >
+        {pending ? "내리는 중…" : "내리기"}
+      </button>
+      <button type="button" onClick={onClose} disabled={pending} className="text-grey hover:text-ink">
+        취소
+      </button>
+    </div>
+  );
+}
+
 // 이미지(사료의 실제 물성을 흉내 낸 높이) → 제목 → 연결링크 순으로 세로로 쌓는다.
 function MaterialThumb({
   material,
@@ -688,7 +1152,8 @@ function MaterialThumb({
   mode,
 }: {
   material: RelatedItem;
-  eventId: string;
+  // 사건에 붙어서 딸려온 자료일 때만 온다 — 사건 없이 제 행으로 선 사료에는 끊을 연결선이 없다.
+  eventId?: string;
   mode: TimelineMode;
 }) {
   return (
@@ -709,7 +1174,7 @@ function MaterialThumb({
         </span>
       </p>
     </a>
-      {mode === "admin" && (
+      {mode === "admin" && eventId && (
         <UnlinkButton eventId={eventId} targetType="archive_item" targetId={material.id} />
       )}
     </div>
@@ -724,7 +1189,7 @@ function OralQuote({
   mode,
 }: {
   segment: SegmentCardData;
-  eventId: string;
+  eventId?: string; // 사건에 붙어서 딸려온 인용일 때만 온다(MaterialThumb과 같은 사정)
   mode: TimelineMode;
 }) {
   const quote = narratorPullQuote(segment);
@@ -754,7 +1219,7 @@ function OralQuote({
           구술 전체 보기 ↗
         </Link>
       </p>
-      {mode === "admin" && (
+      {mode === "admin" && eventId && (
         <UnlinkButton eventId={eventId} targetType="segment" targetId={segment.id} />
       )}
     </div>
@@ -831,14 +1296,15 @@ function SelectionHeader({
             if (el) el.indeterminate = !allSelected && someSelected;
           }}
           onChange={onToggleAll}
-          title={allSelected ? "보이는 사건 선택 해제" : "보이는 사건 모두 선택"}
-          aria-label={allSelected ? "보이는 사건 선택 해제" : "보이는 사건 모두 선택"}
+          title={allSelected ? "보이는 행 선택 해제" : "보이는 행 모두 선택"}
+          aria-label={allSelected ? "보이는 행 선택 해제" : "보이는 행 모두 선택"}
           className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
         />
         {confirming ? (
           <>
             <span className="text-ink">
-              {count}건을 연표에서 내립니다 — DB는 그대로고, 아래 “숨긴 사건”에서 되돌립니다
+              {count}건을 연표에서 내립니다 — DB는 그대로고, 사건은 아래 “숨긴 사건”에서,
+              사료·구술은 보류함에서 되돌립니다
             </span>
             <button
               type="button"

@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
 import { edtfSortKey, edtfYear } from "./edtf";
-import { ArchiveItemType, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, UnlinkedMaterials, UserMemo } from "./types";
+import { ArchiveItemType, hasTimelineBody, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, TimelineRow, UnlinkedMaterials, UserMemo } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -100,6 +100,10 @@ interface DbArchiveItem {
   full_text: string | null;
   keywords: string[] | null;
   image_url: string | null;
+  // 아래 셋은 연표에 사료를 세울 때만 읽는다 — select에 넣지 않는 질의도 많아 없을 수 있다.
+  adopted_at?: string | null;
+  timeline_date_value?: string | null;
+  highlighted?: boolean;
 }
 
 interface DbSegment {
@@ -176,6 +180,9 @@ function toRelatedItem(item: DbArchiveItem): RelatedItem {
     fullText: item.full_text ?? undefined,
     keywords: item.keywords ?? undefined,
     imageUrl: item.image_url ?? undefined,
+    onTimeline: item.adopted_at != null,
+    timelineDateValue: item.timeline_date_value ?? "",
+    highlighted: item.highlighted ?? false,
   };
 }
 
@@ -255,6 +262,81 @@ export async function getChronicleEvents({ includeCandidates = false }: Chronicl
       summaryHighlights: sanitizeHighlights(e.summary_highlights),
     };
   });
+}
+
+// 연표가 그리는 행 전부 — 사건과, 사건 없이 연표에 올린 사료.
+//
+// 사료가 사건을 거치지 않고 제 행으로 서는 길이다. 붙일 사건이 아직 없다는 것은 그 자료에
+// 연표에 설 값이 없다는 뜻이 아니라 사건 쪽 정리가 안 됐다는 뜻일 뿐이라, 자료가 스스로
+// 한 행을 차지할 수 있게 한다(TimelineRow 주석 참고).
+//
+// 사건에 이미 붙어 있는 자료라도 딱지가 찍혀 있으면 제 행으로도 선다. 딱지는 "이 자료는
+// 그 자체로 연표에 설 값이 있다"는 판단이고 연결은 "이 사건과도 관계있다"는 별개 판단이라,
+// 하나가 다른 하나를 지우지 않는다. 겹치는 것이 거슬리면 사람이 내린다 — 어느 사건과
+// 겹치는지는 행에 적어 둔다(linkedEventNames).
+//
+// 발췌 목록(segments)을 함께 돌려주는 것은 사건 행이 제게 붙은 구술 인용을 찾는 데 쓰기
+// 때문이다 — 화면이 같은 질의를 한 번 더 돌지 않게 여기서 한 번만 읽는다.
+export interface TimelineRowsResult {
+  rows: TimelineRow[];
+  segments: SegmentCardData[];
+}
+
+export async function getTimelineRows(options: ChronicleOptions = {}): Promise<TimelineRowsResult> {
+  const [events, segments, { data: materials, error }, memosByMaterial] = await Promise.all([
+    getChronicleEvents(options),
+    getOralSegments(),
+    // 치운 사료(hidden_at)는 딱지가 남아 있어도 연표에 서지 않는다 — 비활성함에서 되살리면 돌아온다.
+    supabase
+      .from("archive_items")
+      .select(
+        "id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url, adopted_at, timeline_date_value, highlighted",
+      )
+      .is("hidden_at", null)
+      .not("adopted_at", "is", null)
+      .order("id"),
+    fetchMemosBy("archive_item_id"),
+  ]);
+  if (error) throw error;
+
+  // 어느 자료가 어느 사건에 붙어 있는지 — 사건 목록이 이미 들고 온 것을 뒤집어 쓴다.
+  const eventNamesByMaterial = new Map<string, string[]>();
+  for (const event of events) {
+    for (const material of event.linkedMaterials) {
+      eventNamesByMaterial.set(material.id, [
+        ...(eventNamesByMaterial.get(material.id) ?? []),
+        event.eventName,
+      ]);
+    }
+  }
+
+  const materialRows: TimelineRow[] = ((materials as DbArchiveItem[]) ?? [])
+    .map(toRelatedItem)
+    // 본문이 없는 자료는 내용 칸이 비어 날짜 하나만 놓인 빈 행이 된다. 올리는 자리에서 이미
+    // 막지만(adoptMaterialsToTimeline), 나중에 본문이 지워지는 일도 있어 여기서 한 번 더 본다.
+    .filter(hasTimelineBody)
+    .map((material) => ({
+      kind: "material",
+      id: material.id,
+      // 지정한 날짜가 먼저다. 아직 조정하지 않았으면 자료 자신의 날짜로 서 있는다 —
+      // 딱지를 찍을 때 그 값으로 채워 두므로 보통은 둘이 같다.
+      dateValue: material.timelineDateValue || material.dateValue || "",
+      material,
+      // 옮겨 적어 둔 원문이 있으면 그것을 통째로 싣는다. 요약(description)은 그 앞머리라,
+      // 그것만 실으면 기사 중간의 증언이 화면에서 빠진다.
+      body: material.fullText || material.description || "",
+      highlighted: material.highlighted,
+      memos: memosByMaterial.get(material.id) ?? [],
+      linkedEventNames: eventNamesByMaterial.get(material.id) ?? [],
+    }));
+
+  return {
+    rows: [
+      ...events.map((event) => ({ kind: "event" as const, id: event.id, dateValue: event.dateValue, event })),
+      ...materialRows,
+    ],
+    segments,
+  };
 }
 
 export interface EventOptionRow {
@@ -380,7 +462,7 @@ export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
     // 비활성 사료함에 넣은 것(hidden_at)은 보류함에서 빠진다 — 되돌리는 길은 그 함이다.
     // 입수 순 — 최근에 들어온 것이 앞이다. 목록을 열 건씩 끊어 보는데 새로 넣은 자료가
     // 마지막 쪽에 처박히면, 방금 넣은 것을 붙이려고 매번 끝까지 넘겨야 한다.
-    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url, created_at").is("hidden_at", null).order("created_at", { ascending: false }).order("id"),
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url, created_at, adopted_at").is("hidden_at", null).order("created_at", { ascending: false }).order("id"),
     supabase.from("segments").select("id, item_title, date_value").is("hidden_at", null).order("id"),
     // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
     supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),
@@ -549,7 +631,9 @@ interface DbUserMemo {
 }
 
 // 한 화면이 쓰는 주인 칸 하나로 메모를 받아 주인별로 묶는다. 적은 차례대로 세운다.
-async function fetchMemosBy(ownerColumn: "timeline_event_id" | "segment_id" | "paper_id"): Promise<Map<string, UserMemo[]>> {
+async function fetchMemosBy(
+  ownerColumn: "timeline_event_id" | "segment_id" | "paper_id" | "archive_item_id",
+): Promise<Map<string, UserMemo[]>> {
   const { data, error } = await supabase
     .from("user_memos")
     .select(`id, ${ownerColumn}, memo_text, created_at`)

@@ -37,6 +37,12 @@ export interface PickEntry {
   title: string;
   // 이 항목이 붙어 있는 사건 전부(숨긴 사건 포함). 비어 있으면 어디에도 안 붙은 것이다.
   links?: LinkedEventRef[];
+  // 사건 없이 연표에 올려 둔 것인지. 위의 links와 별개다 — 사건에 붙었느냐와 연표에
+  // 제 행으로 서느냐는 다른 판단이고, 하나가 다른 하나를 지우지 않는다.
+  onTimeline?: boolean;
+  // 연표에 올릴 수 있는 자료인지(옮겨 적어 둔 본문이 있어야 한다). 없는 것을 올리면 내용
+  // 칸이 빈 채 날짜만 놓인 행이 된다 — 그래서 고르더라도 올리기 셈에서 빠진다.
+  timelineReady?: boolean;
 }
 
 // 연결선이 하나라도 있으면 "붙은 것"이다 — 숨긴 사건에 걸린 것도 붙은 것으로 친다.
@@ -57,6 +63,8 @@ export function PickSection<T extends PickEntry>({
   picked,
   setPicked,
   onDeactivate,
+  onAdopt,
+  onDrop,
   targetType,
   basis,
   renderCard,
@@ -73,6 +81,11 @@ export function PickSection<T extends PickEntry>({
   picked: Set<string>;
   setPicked: (next: Set<string>) => void;
   onDeactivate: (ids: string[]) => Promise<number>;
+  // 연표에 올리고 내리는 일. 사건에 붙이는 일과 나란히 서는 별개의 조작이다 — 붙일 사건이
+  // 아직 없어도 자료 자신이 연표에 설 수 있어야 한다.
+  // 없으면 그 버튼이 서지 않는다 — 구술 연결이 그렇다(연표에 서는 것은 본문이 있는 사료뿐).
+  onAdopt?: (ids: string[]) => Promise<number>;
+  onDrop?: (ids: string[]) => Promise<number>;
   targetType: LinkTargetType;
   basis: LinkBasis | null;
   renderCard: (entry: T) => ReactNode;
@@ -92,6 +105,9 @@ export function PickSection<T extends PickEntry>({
   const shown = entries.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   const pickedHere = entries.filter((e) => picked.has(e.id));
+  const pickedOnTimeline = pickedHere.filter((e) => e.onTimeline);
+  // 올릴 수 있는데 아직 안 올린 것 — 「연표에 올리기」가 실제로 먹는 대상이다.
+  const pickedAdoptable = pickedHere.filter((e) => e.timelineReady && !e.onTimeline);
   const somePicked = pickedHere.length > 0;
   const bulkReady = pickedHere.length >= 2;
   // 머리줄 체크박스는 "지금 보이는 쪽"을 고른다(연표 표 머리와 같은 규칙). 고른 것은
@@ -106,6 +122,30 @@ export function PickSection<T extends PickEntry>({
     if (next) draft.add(id);
     else draft.delete(id);
     setPicked(draft);
+  }
+
+  // 연표에 올리는 순간 연표 날짜가 자료 날짜로 채워진다 — 신문 발행일은 기사가 실린 날이지
+  // 그 일이 일어난 날이 아니므로, 올린 뒤 연표에서 그 날짜를 조정하는 것까지가 한 벌이다.
+  async function handleAdopt() {
+    if (!onAdopt || pickedAdoptable.length === 0) return;
+    setBulkPending(true);
+    try {
+      await onAdopt(pickedAdoptable.map((e) => e.id));
+      setPicked(new Set());
+    } finally {
+      setBulkPending(false);
+    }
+  }
+
+  async function handleDrop() {
+    if (!onDrop || pickedOnTimeline.length === 0) return;
+    setBulkPending(true);
+    try {
+      await onDrop(pickedOnTimeline.map((e) => e.id));
+      setPicked(new Set());
+    } finally {
+      setBulkPending(false);
+    }
   }
 
   async function handleDeactivate() {
@@ -171,6 +211,32 @@ export function PickSection<T extends PickEntry>({
           {/* 고른 것이 둘 이상일 때만 서는 두 버튼. 무엇에 먹는지가 버튼 글자에 그대로
               적힌다("고른 4건") — 예전의 공용 사건 목록이 문제였던 건 고르지 않은 것에도
               조용히 먹었기 때문이지, 여러 건을 한꺼번에 잇는 일 자체가 아니었다. */}
+          {/* 사건에 붙이는 일과 연표에 올리는 일을 나란히 둔다. 한 건만 골라도 서는 것은
+              사건 연결과 다른 점인데, 올리는 일에는 "무엇에 올릴지" 고를 것이 없어서다.
+              고른 것 중 올릴 수 있는 것(본문이 있고 아직 안 올린 것)이 없으면 아예 안 선다 —
+              눌러도 아무 일이 없는 버튼을 세워두면 왜 안 되는지 알 길이 없다. */}
+          {onAdopt && pickedAdoptable.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void handleAdopt()}
+              disabled={bulkPending}
+              title="사건에 붙이지 않고, 자료 자신을 연표에 한 행으로 세웁니다"
+              className="border border-ink px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:bg-surface disabled:border-line disabled:text-grey"
+            >
+              {bulkPending ? "올리는 중…" : `연표에 올리기 (${pickedAdoptable.length}건)`}
+            </button>
+          )}
+          {onDrop && pickedOnTimeline.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void handleDrop()}
+              disabled={bulkPending}
+              title="연표에서만 내립니다 — 자료도, 조정해 둔 연표 날짜도 그대로 남습니다"
+              className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
+            >
+              {bulkPending ? "내리는 중…" : `연표에서 내리기 (${pickedOnTimeline.length}건)`}
+            </button>
+          )}
           {bulkReady && (
             <button
               type="button"

@@ -22,6 +22,14 @@ export async function addSegmentMemo(segmentId: string, memo: string) {
   revalidatePath("/segments");
 }
 
+// 연표에 사건 없이 선 사료 행에 적는 메모. 사건 행에 적는 것과 같은 일이라 같은 표에
+// 쌓이고, 주인 칸만 다르다(20260824_add_archive_item_to_user_memos.sql).
+export async function addMaterialMemo(materialId: string, memo: string) {
+  await insertMemo({ archive_item_id: materialId }, memo);
+  revalidatePath("/");
+  revalidatePath("/admin/timeline");
+}
+
 export async function addPaperMemo(paperId: string, memo: string) {
   await insertMemo({ paper_id: paperId }, memo);
   revalidatePath("/research");
