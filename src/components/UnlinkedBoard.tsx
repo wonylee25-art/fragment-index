@@ -7,7 +7,7 @@ import { EventAttach } from "./EventAttach";
 import { LinkTargetType, linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { ArchiveItemType, LinkedEventRef } from "@/lib/types";
 import { CardShell, FieldLabel, footButtonClass, HeadRow } from "./RecordCard";
-import { RECORD_CELL_CLASSNAME as CELL_CLASSNAME } from "@/lib/design-tokens";
+import { RECORD_CELL_CLASSNAME as CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 import { clearMaterialsNoLink, deactivateMaterials, markMaterialsNoLink } from "@/lib/material-actions";
 import { adoptMaterialsToTimeline, dropMaterialsFromTimeline } from "@/lib/timeline-placement-actions";
 import { PickSection } from "./LinkPickSection";
@@ -111,6 +111,14 @@ function MaterialCard({
       strength={entry.links?.length ?? 0}
       heightClassName={CARD_HEIGHT_CLASSNAME}
       sourceUrl={entry.sourceUrl}
+      head={
+        <HeadRow
+          sourceOrg={entry.sourceOrg}
+          itemType={entry.itemType}
+          dateValue={entry.dateValue}
+          checkbox={checkbox}
+        />
+      }
       foot={({ toggle }) => (
         <>
           {/* 칠해진 것이 이 사료가 지금 선 함이다 — 누르는 자리이면서 상태 표시이기도 하다 */}
@@ -152,14 +160,14 @@ function MaterialCard({
       )}
       overlay={
         <>
-          <div className={`shrink-0 border-b border-line ${CELL_CLASSNAME}`}>
+          <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="title" ko="표제" />
             <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
               {entry.title}
             </p>
             <p className="mt-1 font-mono text-[10.5px] text-grey">{entry.metaLine}</p>
           </div>
-          <div className={`border-b border-line ${CELL_CLASSNAME}`}>
+          <div className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="full text" ko="본문" />
             <div className="mt-1.5">
               <MaterialBody entry={entry} />
@@ -192,13 +200,6 @@ function MaterialCard({
         </>
       }
     >
-      <HeadRow
-        sourceOrg={entry.sourceOrg}
-        itemType={entry.itemType}
-        dateValue={entry.dateValue}
-        checkbox={checkbox}
-      />
-
       {entry.imageUrl && (
         // 외부 아카이브 이미지를 그대로 건다(재호스팅하지 않음) — next/image 설정 없이 쓰려고 <img>.
         // eslint-disable-next-line @next/next/no-img-element
@@ -206,11 +207,11 @@ function MaterialCard({
           src={entry.imageUrl}
           alt={entry.title}
           loading="lazy"
-          className="h-20 w-full shrink-0 border-b border-line bg-surface object-cover"
+          className={`h-20 w-full shrink-0 border-b bg-surface object-cover ${RECORD_LINE_CLASSNAME}`}
         />
       )}
 
-      <div className={`shrink-0 border-b border-line ${CELL_CLASSNAME}`}>
+      <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
         <FieldLabel en="title" ko="표제" />
         <p className="mt-1 line-clamp-3 font-serif text-[15px] font-bold leading-snug text-ink">
           {entry.title}

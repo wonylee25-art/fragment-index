@@ -5,7 +5,7 @@ import { MaterialDraft, saveMaterial } from "@/app/actions";
 import { EventOption } from "./EventPicker";
 import { EventAttach } from "./EventAttach";
 import { CardShell, FieldLabel, footButtonClass, HeadRow } from "./RecordCard";
-import { RECORD_CELL_CLASSNAME as CELL_CLASSNAME } from "@/lib/design-tokens";
+import { RECORD_CELL_CLASSNAME as CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 
 // 사료 연결의 작업대. 검색으로 걸린 자료를 저장하면서 사건에 붙인다.
 // 사건은 자료마다 따로 고른다 — 화면 왼쪽에 목록 하나를 펼쳐두고 고른 사건이 모든 카드에
@@ -56,6 +56,9 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
           strength={strength}
           heightClassName={CARD_HEIGHT_CLASSNAME}
           sourceUrl={draft.sourceUrl || undefined}
+          head={
+            <HeadRow sourceOrg={draft.sourceOrg} itemType={draft.itemType} dateText={dateText} />
+          }
           foot={({ toggle }) => (
             <>
               <input type="hidden" name="eventId" value={eventId} />
@@ -100,7 +103,7 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
           )}
           overlay={
             <>
-              <div className={`shrink-0 border-b border-line ${CELL_CLASSNAME}`}>
+              <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
                 <FieldLabel en="title" ko="표제" />
                 <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
                   {draft.title}
@@ -109,7 +112,7 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
               </div>
 
               {draft.description && (
-                <div className={`border-b border-line ${CELL_CLASSNAME}`}>
+                <div className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
                   <FieldLabel en="description" ko="설명" />
                   <p className="mt-1.5 whitespace-pre-line font-serif text-[13.5px] leading-[1.85] text-ink">
                     {draft.description}
@@ -141,8 +144,6 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
             </>
           }
         >
-          <HeadRow sourceOrg={draft.sourceOrg} itemType={draft.itemType} dateText={dateText} />
-
           {draft.imageUrl && (
             // 외부 아카이브 이미지를 그대로 건다(재호스팅하지 않음) — next/image 설정 없이 쓰려고 <img>.
             // eslint-disable-next-line @next/next/no-img-element
@@ -150,11 +151,11 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
               src={draft.imageUrl}
               alt={draft.title}
               loading="lazy"
-              className="h-20 w-full shrink-0 border-b border-line bg-surface object-cover"
+              className={`h-20 w-full shrink-0 border-b bg-surface object-cover ${RECORD_LINE_CLASSNAME}`}
             />
           )}
 
-          <div className={`shrink-0 border-b border-line ${CELL_CLASSNAME}`}>
+          <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="title" ko="표제" />
             <p className="mt-1 line-clamp-3 font-serif text-[15px] font-bold leading-snug text-ink">
               {draft.title}

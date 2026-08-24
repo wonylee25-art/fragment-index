@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArchiveItemType } from "@/lib/types";
 import { formatEdtfToKorean } from "@/lib/edtf";
-import { ARCHIVE_ITEM_HUE, archiveTintStyle, RECORD_CELL_CLASSNAME } from "@/lib/design-tokens";
+import { ARCHIVE_ITEM_HUE, archiveTintStyle, RECORD_CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 
 // 사료가 서는 카드 한 벌. 사료 연결 화면의 위(검색 결과)와 아래(보류함)가 함께 쓴다 —
 // 같은 자료가 한 화면에서 위아래로 다르게 생겼으면, 담기 전과 담은 뒤가 다른 자료처럼 보인다.
@@ -94,14 +94,16 @@ export function HeadRow({
 }) {
   return (
     <div className="flex shrink-0 items-stretch border-b border-ink">
-      {checkbox && <div className="flex items-center border-r border-line px-2">{checkbox}</div>}
+      {checkbox && (
+        <div className={`flex items-center border-r px-2 ${RECORD_LINE_CLASSNAME}`}>{checkbox}</div>
+      )}
       <div className={`min-w-0 flex-1 ${CELL_CLASSNAME}`}>
         <FieldLabel en="source" ko="출처" />
         <p className="mt-0.5 truncate text-[11.5px] font-extrabold tracking-tight text-ink">
           {sourceOrg || itemType || "사료"}
         </p>
       </div>
-      <div className={`shrink-0 border-l border-line text-right ${CELL_CLASSNAME}`}>
+      <div className={`shrink-0 border-l text-right ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
         <FieldLabel en="date" ko="날짜" />
         <p className="mt-0.5 font-mono text-[10.5px] tabular-nums text-ink">
           {dateValue ? formatEdtfToKorean(dateValue) : dateText || "연도 미상"}
@@ -136,6 +138,7 @@ export function CardShell({
   itemType,
   strength = 0,
   heightClassName,
+  head,
   foot,
   sourceUrl,
   overlay,
@@ -147,6 +150,9 @@ export function CardShell({
   strength?: number;
   // 카드 키. 발췌 칸이 서는 함은 크고, 담을지만 정하는 검색 결과는 낮다.
   heightClassName: string;
+  // 머리칸. 여는 단추 밖에 선다 — 안에 체크박스가 들어 있어서, 단추로 감싸면 고르려고
+  // 누른 것이 덧창까지 열어버린다(단추 안의 단추는 HTML에서도 어긋난 짜임이다).
+  head: ReactNode;
   // 바닥칸 왼쪽의 세 손잡이. 덧창을 여닫는 것도 이 안에서 하므로 여는 손잡이를 함께 넘긴다.
   foot: (control: { open: boolean; toggle: () => void }) => ReactNode;
   sourceUrl?: string;
@@ -195,6 +201,8 @@ export function CardShell({
         }`}
         style={itemType ? archiveTintStyle(ARCHIVE_ITEM_HUE[itemType], strength) : undefined}
       >
+        {head}
+
         {/* 표제와 발췌를 누르면 덧창이 열린다 — 읽으려고 누르는 자리가 곧 여는 자리다.
             바닥칸의 [사료 연결]도 같은 덧창을 연다(거기서 사건을 고르므로). */}
         <button
@@ -218,7 +226,7 @@ export function CardShell({
               rel="noopener noreferrer"
               // 칸 높이를 다 쓰는 자리라, 글자는 그 칸 가운데에 놓는다 — 위로 붙어 있으면
               // 왼쪽 버튼들과 눈높이가 어긋나 줄이 기울어 보인다.
-              className={`flex shrink-0 items-center justify-center self-stretch border-l border-line font-mono text-[10px] text-grey underline decoration-dotted underline-offset-4 hover:bg-surface hover:text-ink ${CELL_CLASSNAME}`}
+              className={`flex shrink-0 items-center justify-center self-stretch border-l ${RECORD_LINE_CLASSNAME} font-mono text-[10px] text-grey underline decoration-dotted underline-offset-4 hover:bg-surface hover:text-ink ${CELL_CLASSNAME}`}
             >
               원문보기 ↗
             </a>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { RelatedItem } from "@/lib/types";
-import { ARCHIVE_ITEM_ICON, RECORD_CELL_CLASSNAME as CELL_CLASSNAME } from "@/lib/design-tokens";
+import { ARCHIVE_ITEM_ICON, RECORD_CELL_CLASSNAME as CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 import { clearMaterialsNoLink, markMaterialsNoLink } from "@/lib/material-actions";
 import { linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { CardShell, FieldLabel, footButtonClass, HeadRow } from "./RecordCard";
@@ -43,6 +43,13 @@ export function DbMaterialCard({
       strength={strength}
       heightClassName="h-[17rem]"
       sourceUrl={material.sourceUrl || undefined}
+      head={
+        <HeadRow
+          sourceOrg={material.sourceOrg}
+          itemType={material.type}
+          dateValue={material.dateValue}
+        />
+      }
       foot={({ toggle }) => (
         <>
           <button
@@ -75,7 +82,7 @@ export function DbMaterialCard({
       )}
       overlay={
         <>
-          <div className={`shrink-0 border-b border-line ${CELL_CLASSNAME}`}>
+          <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="title" ko="표제" />
             <p className="mt-1 font-serif text-[17px] font-bold leading-snug text-ink">
               {material.title}
@@ -86,7 +93,7 @@ export function DbMaterialCard({
                 .join(" · ")}
             </p>
           </div>
-          <div className={`border-b border-line ${CELL_CLASSNAME}`}>
+          <div className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
             <FieldLabel en="full text" ko="본문" />
             <p className="mt-1.5 whitespace-pre-line font-serif text-[13.5px] leading-[1.85] text-ink">
               {body || "옮겨 적어 둔 본문이 없습니다."}
@@ -117,11 +124,6 @@ export function DbMaterialCard({
         </>
       }
     >
-      <HeadRow
-        sourceOrg={material.sourceOrg}
-        itemType={material.type}
-        dateValue={material.dateValue}
-      />
       {material.imageUrl && (
         // 외부 아카이브 이미지를 그대로 건다(재호스팅하지 않음) — next/image 설정 없이 쓰려고 <img>.
         // eslint-disable-next-line @next/next/no-img-element
@@ -129,11 +131,11 @@ export function DbMaterialCard({
           src={material.imageUrl}
           alt={material.title}
           loading="lazy"
-          className="h-20 w-full shrink-0 border-b border-line bg-surface object-cover"
+          className={`h-20 w-full shrink-0 border-b bg-surface object-cover ${RECORD_LINE_CLASSNAME}`}
         />
       )}
 
-      <div className={`shrink-0 border-b border-line ${CELL_CLASSNAME}`}>
+      <div className={`shrink-0 border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
         <FieldLabel en="title" ko="표제" />
         <p className="mt-1 line-clamp-3 font-serif text-[15px] font-bold leading-snug text-ink">
           {material.title}
