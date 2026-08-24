@@ -64,7 +64,7 @@ function revalidateMaterialViews() {
   revalidatePath("/admin/review");
 }
 
-// 보류함에서 고른 사료를 비활성으로 내린다 — 사건 숨김(hideEvent)과 같은 규칙이다.
+// 보류함에서 고른 사료를 비활성으로 내린다 — 사건 숨김(hideEvents)과 같은 규칙이다.
 // 행도 연결선도 그대로 두므로, 되살리면 붙어 있던 사건에 그대로 돌아온다.
 // 비활성 사료는 연표에서도 보류함에서도 빠지고, "비활성 사료함"에서만 보인다.
 export async function deactivateMaterials(ids: string[]): Promise<number> {

@@ -27,11 +27,6 @@ export interface EventInput {
   keywords: string[];
 }
 
-export interface EventHideSummary {
-  hiddenMaterials: number; // 사건과 함께 화면에서 빠지는 사료 수
-  hiddenSegments: number; // 사건과 함께 화면에서 빠지는 구술 수
-}
-
 // 주소창에서 복사한 주소는 대개 http(s)로 시작하지만, "www.…"만 적어 넣는 경우가 흔하다 —
 // 그대로 두면 상대경로 링크가 되어 사이트 안으로 잘못 이동한다. 붙여서 절대주소로 만든다.
 function normalizeUrl(value: string): string | null {
@@ -105,43 +100,13 @@ export async function updateEvent(id: string, input: EventInput) {
   revalidatePath("/admin/timeline");
 }
 
-// 숨기기 전에 "무엇이 함께 안 보이게 되는지" 미리 보여주기 위한 집계. 확인 대화상자에서 쓴다.
-export async function countEventAttachments(id: string): Promise<EventHideSummary> {
-  const { data, error } = await supabaseAdmin
-    .from("links")
-    .select("target_type")
-    .eq("event_id", id)
-    .in("status", ["confirmed", "candidate"]);
-  if (error) throw error;
-
-  const rows = (data as { target_type: string }[]) ?? [];
-  return {
-    hiddenMaterials: rows.filter((r) => r.target_type === "archive_item").length,
-    hiddenSegments: rows.filter((r) => r.target_type === "segment").length,
-  };
-}
-
-// 사건을 화면에서만 내린다 — DB에서는 아무것도 지우지 않는다.
-// 연결선(links)과 인물·장소 연결도 그대로 두기 때문에, 되살리면 붙어 있던 사료가 함께 돌아온다.
-// 대신 숨은 사건에 매달린 사료가 보류함에도 안 뜨는 사각지대가 생기므로, 읽는 쪽(db.ts)에서
-// 숨은 사건의 연결선을 "붙어 있지 않은 것"으로 친다.
-export async function hideEvent(id: string): Promise<EventHideSummary> {
-  const hidden = await countEventAttachments(id);
-
-  const { error } = await supabaseAdmin
-    .from("timeline_events")
-    .update({ hidden_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw error;
-
-  revalidatePath("/");
-  revalidatePath("/admin/timeline");
-  revalidatePath("/admin/review");
-  return hidden;
-}
-
-// 고른 사건을 한꺼번에 숨긴다. 한 건씩 숨기는 것과 결과가 같고, 요청만 한 번으로 줄인다 —
-// 200건 넘는 연표에서 "1963년 이전만" 같은 정리를 하려면 한 건씩은 너무 느리다.
+// 고른 사건을 화면에서만 내린다 — DB에서는 아무것도 지우지 않는다. 연결선(links)과 인물·장소
+// 연결도 그대로 두기 때문에, 되살리면 붙어 있던 사료가 함께 돌아온다. 대신 숨은 사건에 매달린
+// 사료가 보류함에도 안 뜨는 사각지대가 생기므로, 읽는 쪽(db.ts)에서 숨은 사건의 연결선을
+// "붙어 있지 않은 것"으로 친다.
+//
+// 사건을 내리는 길은 이것 하나다 — 한 건만 내릴 때도 그 행만 골라 부른다. 200건 넘는 연표에서
+// "1963년 이전만" 같은 정리를 하려면 한 건씩 요청해서는 너무 느리다.
 export async function hideEvents(ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
 

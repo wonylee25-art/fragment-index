@@ -210,6 +210,9 @@ export function TimelineExperience({
   const allVisibleSelected = visible.length > 0 && visible.every((r) => collection.has(r.id));
   const someVisibleSelected = visible.some((r) => collection.has(r.id));
 
+  // 고른 것을 셀 때는 늘 지금 연표에 서 있는 행으로만 센다. 내려간 행의 id는 체크 목록에
+  // 남아 있어도 rows에는 없다 — 그대로 세면 표에는 아무것도 안 짚혀 있는데 머리줄만
+  // "N건 선택"으로 남는다. 걷어내는 대신 세지 않는 쪽으로 한다.
   const selectedRows = useMemo(
     () => sortedAll.filter((r) => collection.has(r.id)),
     [sortedAll, collection],
@@ -228,18 +231,21 @@ export function TimelineExperience({
 
   // 고른 행을 한꺼번에 연표에서 내린다. 화면에서만 내리는 것이라 되돌리기는 사건이면
   // 아래 "숨긴 사건" 목록에서, 사료·구술이면 보류함에서 다시 올리는 것으로 한다.
+  //
+  // 고른 것을 여기서 풀지 않는다 — 내려간 행은 서버가 다시 그려주며 rows에서 빠지고,
+  // 그러면 selectedRows에서도 저절로 빠진다. 손으로 푸는 쪽은 "해제" 하나로 족하다.
   async function handleBulkHide() {
     await dropRowsFromTimeline(selectedRows);
-    setCollection(new Set());
   }
 
   // 고른 행에 한꺼번에 밑줄을 긋거나 지운다. 고른 것이 전부 이미 그어져 있으면 지우는
   // 쪽으로 뒤집는다 — 같은 자리에서 긋고 지울 수 있어야 잘못 그은 뒤 되돌아갈 데가 있다.
   const allSelectedHighlighted = selectedRows.length > 0 && selectedRows.every(rowHighlighted);
 
+  // 긋고 나서도 고른 것은 그대로 둔다 — 그어 놓고 곧바로 CSV로 내보내거나 잘못 그은 것을
+  // 되돌리는 일이 잇따르는데, 매번 풀려 버리면 같은 행들을 처음부터 다시 골라야 한다.
   async function handleBulkHighlight() {
     await setRowsHighlighted(selectedRows, !allSelectedHighlighted);
-    setCollection(new Set());
   }
 
   // 컬렉션 이름은 CSV를 만들 때만 묻는다 — 늘 떠 있는 입력 칸으로 두면 쓰는 때보다
@@ -320,10 +326,10 @@ export function TimelineExperience({
 
         {/* 표 헤더 — 사료 · 날짜 · 사건명(키워드) · 내용(출처) · 구술 5단 구성.
             고른 사건이 있으면 이 줄이 그대로 선택 도구로 바뀐다 — 새 막대를 얹지 않는다. */}
-        {collection.size > 0 ? (
+        {selectedRows.length > 0 ? (
           <SelectionHeader
             mode={mode}
-            count={collection.size}
+            count={selectedRows.length}
             allSelected={allVisibleSelected}
             someSelected={someVisibleSelected}
             onToggleAll={toggleSelectAllVisible}
@@ -457,12 +463,16 @@ function EventEntry({
   // 다섯 칸에 걸쳐 있어 바탕을 칠하면 사료·구술 칸까지 통째로 물드는데, 표시는 내가
   // 이 사건을 짚었다는 뜻이지 여기 붙은 자료까지 짚었다는 뜻은 아니다.
   //
-  // 편집 화면에서 손대는 일(메모·수정·숨김)은 사건명을 누르면 그 자리에 뜨는 작은 메뉴로
+  // 편집 화면에서 손대는 일(강조·메모·수정)은 사건명을 누르면 그 자리에 뜨는 작은 메뉴로
   // 고른다 — 구술 형광펜을 눌렀을 때 뜨는 메뉴와 같은 방식이다. 버튼 줄을 행마다 늘
   // 깔아두면 200여 행이 쓰지 않는 버튼만큼 세로로 늘어지고, 훑어보는 일이 대부분인 표에서
   // 그 여백은 전부 낭비다. 메뉴는 본문 위에 떠서 행을 밀지 않는다.
+  //
+  // 숨김만은 이 메뉴에 없다 — 행 체크박스로 골라 표 머리줄에서 한꺼번에 내리는 길 하나로
+  // 모았다. 같은 말("숨김")을 사건명 아래와 표 머리줄 두 곳에서 만나면, 무엇이 다른가를
+  // 매번 다시 생각하게 된다. 한 건만 내릴 때도 그 행만 체크하면 된다.
   const [menuOpen, setMenuOpen] = useState(false);
-  const [action, setAction] = useState<"memo" | "edit" | "hide" | null>(null);
+  const [action, setAction] = useState<"memo" | "edit" | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // 바깥을 누르거나 Esc를 치면 닫는다. 메뉴 안쪽을 눌렀는지는 ref로 직접 확인한다 —
@@ -485,7 +495,7 @@ function EventEntry({
     };
   }, [menuOpen]);
 
-  function choose(next: "memo" | "edit" | "hide") {
+  function choose(next: "memo" | "edit") {
     setMenuOpen(false);
     setAction(next);
   }
@@ -536,7 +546,7 @@ function EventEntry({
             {formatEdtfToKorean(event.dateValue)}
           </span>
           {/* 사용자뷰에서는 날짜 옆의 스위치로 긋는다. 편집 화면에서는 이 자리에 두지 않고
-              사건명 메뉴의 "강조"로 옮겼다 — 손대는 일(메모·수정·숨김)이 모두 그 메뉴에
+              사건명 메뉴의 "강조"로 옮겼다 — 손대는 일(메모·수정)이 모두 그 메뉴에
               모여 있는데 표시만 따로 떨어져 있으면, 같은 일을 두 곳에서 찾게 된다.
               key에 지금 값을 넣는 것은 표 헤더에서 여러 건을 한꺼번에 그었을 때다 —
               FlagToggle은 처음 받은 값으로 제 상태를 잡으므로, 값이 바뀌면 새로 태워야
@@ -623,14 +633,6 @@ function EventEntry({
               className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
             >
               수정
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => choose("hide")}
-              className="border-l border-line px-2.5 py-1 font-mono text-[11px] text-ink hover:bg-yellow-tint"
-            >
-              숨김
             </button>
             <button
               type="button"
@@ -726,7 +728,7 @@ function EventEntry({
           ) : action === null ? (
             <CuratorMemo memos={event.memos} />
           ) : (
-            <EventRowControls event={event} action={action} onClose={() => setAction(null)} />
+            <EventRowControls event={event} onClose={() => setAction(null)} />
           )}
         </div>
       )}

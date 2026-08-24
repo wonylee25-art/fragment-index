@@ -1,22 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { TimelineEventData } from "@/lib/types";
 import { ADD_BUTTON_CLASSNAME } from "@/lib/design-tokens";
 import { SOURCE_TYPES, isCited } from "@/lib/citation";
-import {
-  EventInput,
-  countEventAttachments,
-  createEvent,
-  hideEvent,
-  unhideEvent,
-  updateEvent,
-} from "@/lib/event-actions";
+import { EventInput, createEvent, unhideEvent, updateEvent } from "@/lib/event-actions";
 
-// 연표 사건을 사람이 직접 만들고 고치고 숨기는 UI. 관리페이지(mode="admin")에서만 열린다.
+// 연표 사건을 사람이 직접 만들고 고치는 UI. 관리페이지(mode="admin")에서만 열린다.
 // 폼 하나를 추가(빈 값)와 수정(기존 값)이 함께 쓴다.
-// 지우는 버튼은 없다 — 숨김은 DB를 건드리지 않고 화면에서만 내리며, 아래 "숨긴 사건" 목록에서
-// 언제든 되돌린다.
+// 지우는 버튼은 없다 — 연표에서 내리는 일은 행을 골라 표 머리줄에서 한꺼번에 숨기는 길
+// 하나뿐이고(TimelineExperience의 SelectionHeader), 숨김은 DB를 건드리지 않으므로 아래
+// "숨긴 사건" 목록에서 언제든 되돌린다.
 
 const EMPTY: EventInput = {
   eventName: "",
@@ -206,93 +200,25 @@ function EventForm({
   );
 }
 
-// 사건 행에서 고른 일(수정·숨김)을 펼친다. 무엇을 할지는 사건명을 눌러 뜨는 메뉴에서
-// 이미 골랐으므로, 여기에는 고르는 버튼을 두지 않는다 — 고른 일만 열고 닫는다.
-// 숨김은 함께 안 보이게 될 연결선 수를 먼저 세어 보여준다.
+// 사건 행에서 "수정"을 고르면 그 자리에 펼쳐지는 폼. 무엇을 할지는 사건명을 눌러 뜨는
+// 메뉴에서 이미 골랐으므로, 여기에는 고르는 버튼을 두지 않는다 — 고른 일만 열고 닫는다.
 export function EventRowControls({
   event,
-  action,
   onClose,
 }: {
   event: TimelineEventData;
-  action: "edit" | "hide";
   onClose: () => void;
 }) {
-  const [confirming, setConfirming] = useState<{
-    hiddenMaterials: number;
-    hiddenSegments: number;
-  } | null>(null);
-  const [pending, setPending] = useState(false);
-
-  // 숨김을 고르면 세는 일부터 시작한다 — "무엇이 함께 빠지는지"를 모르고 누를 수는 없다.
-  useEffect(() => {
-    if (action !== "hide") return;
-    let alive = true;
-    void countEventAttachments(event.id).then((counts) => {
-      if (alive) setConfirming(counts);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [action, event.id]);
-
-  async function handleHide() {
-    setPending(true);
-    try {
-      await hideEvent(event.id);
-      onClose();
-    } finally {
-      setPending(false);
-    }
-  }
-
-  if (action === "edit") {
-    return (
-      <EventForm
-        initial={toInput(event)}
-        submitLabel="수정 저장"
-        onSubmit={async (input) => {
-          await updateEvent(event.id, input);
-          onClose();
-        }}
-        onCancel={onClose}
-      />
-    );
-  }
-
-  if (!confirming) {
-    return <p className="mt-2 font-mono text-[11px] text-grey">세는 중…</p>;
-  }
-
-  const nothingAttached = confirming.hiddenMaterials + confirming.hiddenSegments === 0;
   return (
-    <div className="mt-2 rounded-sm border border-line bg-yellow-tint p-2.5">
-      <p className="font-mono text-[11px] leading-5 text-ink">
-        <strong className="font-bold">{event.eventName}</strong> 사건을 연표에서 숨깁니다.
-        <br />
-        {nothingAttached
-          ? "DB에서는 지워지지 않습니다 — 아래 “숨긴 사건”에서 되돌릴 수 있습니다."
-          : `연결된 사료 ${confirming.hiddenMaterials}건 · 구술 ${confirming.hiddenSegments}건도 함께 화면에서 빠집니다. DB에서는 아무것도 지워지지 않고, 되돌리면 연결도 그대로 돌아옵니다.`}
-      </p>
-      <div className="mt-1.5 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={pending}
-          className="font-mono text-[11px] text-grey hover:text-ink"
-        >
-          취소
-        </button>
-        <button
-          type="button"
-          onClick={handleHide}
-          disabled={pending}
-          className="rounded-sm bg-ink px-2 py-0.5 font-mono text-[11px] text-white hover:opacity-80 disabled:opacity-50"
-        >
-          {pending ? "숨기는 중…" : "숨김"}
-        </button>
-      </div>
-    </div>
+    <EventForm
+      initial={toInput(event)}
+      submitLabel="수정 저장"
+      onSubmit={async (input) => {
+        await updateEvent(event.id, input);
+        onClose();
+      }}
+      onCancel={onClose}
+    />
   );
 }
 
