@@ -164,13 +164,27 @@ export function CardShell({
   // 오른쪽 끝 칸에서는 덧창이 화면 밖으로 나간다 — 그 칸만 오른쪽에 맞춰 편다. 칸 수는
   // 화면 폭이 정하므로 셈해 두지 않고, 열 때 카드가 실제로 선 자리를 재서 정한다.
   const [flip, setFlip] = useState(false);
+  // 덧창이 카드 머리에서 얼마나 내려앉는지(px). 기본은 0 — 카드 자리에서 그대로 편다.
+  // 아래쪽 카드에서는 그대로 펴면 창 밖으로 자라 끝이 잘리는데, 그 아래를 보려고 굴리면
+  // 페이지가 밀리고 덧창은 카드에 매달려 함께 움직여서 잘린 끝에 영영 닿지 못한다.
+  // 그래서 창 안에 들어오도록 위로 끌어올린다(키는 아래 max-h가 창보다 크지 않게 잡는다).
+  const [offsetTop, setOffsetTop] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const toggle = () => setOpen((v) => !v);
 
   useLayoutEffect(() => {
-    if (!open || !cardRef.current) return;
-    const { left } = cardRef.current.getBoundingClientRect();
-    setFlip(left + OVERLAY_WIDTH_PX > window.innerWidth - 16);
+    if (!open || !cardRef.current || !overlayRef.current) return;
+    const card = cardRef.current.getBoundingClientRect();
+    setFlip(card.left + OVERLAY_WIDTH_PX > window.innerWidth - 16);
+    const height = overlayRef.current.offsetHeight;
+    // top은 카드 겉이 아니라 덧창이 매달린 상자(서식 칸) 기준이다 — 그 위에 꼭다리가
+    // 얹혀 있어 겉의 좌표로 셈하면 꼭다리 높이만큼 어긋난다.
+    const host = (overlayRef.current.offsetParent as HTMLElement | null) ?? cardRef.current;
+    const hostTop = host.getBoundingClientRect().top;
+    const highest = 8 - hostTop; // 이보다 올리면 창 위로 넘는다
+    const lowest = window.innerHeight - 8 - height - hostTop; // 이보다 내리면 창 아래로 넘는다
+    setOffsetTop(Math.round(Math.min(Math.max(0, highest), Math.max(highest, lowest))));
   }, [open]);
 
   // 덧창은 옆 카드를 덮으므로 닫는 길이 여럿이어야 한다 — 바깥을 누르거나 Esc.
@@ -237,7 +251,12 @@ export function CardShell({
             펼친 면처럼 읽힌다. */}
         {open && (
           <div
-            className={`absolute top-0 z-30 flex max-h-[34rem] w-[432px] max-w-[calc(100vw-2rem)] flex-col overflow-y-auto border border-ink bg-background shadow-[6px_6px_0_rgba(26,26,24,0.10)] ${
+            ref={overlayRef}
+            // 키는 창을 넘지 않는다 — 넘으면 잘린 부분이 스크롤로도 닿지 않는다.
+            // overscroll-contain은 덧창 끝까지 굴렸을 때 그 힘이 페이지로 넘어가지 않게 한다:
+            // 페이지가 밀리면 카드가 움직이고 덧창도 따라가 읽던 자리를 잃는다.
+            style={{ top: offsetTop }}
+            className={`absolute z-30 flex max-h-[min(34rem,calc(100vh-1rem))] w-[432px] max-w-[calc(100vw-2rem)] flex-col overflow-y-auto overscroll-contain border border-ink bg-background shadow-[6px_6px_0_rgba(26,26,24,0.10)] ${
               flip ? "right-0" : "left-0"
             }`}
           >
