@@ -16,8 +16,9 @@
 // 되돌릴 때는 이 파일을 손에 들고 사람이 판단해서 넣는다 — 자동 복원 스크립트는 없다.
 // 스냅샷이 최신이라는 보장이 없는데 통째로 밀어 넣으면 그 뒤에 한 일까지 되감기 때문이다.
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, readFileSync, readdirSync, mkdirSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { rotateBackups } from "./lib/rotate-backups.mjs";
 
 const OUT_DIR = "data/backup";
 const PAGE = 1000; // PostgREST가 응답 하나를 이 행 수에서 자른다
@@ -134,11 +135,46 @@ async function main() {
   // 날짜까지만 쓴다 — 하루에 여러 번 돌리면 그날 파일을 덮어써서, 큰 작업 전에 습관처럼 눌러도
   // 폴더가 불어나지 않는다.
   const path = `${OUT_DIR}/snapshot-${savedAt.slice(0, 10)}.json`;
-  writeFileSync(path, JSON.stringify(snapshot, null, 2));
-
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const kb = Math.round(Buffer.byteLength(JSON.stringify(snapshot)) / 1024);
-  console.log(`\n${path} — 합계 ${total}행, ${kb}KB`);
+
+  // 매일 자동으로 도는 이상(launchd), 아무것도 안 고친 날까지 파일을 남기면 폴더가 뜻 없이
+  // 불어난다. 직전 스냅샷과 알맹이가 같으면 쓰지 않는다 — savedAt은 돌린 시각이라 늘 다르므로
+  // 비교에서 뺀다. 오늘 파일을 이미 쓴 뒤라면 그 파일이 곧 직전 스냅샷이라 자연히 걸린다.
+  if (unchangedFrom(latestSnapshotPath(path), snapshot)) {
+    console.log(`\n직전 스냅샷과 같아 새 파일을 만들지 않았습니다 (합계 ${total}행).`);
+  } else {
+    writeFileSync(path, JSON.stringify(snapshot, null, 2));
+    console.log(`\n${path} — 합계 ${total}행, ${kb}KB`);
+  }
+
+  for (const { archive, count } of rotateBackups(OUT_DIR)) {
+    console.log(`  ${OUT_DIR}/${archive} — 7일 지난 ${count}장을 묶었습니다`);
+  }
+}
+
+// 오늘 쓸 파일을 뺀, 가장 최근 스냅샷의 경로. 없으면 null.
+function latestSnapshotPath(exclude) {
+  if (!existsSync(OUT_DIR)) return null;
+  const files = readdirSync(OUT_DIR)
+    .filter((f) => /^snapshot-\d{4}-\d{2}-\d{2}\.json$/.test(f))
+    .map((f) => `${OUT_DIR}/${f}`)
+    .filter((f) => f !== exclude)
+    .sort();
+  return files.at(-1) ?? null;
+}
+
+// 알맹이(counts·tables)만 견준다. 읽다가 깨진 파일을 만나면 같지 않은 것으로 보고 새로 쓴다 —
+// 백업에서 애매하면 남기는 쪽이 맞다.
+function unchangedFrom(path, snapshot) {
+  if (!path) return false;
+  try {
+    const prev = JSON.parse(readFileSync(path, "utf-8"));
+    return JSON.stringify({ counts: prev.counts, tables: prev.tables })
+      === JSON.stringify({ counts: snapshot.counts, tables: snapshot.tables });
+  } catch {
+    return false;
+  }
 }
 
 main().catch((err) => {
