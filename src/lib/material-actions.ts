@@ -111,3 +111,24 @@ export async function deleteMaterials(ids: string[]): Promise<number> {
   revalidateMaterialViews();
   return ids.length;
 }
+
+// 「붙이지 않기로 함」 표시를 켜고 끈다. 보류함 ↔ 미연결함을 오가는 유일한 길이다 —
+// 잘못 누른 한 번으로 자료가 한 함에 갇히면, 다시 꺼내려고 DB를 열어야 한다.
+async function setNoLink(ids: string[], at: string | null): Promise<number> {
+  if (ids.length === 0) return 0;
+  const { error } = await supabaseAdmin
+    .from("archive_items")
+    .update({ no_link_at: at })
+    .in("id", ids);
+  if (error) throw error;
+  revalidatePath("/admin/review");
+  return ids.length;
+}
+
+export async function markMaterialsNoLink(ids: string[]): Promise<number> {
+  return setNoLink(ids, new Date().toISOString());
+}
+
+export async function clearMaterialsNoLink(ids: string[]): Promise<number> {
+  return setNoLink(ids, null);
+}

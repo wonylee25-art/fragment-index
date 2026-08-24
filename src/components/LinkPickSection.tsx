@@ -22,8 +22,13 @@ import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 // 한 벌을 함께 쓰므로(id가 겹치지 않는다), 위에서 고른 것과 아래에서 고른 것을 한꺼번에
 // 내릴 수 있다.
 //
-// 줄의 생김새만 화면마다 다르다(renderCard) — 사료는 이미지가 붙은 카드, 구술은 화자와
-// 첫 발화가 서는 얇은 줄이다. 체크박스는 여기서 그리고, 그 오른쪽만 넘겨받는다.
+// 줄의 생김새만 화면마다 다르다(renderCard) — 사료는 기록 카드, 구술은 화자와 첫 발화가
+// 서는 얇은 줄이다.
+//
+// 세우는 모양도 화면마다 다르다(layout). 구술은 한 줄에 한 건씩 내려가는 목록이고, 사료는
+// 크기가 고정된 카드가 격자로 깔린다 — 사료는 훑다가 걸리는 것만 그 자리에서 펼쳐 읽는
+// 자료라, 목록으로 세우면 본문이 잘린 채 스크롤만 길어진다. 체크박스는 목록에서는 줄
+// 왼쪽에 여기가 그리고, 격자에서는 카드 안에 놓여야 해서 renderCard에 넘긴다.
 
 // 목록은 한 번에 열다섯 건씩. 원래는 사건 목록(EventAttach)과 같은 열 건이었는데, 신문기사
 // 90건이 들어오면서 아홉 쪽이 됐다 — 붙일 것을 고르는 동안 쪽 넘기기가 일이 된다.
@@ -65,8 +70,10 @@ export function PickSection<T extends PickEntry>({
   onDeactivate,
   onAdopt,
   onDrop,
+  moveAction,
   targetType,
   basis,
+  layout = "list",
   renderCard,
 }: {
   label: string;
@@ -86,9 +93,18 @@ export function PickSection<T extends PickEntry>({
   // 없으면 그 버튼이 서지 않는다 — 구술 연결이 그렇다(연표에 서는 것은 본문이 있는 사료뿐).
   onAdopt?: (ids: string[]) => Promise<number>;
   onDrop?: (ids: string[]) => Promise<number>;
+  // 함 사이를 옮기는 일. 보류함에서는 「미연결로」가, 미연결함에서는 「보류로」가 선다 —
+  // 한 함에서 다른 함으로 가는 길이 없으면 잘못 누른 한 번에 자료가 갇힌다.
+  moveAction?: { label: string; run: (ids: string[]) => Promise<number> };
   targetType: LinkTargetType;
   basis: LinkBasis | null;
-  renderCard: (entry: T) => ReactNode;
+  layout?: "list" | "grid";
+  // 격자에서 카드가 제 서식을 채우는 데 쓰는 것들. 목록에서는 넘어가지 않는다 — 그쪽은
+  // 체크박스를 줄 왼쪽에 이 컴포넌트가 직접 그리고, 일련번호도 쓰지 않는다.
+  //   checkbox 체크박스는 카드 머리칸 안에 놓여야 해서 여기서 만들어 넘긴다.
+  //   ordinal  이 무리에서 몇 번째 / 모두 몇 건인지("003/103"). 쪽을 넘겨도 이어지는
+  //            번호라, 카드가 목록의 어디쯤인지 세지 않고도 알 수 있다.
+  renderCard: (entry: T, form: { checkbox: ReactNode; ordinal: string }) => ReactNode;
 }) {
   // 여러 건에 같은 사건을 먹이는 일이라, 고른 것이 두 건 이상일 때만 연다 — 한 건이면
   // 그 항목 안의 "+ 사건 붙이기"가 이미 같은 일을 하고, 그쪽이 무엇에 붙는지 더 분명하다.
@@ -247,6 +263,18 @@ export function PickSection<T extends PickEntry>({
               {bulkPending ? "붙이는 중…" : "사건 연결"}
             </button>
           )}
+          {moveAction && somePicked && (
+            <button
+              type="button"
+              onClick={() => {
+                void moveAction.run(pickedHere.map((e) => e.id)).then(() => setPicked(new Set()));
+              }}
+              disabled={bulkPending}
+              className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
+            >
+              {moveAction.label} ({pickedHere.length}건)
+            </button>
+          )}
           {bulkReady && (
             <ConfirmDeleteButton
               onDelete={handleBulkUnlink}
@@ -286,20 +314,45 @@ export function PickSection<T extends PickEntry>({
           해당하는 항목이 없습니다.
         </p>
       )}
-      <ul>
-        {shown.map((entry) => (
-          <li key={entry.id} className="flex gap-4 border-t border-line py-4">
-            <input
-              type="checkbox"
-              checked={picked.has(entry.id)}
-              onChange={(e) => togglePick(entry.id, e.target.checked)}
-              aria-label={`${entry.title} 고르기`}
-              className="mt-1 h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
-            />
-            <div className="min-w-0 flex-1">{renderCard(entry)}</div>
-          </li>
-        ))}
-      </ul>
+      {layout === "grid" ? (
+        // 칸 수는 화면 폭이 정한다. 카드 스스로는 260px 아래로 줄지 않는다 — 그보다 좁아지면
+        // 표제가 넉 줄로 무너져 무엇인지 알아볼 수 없다.
+        <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] items-start gap-4">
+          {shown.map((entry, i) => (
+            <li key={entry.id}>
+              {renderCard(entry, {
+                checkbox: (
+                  <input
+                    type="checkbox"
+                    checked={picked.has(entry.id)}
+                    onChange={(e) => togglePick(entry.id, e.target.checked)}
+                    aria-label={`${entry.title} 고르기`}
+                    className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
+                  />
+                ),
+                ordinal: `${String(safePage * PAGE_SIZE + i + 1).padStart(3, "0")}/${entries.length}`,
+              })}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul>
+          {shown.map((entry) => (
+            <li key={entry.id} className="flex gap-4 border-t border-line py-4">
+              <input
+                type="checkbox"
+                checked={picked.has(entry.id)}
+                onChange={(e) => togglePick(entry.id, e.target.checked)}
+                aria-label={`${entry.title} 고르기`}
+                className="mt-1 h-3.5 w-3.5 shrink-0 cursor-pointer accent-green-fill"
+              />
+              <div className="min-w-0 flex-1">
+                {renderCard(entry, { checkbox: null, ordinal: "" })}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {pageCount > 1 && (
         <div className="border-t border-line pt-2">

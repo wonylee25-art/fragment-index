@@ -128,3 +128,44 @@ export const FOCUS_HIGHLIGHT_CLASSNAME = "bg-green-tint ring-1 ring-inset ring-g
 // 다른 색을 들고 있었다 — 이미지가 한쪽에선 회색, 한쪽에선 파랑이었다. 유형은 자료가
 // 스스로 말하는 것이므로 색을 빼고, 위의 ARCHIVE_ITEM_ICON이 가른다.
 export const MATERIAL_THUMB_CLASSNAME = "bg-surface";
+
+// 기록 카드의 칸 여백. 선이 카드 끝까지 닿아야 칸으로 읽히므로, 좌우 여백은 카드가 아니라
+// 칸이 가진다. 이 값이 RecordCard가 아니라 여기 있는 것은 서버 컴포넌트(사료 검색 화면)도
+// 같은 칸을 그리기 때문이다 — "use client" 모듈에서 값을 가져가면 서버 쪽에서는 그 값이
+// 클라이언트 참조(함수 프록시)로 바뀌어, 문자열에 끼워 넣는 순간 클래스가 통째로 깨진다.
+export const RECORD_CELL_CLASSNAME = "px-2.5 py-1.5";
+
+// ── 자료 유형의 색 ──────────────────────────────────────────────────────────
+// "자료가 스스로 말하는 것은 색을 갖지 않는다"는 이 팔레트의 규칙에서 사료 연결 화면만
+// 뺀다. 그 화면은 읽는 화면이 아니라 고르는 화면이다 — 수십 장이 격자로 깔리고, 무엇을
+// 열어 볼지 고르는 데 걸리는 시간이 곧 일의 속도가 된다. 유형과 걸린 정도를 글자로만
+// 가르면 카드마다 글을 읽어야 한다.
+//
+// 예전에 색표가 갈라졌던 것은 색을 쓴 탓이 아니라 화면마다 제 색을 들고 있었던 탓이므로,
+// 색은 여기 한 곳에서만 정한다. 다른 화면이 유형에 색을 쓰게 되면 반드시 이 표를 쓴다.
+//
+// 값은 섞을 바탕색이다 — 그대로 칠하지 않고 흰 바탕에 6~30%만 섞어(color-mix) 옅은
+// 종이처럼 쓴다. 그래서 아홉 색 모두 위에 --ink 글씨가 그대로 올라간다(흰 글씨를 올리지
+// 않는다는 규칙은 여기서도 지킨다). 짙기는 색이 아니라 양이 맡는다 — 사건에 많이 걸린
+// 자료일수록 진하게, 아직 안 걸린 것은 거의 흰 종이다.
+export const ARCHIVE_ITEM_HUE: Record<ArchiveItemType, string> = {
+  신문: "#5b7c99", // 잉크 푸름
+  문서: "#7d8b53", // 서류 올리브
+  박물: "#b4744e", // 토기 주황
+  구술: "#8a5f86", // 목소리 자주
+  이미지: "#4f8a80", // 청록
+  영상: "#6a6ba8", // 남보라
+  음원: "#b08a2e", // 황
+  학술: "#a85f66", // 장미
+  지도: "#5f8a5f", // 초록
+};
+
+// 걸린 정도 → 바탕에 섞는 양(%). 0은 아직 아무 데도 안 걸린 것 — 거의 흰 종이로 두어야
+// "손대야 할 것"이 옅은 쪽에 모여 보인다. 4단을 넘기지 않는 것은, 눈이 옅은 색의 단계를
+// 그보다 잘게는 못 가르기 때문이다.
+export const ARCHIVE_TINT_STEPS = [5, 13, 22, 32] as const;
+
+export function archiveTintStyle(hue: string, strength: number): { background: string } {
+  const step = ARCHIVE_TINT_STEPS[Math.min(strength, ARCHIVE_TINT_STEPS.length - 1)];
+  return { background: `color-mix(in oklab, ${hue} ${step}%, var(--background))` };
+}

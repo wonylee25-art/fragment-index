@@ -53,8 +53,21 @@ export async function saveMaterial(draft: MaterialDraft, formData: FormData) {
   });
   if (error && error.code !== "23505") throw error; // 이미 저장된 자료면 연결만 이어서 진행
 
-  // [보류]로 눌렀으면 사건이 골라져 있어도 연결하지 않는다 — 판단을 미룬 것이므로.
-  const held = formData.get("intent") === "hold";
+  // 검색 결과 앞에서 하는 판단은 셋이다.
+  //   link   사건을 골라 붙인다
+  //   hold   판단을 미루고 담아만 둔다 → 보류함
+  //   nolink 보고서 붙이지 않기로 한다 → 미연결함
+  // 뒤의 둘은 둘 다 "연결선을 만들지 않는다"는 점이 같지만, 다시 볼 필요가 있느냐가 다르다 —
+  // 그 차이를 자료에 적어 두지 않으면 안 본 것과 보고 넘긴 것이 한 더미에 섞인다.
+  const intent = formData.get("intent");
+  const noLink = intent === "nolink";
+  const held = intent === "hold" || noLink;
+  if (noLink) {
+    await supabaseAdmin
+      .from("archive_items")
+      .update({ no_link_at: new Date().toISOString() })
+      .eq("id", draft.id);
+  }
   const eventId = String(formData.get("eventId") ?? "").trim();
   if (!held && eventId) {
     // 검색어로 찾아 이은 것이므로 근거는 keyword로 남긴다.

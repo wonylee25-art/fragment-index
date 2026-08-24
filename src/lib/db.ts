@@ -99,6 +99,8 @@ interface DbArchiveItem {
   full_text: string | null;
   keywords: string[] | null;
   image_url: string | null;
+  // 사건에 붙이지 않기로 한 시각 — 채워져 있으면 미연결함에 선다(보류함이 아니라).
+  no_link_at?: string | null;
   // 아래 셋은 연표에 사료를 세울 때만 읽는다 — select에 넣지 않는 질의도 많아 없을 수 있다.
   adopted_at?: string | null;
   timeline_date_value?: string | null;
@@ -180,6 +182,7 @@ function toRelatedItem(item: DbArchiveItem): RelatedItem {
     keywords: item.keywords ?? undefined,
     imageUrl: item.image_url ?? undefined,
     onTimeline: item.adopted_at != null,
+    noLink: item.no_link_at != null,
     timelineDateValue: item.timeline_date_value ?? "",
     highlighted: item.highlighted ?? false,
   };
@@ -460,7 +463,7 @@ export async function getUnlinkedMaterials(): Promise<UnlinkedMaterials> {
     // 비활성 사료함에 넣은 것(hidden_at)은 보류함에서 빠진다 — 되돌리는 길은 그 함이다.
     // 입수 순 — 최근에 들어온 것이 앞이다. 목록을 열 건씩 끊어 보는데 새로 넣은 자료가
     // 마지막 쪽에 처박히면, 방금 넣은 것을 붙이려고 매번 끝까지 넘겨야 한다.
-    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url, created_at, adopted_at").is("hidden_at", null).order("created_at", { ascending: false }).order("id"),
+    supabase.from("archive_items").select("id, item_type, title, source_org, source_url, date_value, description, full_text, keywords, image_url, created_at, adopted_at, no_link_at").is("hidden_at", null).order("created_at", { ascending: false }).order("id"),
     supabase.from("segments").select("id, item_title, date_value").is("hidden_at", null).order("id"),
     // 반려된 연결선은 "붙어 있다"고 보지 않는다 — 반려당한 자료는 다시 미연결로 돌아온다.
     supabase.from("links").select("event_id, target_type, target_id").in("status", ["confirmed", "candidate"]),

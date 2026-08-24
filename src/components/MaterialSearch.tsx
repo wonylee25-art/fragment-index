@@ -2,12 +2,10 @@ import Link from "next/link";
 import { getSavedIds, getSuggestedKeywords, searchLocal } from "@/lib/db";
 import { searchArchiveRecords } from "@/lib/national-archives";
 import { searchMuseumRelicsDetailed } from "@/lib/museum-relics";
-import { searchThTimeline } from "@/lib/th-timeline";
 import { searchWomensOralArchive } from "@/lib/womens-oral-archive";
 import { formatEdtfToKorean, edtfYear } from "@/lib/edtf";
-import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
-import { saveThEvent } from "@/app/actions";
 import { EventOption, MaterialGroup, MaterialWorkbench } from "./MaterialWorkbench";
+import { DbMaterialCard } from "./DbMaterialCard";
 import { AddMaterialForm } from "./AddMaterialForm";
 
 // 기획 정리노트 8-8 "검색창(직접 키워드 입력) 화면". 수집·검토 작업이라 관리(사료 연결) 안에 둔다.
@@ -18,11 +16,10 @@ import { AddMaterialForm } from "./AddMaterialForm";
 // 대신 검색어로 걸린 사건을 목록 맨 위로 올려 관련도 높은 것부터 눈에 들어오게 한다.
 
 async function externalSearch(query: string) {
-  const [archives, relics, thEntries, womensOral] = await Promise.allSettled([
-    searchArchiveRecords(query, 6),
-    searchMuseumRelicsDetailed(query, 6),
-    searchThTimeline(query, 6),
-    searchWomensOralArchive(query, 6),
+  const [archives, relics, womensOral] = await Promise.allSettled([
+    searchArchiveRecords(query, 9),
+    searchMuseumRelicsDetailed(query, 9),
+    searchWomensOralArchive(query, 9),
   ]);
 
   return {
@@ -30,11 +27,21 @@ async function externalSearch(query: string) {
     archivesError: archives.status === "rejected" ? String(archives.reason) : null,
     relics: relics.status === "fulfilled" ? relics.value : [],
     relicsError: relics.status === "rejected" ? String(relics.reason) : null,
-    thEntries: thEntries.status === "fulfilled" ? thEntries.value : [],
-    thError: thEntries.status === "rejected" ? String(thEntries.reason) : null,
     womensOral: womensOral.status === "fulfilled" ? womensOral.value : [],
     womensOralError: womensOral.status === "rejected" ? String(womensOral.reason) : null,
   };
+}
+
+// 찾던 말과 얼마나 겹치는지를 0~3으로 셈한다 — 카드 종이의 짙기가 된다. 표제에 든 것을
+// 설명에 든 것보다 무겁게 치는 것은, 표제에 그 말이 있으면 그 자료가 그 주제를 다룬 것이고
+// 설명에만 있으면 스쳐 지나간 것일 때가 많아서다.
+function matchStrength(query: string, title: string, description?: string): number {
+  const q = query.trim();
+  if (!q) return 0;
+  const inTitle = title.includes(q) ? 2 : 0;
+  const body = description ?? "";
+  const inBody = body.includes(q) ? 1 : 0;
+  return inTitle + inBody;
 }
 
 // allEvents는 DB에 있는 사건 전체다 — 직접 추가 폼과 아래 검색 결과 카드가 함께 쓴다.
@@ -81,6 +88,8 @@ export async function MaterialSearch({
               sourceUrl: a.detailUrl,
             },
             metaLine: `문서 · ${a.producer} · ${a.productionYear}`,
+            dateText: a.productionYear || undefined,
+            strength: matchStrength(query, a.title),
             badges: [
               ...(a.onlineReading ? ["원문 온라인 열람"] : []),
               ...(a.isOpen ? [] : ["비공개"]),
@@ -105,6 +114,7 @@ export async function MaterialSearch({
             metaLine: [r.purposeName ?? "박물", r.museumName, r.materialName, r.sizeInfo]
               .filter(Boolean)
               .join(" · "),
+            strength: matchStrength(query, r.name, r.description),
             badges: [],
             saved: saved.archiveItemIds.has(r.id),
           })),
@@ -123,6 +133,8 @@ export async function MaterialSearch({
               description: w.excerpt.length > 300 ? `${w.excerpt.slice(0, 300)}…` : w.excerpt,
             },
             metaLine: `구술 · 여성사전시관 · ${w.category} · ${w.registeredDate}`,
+            dateText: w.registeredDate || undefined,
+            strength: matchStrength(query, w.title, w.excerpt),
             badges: w.videoUrl ? ["영상 있음"] : [],
             saved: saved.archiveItemIds.has(w.id),
           })),
@@ -134,9 +146,11 @@ export async function MaterialSearch({
     <section className="border-b border-line pb-10">
       {/* 폼이 열리면 이 줄의 w-full 자식으로 흘러 다음 줄을 차지한다(연표의 AddEventPanel과 같은 방식) */}
       <div className="mb-7 flex flex-wrap items-baseline gap-3">
-        <h2 className="mr-auto text-xl font-extrabold tracking-tight text-ink">사료 검색</h2>
-        <span className="text-sm font-medium text-grey">
-          DB · 국가기록원 · 국립중앙박물관 · 국사편찬위 · 여성사전시관
+        {/* 이름은 위 탭 줄이 이미 말한다 — 같은 말을 두 번 적으면 어느 것이 제목인지 흐려진다.
+            화면에서는 빼고 소리로 읽는 차례에만 남긴다. */}
+        <h2 className="sr-only">사료 검색</h2>
+        <span className="mr-auto text-sm font-medium text-grey">
+          DB · 국가기록원 · 국립중앙박물관 · 여성사전시관
         </span>
         {/* 이 목록에 없는 자료 — 직접 찍은 사진, 종이 스크랩 — 는 여기서 손으로 넣는다 */}
         <AddMaterialForm events={allEvents} />
@@ -185,78 +199,24 @@ export async function MaterialSearch({
         <div className="mt-8 flex flex-col gap-10">
           <MaterialWorkbench events={eventOptions} groups={groups} />
 
-          {/* 오늘의역사는 사료가 아니라 사건 후보다 — 연결 대상이 아니라 연표에 편입된다 */}
-          <section>
-            <p className="mb-1 font-mono text-[11px] font-semibold text-grey">
-              국사편찬위원회 오늘의역사 (사건 후보) — {external.thEntries.length}건
-            </p>
-            {external.thError && (
-              <p className="mt-1 text-xs text-orange-fill">오류: {external.thError}</p>
-            )}
-            <ul>
-              {external.thEntries.map((t, i) => (
-                <li
-                  key={`${t.id}-${i}`}
-                  className="flex items-start justify-between gap-3 border-t border-line py-2"
-                >
-                  <span className="text-[13px] leading-relaxed text-grey">
-                    <span className="mr-2 font-mono text-xs tabular-nums text-grey">
-                      {formatEdtfToKorean(t.dateValue)}
-                    </span>
-                    {t.title}
-                  </span>
-                  <form action={saveThEvent.bind(null, t)}>
-                    {saved.eventIds.has(t.id) ? (
-                      <span className="font-mono text-[11px] font-semibold text-ink">
-                        ✓ 저장됨
-                      </span>
-                    ) : (
-                      <button
-                        type="submit"
-                        className="shrink-0 border border-line px-2 py-0.5 font-mono text-[11px] font-semibold text-ink hover:bg-ink hover:text-background"
-                      >
-                        사건으로 저장
-                      </button>
-                    )}
-                  </form>
-                </li>
-              ))}
-            </ul>
-          </section>
-
           {/* 이미 DB에 있는 사료 중 걸린 것. 밖에서 더 찾기 전에 "이미 갖고 있는지"를 먼저
               보여준다 — 같은 자료를 두 번 저장하는 일을 막고, 신문기사처럼 본문을 통째로
-              들고 있는 사료는 검색어가 기사 중간에 있어도 여기 걸린다. */}
+              들고 있는 사료는 검색어가 기사 중간에 있어도 여기 걸린다.
+              위의 검색 결과와 같은 카드로 세운다 — 같은 자료가 한 화면에서 두 모양으로 서면
+              무엇이 이미 있는 것이고 무엇이 새로 걸린 것인지 되레 헷갈린다. */}
           {local.materials.length > 0 && (
             <section>
               <p className="mb-1 font-mono text-[11px] font-semibold text-grey">
                 DB 사료 — {local.materials.length}건
               </p>
-              <ul>
+              <ul className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] items-start gap-4">
                 {local.materials.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex items-start justify-between gap-3 border-t border-line py-2"
-                  >
-                    <span className="text-[13px] leading-relaxed text-ink">
-                      <span className="mr-2 font-mono text-xs tabular-nums text-grey">
-                        {m.dateValue ? formatEdtfToKorean(m.dateValue) : ARCHIVE_ITEM_ICON[m.type]}
-                      </span>
-                      <span className="font-semibold">{m.title}</span>
-                      {m.sourceOrg && (
-                        <span className="ml-2 font-mono text-[11px] text-grey">· {m.sourceOrg}</span>
-                      )}
-                    </span>
-                    {m.sourceUrl && (
-                      <a
-                        href={m.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 pt-0.5 font-mono text-[11px] text-grey underline decoration-dotted underline-offset-4 hover:text-ink"
-                      >
-                        원문 ↗
-                      </a>
-                    )}
+                  <li key={m.id}>
+                    <DbMaterialCard
+                      material={m}
+                      strength={matchStrength(query, m.title, m.fullText || m.description)}
+                      events={eventOptions}
+                    />
                   </li>
                 ))}
               </ul>
