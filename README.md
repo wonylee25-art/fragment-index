@@ -112,11 +112,14 @@ npm run dev
 | `npm run lint` | ESLint 검사 |
 | `npm run sync` | `data/riss-papers.csv`(논문 목록)를 Supabase에 반영. 새 행은 insert, 기존 행은 갱신. 구술·인물·사건·출처는 여기서 다루지 않습니다 — 관리 화면이 유일한 입구입니다 |
 | `npm run fetch:riss` | RISS에서 구술사/구술생애사 관련 논문 메타데이터를 긁어 `data/riss-papers.csv` 생성(요청 간 10초 대기, 수십 분 소요 — 백그라운드 실행 권장). 손으로 수정하지 말고 재실행으로 갱신할 것 |
-| `npm run backup` | 사람이 만든 것만 골라 `data/backup/snapshot-<날짜>.json`으로 떠냅니다. 무료 플랜에는 Supabase 자동 백업이 없어 되돌릴 수단이 이것뿐입니다. 매주 월요일 자동 실행되지만(아래 주간 스크립트), 큰 작업 전에는 직접 한 번 누르는 편이 낫습니다 — 그 직전 상태가 정확히 남습니다. 같은 날 다시 돌리면 그날 파일을 덮어씁니다 |
+| `npm run backup` | 사람이 만든 것만 골라 `data/backup/snapshot-<날짜>.json`으로 떠냅니다. 무료 플랜에는 Supabase 자동 백업이 없어 되돌릴 수단이 이것뿐입니다. 매일 자동 실행되지만(아래 자동화 스크립트), 큰 작업 전에는 직접 한 번 누르는 편이 낫습니다 — 그 직전 상태가 정확히 남습니다. 같은 날 다시 돌리면 그날 파일을 덮어쓰고, 직전 스냅샷과 알맹이가 같으면 아예 만들지 않습니다 |
 | `npm run tunnel` | localtunnel로 외부에서 개발 서버 접근 |
 
 그 밖에 `package.json`에 등록하지 않은 1회성·자동화 스크립트가 `scripts/`에 있습니다.
 
+- launchd(`com.fragment-index.backup`)가 **매일 14:00에 `npm run backup`**을 실행합니다. 그 시각에 노트북이 잠들어 있으면 깨어날 때, 꺼져 있으면 다음에 켤 때 한 번 돕니다(며칠 건너뛰어도 몰아서 돌지 않습니다). 등록 파일은 `~/Library/LaunchAgents/com.fragment-index.backup.plist`로 저장소 바깥에 있어, 맥을 새로 세팅하면 다시 만들어야 합니다. 로그는 `data/backup/backup.log`. 끄려면 `launchctl bootout gui/$UID/com.fragment-index.backup`
+  - 매일 도는 데서 생기는 두 가지는 스크립트가 받아냅니다. **안 바뀐 날은 파일을 만들지 않고**(직전 스냅샷과 `counts`·`tables`가 같으면 건너뜀 — `savedAt`은 돌린 시각이라 비교에서 제외), **7일 지난 스냅샷은 달마다 하나의 `YYYY-MM.tar.gz`로 묶습니다**([scripts/lib/rotate-backups.mjs](scripts/lib/rotate-backups.mjs)). 지우지는 않습니다 — 실수를 알아차리는 것은 대개 며칠 뒤라 7일에서 잘라 버리면 정작 필요할 때 없고, JSON은 5~6배로 줄어 한 달치를 다 담아도 3MB 안팎이라 버려서 아낄 것이 없습니다
+  - 이 에이전트를 따로 둔 것은, 그전까지 백업이 **독립된 일정 없이 아래 주간 스크립트에 얹혀 있었기** 때문입니다. 그쪽은 RISS 수집이 본업이고 "6일 안 지났으면 건너뛰기" 가드가 걸려 있어, 가드에 걸리는 주에는 백업까지 통째로 건너뛰었습니다(실제로 2026-08-24 08:00에 그랬습니다). 지금도 주간 스크립트는 동기화 직전 상태를 남기려고 `backup`을 먼저 부르지만, 그것은 부산물이지 백업 일정이 아닙니다 — 겹쳐도 알맹이가 같은 두 번째 호출은 건너뛰므로 파일이 늘지 않습니다
 - [scripts/weekly-research-sync.sh](scripts/weekly-research-sync.sh) — launchd(`com.fragment-index.research-sync`)가 매주 월요일 08:00에 `backup` → `fetch:riss` → `sync`를 실행. 백업이 맨 앞인 것은 동기화가 DB를 건드리기 직전 상태를 남기기 위해서이고, 백업이 실패해도 동기화는 그대로 진행합니다(로그에만 남김). 그 시각에 노트북이 꺼져 있었으면 다음 로그인 때 따라잡고, 이미 이번 주에 돌았으면 건너뜁니다
 - [scripts/import-seoul-photo-collections.mjs](scripts/import-seoul-photo-collections.mjs) — 서울기록원 사진아카이브 컬렉션 CSV를 `archive_items`에 반영
 - [scripts/match-museum-relics.mjs](scripts/match-museum-relics.mjs) — 국립중앙박물관 유물 매칭 후보를 콘솔에 출력(자동 반영하지 않고 사람이 확인)
