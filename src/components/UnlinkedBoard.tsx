@@ -158,12 +158,12 @@ function MaterialCard({
         </>
       )}
       overlay={(mode) => {
-        // 칸의 차례는 늘 같다: 표제 → 본문 → 사건 연결. 무엇 하러 열었느냐(mode)는 차례가
+        // 칸의 차례는 늘 같다: 표제 → 발췌 → 사건 연결. 무엇 하러 열었느냐(mode)는 차례가
         // 아니라 사건 고르는 창이 펼쳐진 채 뜨느냐만 가른다 — 읽던 자리가 열 때마다
         // 달라지면 같은 카드가 매번 다른 종이처럼 보인다.
         const bodyCell = (
           <div key="body" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
-            <FieldLabel en="full text" ko="본문" />
+            <FieldLabel en="excerpt" ko="발췌" />
             <div className="mt-1.5">
               <MaterialBody entry={entry} />
             </div>

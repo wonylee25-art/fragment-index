@@ -85,7 +85,7 @@ export function DbMaterialCard({
         // 칸의 차례는 늘 같다 — mode는 사건 고르는 창이 펼쳐진 채 뜨느냐만 가른다.
         const bodyCell = (
           <div key="body" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
-            <FieldLabel en="full text" ko="본문" />
+            <FieldLabel en="excerpt" ko="발췌" />
             <p className="mt-1.5 whitespace-pre-line font-serif text-[13.5px] leading-[1.85] text-ink">
               {body || "옮겨 적어 둔 본문이 없습니다."}
             </p>

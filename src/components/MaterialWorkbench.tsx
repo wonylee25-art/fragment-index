@@ -107,10 +107,10 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
             </>
           )}
           overlay={(mode) => {
-            // 읽으러 열었으면 설명이, 붙이러 열었으면 사건 고르기가 먼저 선다.
+            // 읽으러 열었으면 발췌가, 붙이러 열었으면 사건 고르기가 먼저 선다.
             const descCell = draft.description ? (
               <div key="desc" className={`border-b ${RECORD_LINE_CLASSNAME} ${CELL_CLASSNAME}`}>
-                <FieldLabel en="description" ko="설명" />
+                <FieldLabel en="excerpt" ko="발췌" />
                 <p className="mt-1.5 whitespace-pre-line font-serif text-[13.5px] leading-[1.85] text-ink">
                   {draft.description}
                 </p>
