@@ -11,7 +11,6 @@ import {
   materialMatchesQuery,
 } from "@/lib/db";
 import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
-import { hasTimelineBody } from "@/lib/types";
 
 // 사료 연결. 사료를 찾아 담는 일(수집)과 담긴 것을 붙이는 일(검토)이 같은 작업의 앞뒤라 한 화면에 둔다.
 // 위: 외부 소스 검색 → 사건 고르고 [연결하고 저장]. 아래 보류함: 담긴 사료를 사건에 붙었느냐로
@@ -76,8 +75,6 @@ export default async function ReviewPage({
     links: m.links,
     onTimeline: m.onTimeline,
     noLink: m.noLink,
-    // 연표에 제 행으로 설 수 있는 자료인지 — 내용 칸에 실을 본문이 있어야 한다.
-    timelineReady: hasTimelineBody(m),
   }));
 
   const active: ReviewTab = TABS.some((t) => t.id === tab) ? (tab as ReviewTab) : "search";

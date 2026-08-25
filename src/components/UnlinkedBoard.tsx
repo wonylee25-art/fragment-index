@@ -48,7 +48,6 @@ export interface UnlinkedEntry {
   onTimeline?: boolean;
   // 붙이지 않기로 한 자료인지 — 미연결함에 서는 것들이다.
   noLink?: boolean;
-  timelineReady?: boolean; // 연표에 올릴 수 있는 자료인지 — 옮겨 적어 둔 본문이 있어야 한다
 }
 
 // 보류함 카드는 발췌 칸이 서는 큰 카드다 — 여기는 담긴 자료를 읽어보고 붙일지 정하는 자리라,
@@ -188,7 +187,7 @@ function MaterialCard({
                     >
                       연표에서 내리기
                     </button>
-                  ) : entry.timelineReady ? (
+                  ) : (
                     <button
                       type="button"
                       onClick={() => void move(adoptMaterialsToTimeline)}
@@ -198,10 +197,6 @@ function MaterialCard({
                     >
                       연표에 올리기
                     </button>
-                  ) : (
-                    <p className="font-mono text-[10.5px] text-grey">
-                      옮겨 적어 둔 본문이 없어 연표에는 올릴 수 없습니다
-                    </p>
                   )
                 }
 

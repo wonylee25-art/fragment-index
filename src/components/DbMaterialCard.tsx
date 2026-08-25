@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RelatedItem } from "@/lib/types";
 import { ARCHIVE_ITEM_ICON, RECORD_CELL_CLASSNAME as CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 import { clearMaterialsNoLink, markMaterialsNoLink } from "@/lib/material-actions";
+import { adoptMaterialsToTimeline, dropMaterialsFromTimeline } from "@/lib/timeline-placement-actions";
 import { linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { CardShell, FieldLabel, footButtonClass, HeadRow } from "./RecordCard";
 import { EventAttach } from "./EventAttach";
@@ -97,6 +98,30 @@ export function DbMaterialCard({
               <EventAttach
                 events={events}
                 startOpen={mode === "link"}
+                // 사건 목록 안 맨 위에 서는 손잡이 — 세 함의 카드와 같은 자리다.
+                listTop={
+                  material.onTimeline ? (
+                    <button
+                      type="button"
+                      onClick={() => void move(dropMaterialsFromTimeline)}
+                      disabled={pending}
+                      title="연표에서만 내립니다 — 자료도, 조정해 둔 연표 날짜도 그대로 남습니다"
+                      className="border border-line px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:border-ink disabled:text-grey"
+                    >
+                      연표에서 내리기
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void move(adoptMaterialsToTimeline)}
+                      disabled={pending}
+                      title="사건에 붙이지 않고, 자료 자신을 연표에 한 행으로 세웁니다"
+                      className="border border-ink px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:bg-surface disabled:border-line disabled:text-grey"
+                    >
+                      연표에 올리기
+                    </button>
+                  )
+                }
                 nearDate={material.dateValue}
                 onPick={(event) => linkTargetToEvent(event.id, "archive_item", material.id, "keyword")}
                 onUnlink={(eventId) => unlinkTargetFromEvent(eventId, "archive_item", material.id)}

@@ -45,9 +45,6 @@ export interface PickEntry {
   // 사건 없이 연표에 올려 둔 것인지. 위의 links와 별개다 — 사건에 붙었느냐와 연표에
   // 제 행으로 서느냐는 다른 판단이고, 하나가 다른 하나를 지우지 않는다.
   onTimeline?: boolean;
-  // 연표에 올릴 수 있는 자료인지(옮겨 적어 둔 본문이 있어야 한다). 없는 것을 올리면 내용
-  // 칸이 빈 채 날짜만 놓인 행이 된다 — 그래서 고르더라도 올리기 셈에서 빠진다.
-  timelineReady?: boolean;
 }
 
 // 연결선이 하나라도 있으면 "붙은 것"이다 — 숨긴 사건에 걸린 것도 붙은 것으로 친다.
@@ -122,8 +119,8 @@ export function PickSection<T extends PickEntry>({
 
   const pickedHere = entries.filter((e) => picked.has(e.id));
   const pickedOnTimeline = pickedHere.filter((e) => e.onTimeline);
-  // 올릴 수 있는데 아직 안 올린 것 — 「연표에 올리기」가 실제로 먹는 대상이다.
-  const pickedAdoptable = pickedHere.filter((e) => e.timelineReady && !e.onTimeline);
+  // 아직 안 올린 것 — 「연표에 올리기」가 실제로 먹는 대상이다.
+  const pickedAdoptable = pickedHere.filter((e) => !e.onTimeline);
   const somePicked = pickedHere.length > 0;
   const bulkReady = pickedHere.length >= 2;
   // 머리줄 체크박스는 "지금 보이는 쪽"을 고른다(연표 표 머리와 같은 규칙). 고른 것은

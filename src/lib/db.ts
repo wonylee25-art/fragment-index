@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { parseSegmentText } from "./segment-text";
 import { edtfSortKey, edtfYear } from "./edtf";
-import { ArchiveItemType, hasTimelineBody, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, TimelineRow, UnlinkedMaterials, UserMemo } from "./types";
+import { ArchiveItemType, Highlight, LinkedEventRef, PaperData, PaperQuote, PersonBrief, RelatedItem, SegmentCardData, SpeakerRole, TimelineEventData, timelineBodyOf, TimelineRow, UnlinkedMaterials, UserMemo } from "./types";
 
 // Supabase 테이블에서 화면이 쓰는 TimelineEventData/SegmentCardData 모양으로 조립한다.
 // 데이터 규모(수백 행)가 작아서, 각 테이블을 통째로 가져와 메모리에서 조인한다 —
@@ -313,9 +313,6 @@ export async function getTimelineRows(options: ChronicleOptions = {}): Promise<T
 
   const materialRows: TimelineRow[] = ((materials as DbArchiveItem[]) ?? [])
     .map(toRelatedItem)
-    // 본문이 없는 자료는 내용 칸이 비어 날짜 하나만 놓인 빈 행이 된다. 올리는 자리에서 이미
-    // 막지만(adoptMaterialsToTimeline), 나중에 본문이 지워지는 일도 있어 여기서 한 번 더 본다.
-    .filter(hasTimelineBody)
     .map((material) => ({
       kind: "material",
       id: material.id,
@@ -324,8 +321,9 @@ export async function getTimelineRows(options: ChronicleOptions = {}): Promise<T
       dateValue: material.timelineDateValue || material.dateValue || "",
       material,
       // 옮겨 적어 둔 원문이 있으면 그것을 통째로 싣는다. 요약(description)은 그 앞머리라,
-      // 그것만 실으면 기사 중간의 증언이 화면에서 빠진다.
-      body: material.fullText || material.description || "",
+      // 그것만 실으면 기사 중간의 증언이 화면에서 빠진다. 둘 다 없으면 표제가 선다 —
+      // 국가기록원 기록물처럼 표제와 출처만 오는 자료도 연표에서 읽을 것은 있다.
+      body: timelineBodyOf(material),
       highlighted: material.highlighted,
       memos: memosByMaterial.get(material.id) ?? [],
       linkedEventNames: eventNamesByMaterial.get(material.id) ?? [],

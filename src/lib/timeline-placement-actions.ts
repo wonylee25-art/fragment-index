@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "./supabase-admin";
-import { hasTimelineBody } from "./types";
 
 // 사료를 사건 없이 연표에 세우고, 세운 날짜를 조정한다.
 //
@@ -25,20 +24,19 @@ function revalidateTimelineViews() {
 // 딱지를 찍는다. 연표 날짜가 아직 비어 있는 것만 자료 날짜로 채운다 — 이미 조정해 둔 값이
 // 있으면 그대로 둔다. 내렸다가 다시 올릴 때 손으로 맞춘 날짜가 되돌아가면 안 된다.
 //
-// 본문이 없는 자료는 받아도 올리지 않는다. 화면에서 이미 그 버튼이 서지 않지만, 서버 액션은
-// 클라이언트에서 그대로 부를 수 있는 공개 입구라 잣대를 여기에도 둔다.
+// 본문이 없어도 올린다. 예전에는 옮겨 적어 둔 본문이 있는 자료만 받았는데, 그러면 표제와
+// 출처만 오는 자료(국가기록원 기록물)가 통째로 막혔다 — 그런 자료도 "언제 어디의 무엇"은
+// 말하고, 연표의 내용 칸은 표제로 채운다(timelineBodyOf).
 export async function adoptMaterialsToTimeline(ids: string[]): Promise<number> {
   if (ids.length === 0) return 0;
 
   const { data, error } = await supabaseAdmin
     .from("archive_items")
-    .select("id, date_value, timeline_date_value, full_text, description")
+    .select("id, date_value, timeline_date_value")
     .in("id", ids);
   if (error) throw error;
 
-  const rows = ((data as DbRow[]) ?? []).filter((row) =>
-    hasTimelineBody({ fullText: row.full_text, description: row.description }),
-  );
+  const rows = (data as DbRow[]) ?? [];
   const now = new Date().toISOString();
 
   // 연표 날짜를 각자 다르게 채워야 해서 한 번에 못 밀어 넣는다. 한 번에 올리는 건수가
@@ -64,8 +62,6 @@ interface DbRow {
   id: string;
   date_value: string | null;
   timeline_date_value: string | null;
-  full_text: string | null;
-  description: string | null;
 }
 
 // 딱지를 뗀다. 연표에서만 내리는 일이라 조정해 둔 날짜는 지우지 않는다 — 다시 올릴 때

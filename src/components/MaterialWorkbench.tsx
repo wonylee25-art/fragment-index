@@ -57,7 +57,12 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
           heightClassName={CARD_HEIGHT_CLASSNAME}
           sourceUrl={draft.sourceUrl || undefined}
           head={
-            <HeadRow sourceOrg={draft.sourceOrg} itemType={draft.itemType} dateText={dateText} />
+            <HeadRow
+              sourceOrg={draft.sourceOrg}
+              itemType={draft.itemType}
+              dateValue={draft.dateValue}
+              dateText={dateText}
+            />
           }
           foot={({ openLink }) => (
             <>
@@ -123,6 +128,19 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
                     <EventAttach
                       events={events}
                       startOpen={mode === "link"}
+                      // 사건 목록 안 맨 위 — 세 함·DB 사료 카드와 같은 자리다. 여기서는
+                      // 아직 담기 전이라 담는 일까지 이 한 번에 함께 일어난다.
+                      listTop={
+                        <button
+                            type="submit"
+                            name="intent"
+                            value="adopt"
+                            title="사건에 붙이지 않고 담으면서, 자료 자신을 연표에 한 행으로 세웁니다"
+                            className="border border-ink px-2 py-0.5 font-mono text-[11px] font-bold text-ink hover:bg-surface"
+                          >
+                          연표에 올리기
+                        </button>
+                      }
                       onPick={async (event) => {
                         setEventId(event.id);
                         // 값이 DOM에 반영된 다음에 제출한다 — 같은 tick에 부르면 빈 eventId가 실린다.

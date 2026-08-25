@@ -236,8 +236,16 @@ export type TimelineRow =
 
 export type TimelineRowKind = TimelineRow["kind"];
 
-// 사료가 연표에 제 행으로 설 수 있는가 — 옮겨 적어 둔 본문이 있어야 한다.
-// 화면(보류함 버튼)과 서버(올리기 액션)와 질의(연표 조립)가 같은 잣대를 써야 해서 한곳에 둔다.
-export function hasTimelineBody(item: { fullText?: string | null; description?: string | null }): boolean {
-  return Boolean((item.fullText ?? "").trim() || (item.description ?? "").trim());
+// 연표 행의 내용 칸에 실을 글. 옮겨 적어 둔 원문이 있으면 그것을 통째로, 없으면 요약을,
+// 그도 없으면 표제를 세운다.
+//
+// 예전에는 본문이 있는 자료만 연표에 올릴 수 있었다(hasTimelineBody). 국가기록원 기록물처럼
+// 표제와 출처만 오는 자료가 통째로 막혔는데, 정작 그런 자료도 "언제 어디의 무엇"은 말한다 —
+// 막을 일이 아니라 내용 칸을 표제로 채울 일이었다.
+export function timelineBodyOf(item: {
+  fullText?: string | null;
+  description?: string | null;
+  title?: string | null;
+}): string {
+  return (item.fullText ?? "").trim() || (item.description ?? "").trim() || (item.title ?? "").trim();
 }

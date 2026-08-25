@@ -86,6 +86,9 @@ export async function MaterialSearch({
               title: a.title,
               sourceOrg: a.producer,
               sourceUrl: a.detailUrl,
+              // 생산연도는 네 자리 해뿐이다("1943") — EDTF에서도 해만 아는 날짜의 표기가
+              // 그것과 같아서 그대로 싣는다. 그 밖의 값(빈 값·범위)은 싣지 않는다.
+              dateValue: /^\d{4}$/.test(a.productionYear) ? a.productionYear : undefined,
             },
             metaLine: `문서 · ${a.producer} · ${a.productionYear}`,
             dateText: a.productionYear || undefined,
