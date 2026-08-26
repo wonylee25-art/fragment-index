@@ -120,13 +120,11 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
               label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
               open={openEntry !== null}
               onClose={() => setPicked(null)}
-              boxes={{
-                // 누른 상자를 첫 자리로 끌어내고 나머지는 기술지 뒤로 흐른다.
-                picked: openEntry ? label(openEntry) : null,
-                rest: category.entries
-                  .filter((e) => e.referenceCode !== openEntry?.referenceCode)
-                  .map(label),
-              }}
+              // 누른 상자를 첫 자리로 끌어내고 나머지는 기술지 뒤로 흐른다.
+              boxes={(openEntry
+                ? [openEntry, ...category.entries.filter((e) => e !== openEntry)]
+                : category.entries
+              ).map(label)}
               sheet={
                 openEntry && (
                   <SeriesSheet
