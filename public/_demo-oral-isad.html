@@ -1,0 +1,762 @@
+<title>ISAD(G) 계열 기술</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{color-scheme:light;--paper:#fff;--surface:#f4f4f2;--line:#e2e2df;--grey:#6b6b68;--ink:#1a1a18;
+ --green-tint:#eaf3e2;--green-fill:#6aa84f;--green-text:#35632a;--yellow-tint:#fdf6d9;--yellow-mark:#f9e58a;--yellow-fill:#e8c72c;
+ --orange-tint:#fdeadb;--orange-fill:#ef8129;--red-text:#8f2116;--voice:#8a5f86;--board:#cfcbc4;
+ --sans:"Gothic A1",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+ --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+ --serif:ui-serif,Georgia,"AppleMyungjo","Nanum Myeongjo",바탕,serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin-inline:auto;padding:3.5rem 1.25rem 6rem}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);margin:0 0 .85rem}
+h1{font-family:var(--serif);font-size:clamp(26px,4vw,34px);font-weight:700;line-height:1.35;letter-spacing:-.01em;text-wrap:balance;margin:0 0 1rem}
+.lede{max-width:62ch;margin:0}.lede+.lede{margin-top:.75rem}
+.rule{height:1px;background:var(--line);border:0;margin:2.75rem 0}
+.option{margin-bottom:3.5rem}
+.option-head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:.6rem;margin-bottom:1rem}
+h2{font-family:var(--serif);font-size:19px;font-weight:700;margin:0;letter-spacing:-.005em}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--grey);border:1px solid var(--line);border-radius:2px;padding:.1rem .4rem;white-space:nowrap}
+.tag.now{border-color:var(--orange-fill);color:var(--orange-fill)}
+.tag.pick{border-color:var(--green-fill);color:var(--green-text);background:var(--green-tint)}
+.note{max-width:64ch;margin:0 0 1.1rem;font-size:13.5px}
+.note em{font-style:normal;background:var(--yellow-tint);padding:0 .15em}
+.note code{font-family:var(--mono);font-size:12px;background:var(--surface);padding:0 .25em;border-radius:2px}
+.cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--grey);margin:.6rem 0 0}
+
+/* ── 서가 ──────────────────────────────────────────────────── */
+.rulebar{margin:0 0 .5rem;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--grey)}
+.rulebar b{color:var(--ink)}
+.checkkey{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.checkkey .sep{color:var(--line)}
+.checkkey .mini{width:14px;height:14px;display:inline-block}
+.checkkey .mini svg{width:100%;height:100%}
+.checkkey .mini path{fill:none;stroke:var(--yellow-fill);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+.stacks{background:#eceae6;border:1px solid var(--line);padding:0 14px 14px}
+.shelf{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:16px 0 0;position:relative}
+.shelf::after{content:"";display:block;width:100%;height:9px;margin-top:14px;
+  background:linear-gradient(var(--board),#b6b1a8);border-top:1px solid #fff6;box-shadow:0 2px 4px rgb(0 0 0/.18)}
+.shelf-n{position:absolute;left:6px;bottom:-1px;font-family:var(--mono);font-size:9px;color:#6f6a61;z-index:1}
+
+/* ── 상자 ──────────────────────────────────────────────────── */
+.bx{width:202px;background:color-mix(in oklab,var(--voice) 7%,#efece7);
+  border:1px solid #b9b3aa;border-bottom-width:2px;box-shadow:1px 2px 3px rgb(0 0 0/.12);padding:0 0 8px}
+.bx-lip{height:15px;border-bottom:1px solid #c9c3ba;display:flex;justify-content:center;align-items:flex-end}
+.bx-notch{width:34px;height:6px;background:#00000018;border-radius:2px 2px 0 0}
+.bx-label{margin:8px 9px 0;background:var(--paper);border:1px solid #cfc9c0;padding:0;position:relative}
+
+/* 3.1.1 참조코드 — 사진 3의 바코드 자리 */
+.bl-ref{display:flex;align-items:center;gap:5px;margin:0;padding:4px 7px;border-bottom:1px solid var(--ink);
+  font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.06em}
+.bl-lvl{margin-left:auto;letter-spacing:.02em;font-weight:400;color:var(--grey)}
+.bl-bar{flex-shrink:0;width:26px;height:11px;background:repeating-linear-gradient(90deg,
+  var(--ink) 0 1px,transparent 1px 2px,var(--ink) 2px 4px,transparent 4px 5px,var(--ink) 5px 6px,transparent 6px 8px)}
+
+/* 3.1~3.2 식별·배경 영역 */
+.bl-id{padding:6px 8px 7px}
+.bl-lv{margin:0;font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:var(--grey)}
+.bl-lv b{color:var(--ink);letter-spacing:.16em}
+.bl-creator{margin:3px 0 0;font-family:var(--serif);font-size:14.5px;font-weight:700;line-height:1.25;letter-spacing:-.01em;
+  height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bl-agent{margin:1px 0 0;font-family:var(--mono);font-size:7.5px;color:var(--grey);height:13px;overflow:hidden}
+.bl-title{margin:2px 0 0;font-size:12px;line-height:15px;height:30px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bl-date{margin:2px 0 0;font-family:var(--mono);font-size:9px;color:var(--grey)}
+.bl-ext{margin:5px 0 0;padding-top:5px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:8px;line-height:1.55;color:var(--ink);height:29px}
+
+/* 3.3 / 3.4 두 영역 체크리스트 */
+.bl-checks{display:grid;grid-template-columns:1fr 1fr;gap:0 7px;margin:0 8px;padding:6px 0;border-top:1px solid var(--ink)}
+.bl-h{margin:0 0 3px;font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;color:var(--grey);white-space:nowrap}
+.bl-h b{color:var(--ink)}
+.bl-area{display:block;font-size:6.5px;letter-spacing:0;color:#a5a19b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bl-checks ul{margin:0;padding:0;list-style:none}
+/* 왼쪽 글리프 = 문서가 찍는 것(무채색). 오른쪽 획 = 내가 켜는 것(노랑 하나). */
+.bl-checks li .gy{text-align:center}
+.bl-checks li .lb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bl-checks li.on .gy,.bl-checks li.on .lb{color:var(--ink)}
+.bl-checks li.half .gy{color:#5c5c58}.bl-checks li.half .lb{color:#3d3d3a}
+.bl-checks li.miss .gy,.bl-checks li.miss .lb{color:#9b9791}
+.bl-checks li.untouched .gy,.bl-checks li.untouched .lb{color:#c0bcb6}
+.bl-checks li .ck{width:12px;height:12px}
+.bl-checks li .ck svg{width:100%;height:100%;overflow:visible}
+.bl-checks li .ck path{fill:none;stroke:#ececea;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.bl-checks li.done .ck path{stroke:var(--yellow-fill);stroke-width:3.6}
+.bl-checks li{display:grid;grid-template-columns:8px 1fr 12px;align-items:center;gap:3px;font-family:var(--mono);font-size:8px;line-height:14px;color:var(--grey)}
+/* 3.7 기술통제 영역 */
+.bl-ctrl{margin:0;padding:4px 8px;border-top:1px solid var(--ink);background:var(--surface);
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.03em;color:var(--grey)}
+.bl-ctrl b{color:var(--ink)}
+.bl-stamp{position:absolute;right:-5px;bottom:34px;transform:rotate(-7deg);margin:0;
+  font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.06em;
+  color:var(--red-text);border:1.5px solid var(--red-text);padding:1px 5px;background:#fffc}
+.bx.bx-empty{background:#f2f0ec}
+.bx.bx-empty .bl-creator{color:var(--grey)}
+
+.anat{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;background:#eceae6;border:1px solid var(--line);padding:18px}
+.anat ol{margin:0;padding-left:1.15rem;max-width:46ch;font-size:12.5px;line-height:1.7}
+.anat li{margin-bottom:.55rem}
+.anat li b{font-family:var(--mono);font-size:11px}
+
+/* ── 열린 상자 ─────────────────────────────────────────────── */
+.open{display:flex;align-items:stretch;flex-wrap:wrap}
+.open .bx{flex-shrink:0}
+.desc{flex:1;min-width:300px;border:1px solid var(--ink);border-left:0;background:var(--paper)}
+.d-axis{display:flex;border-bottom:1px solid var(--ink);flex-wrap:wrap}
+.da{font-family:var(--sans);font-size:12.5px;font-weight:700;border:0;border-right:1px solid var(--line);
+  background:var(--surface);color:var(--grey);padding:8px 16px;cursor:pointer;text-align:left}
+.da small{display:block;font-family:var(--mono);font-size:8.5px;font-weight:400;letter-spacing:.04em}
+.da.on{background:var(--ink);color:#fff}
+.d-body.off{display:none}
+.dts{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);background:var(--surface)}
+.dt{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;border:0;
+  border-right:1px solid var(--line);background:transparent;color:var(--grey);padding:6px 9px;cursor:pointer}
+.dt.on{background:var(--paper);color:var(--ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--ink)}
+.dt .tk.on{color:var(--green-text)}.dt .tk.half{color:var(--orange-fill)}
+.db{display:none;padding:14px 16px}.db.on{display:block}
+.db-l{margin:0;font-size:12.5px;font-weight:700}
+.db-l .el{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--grey);margin-left:6px}
+.db-l .st{font-family:var(--mono);font-size:9.5px;font-weight:400;border:1px solid var(--line);padding:1px 5px;margin-left:6px;vertical-align:2px;color:var(--grey)}
+.db-l .st.on{color:var(--green-text);border-color:var(--green-fill);background:var(--green-tint)}
+.db-l .st.half{color:var(--ink);border-color:var(--orange-fill);background:var(--orange-tint)}
+.db-v{margin:7px 0 0;font-size:13px;line-height:1.75;max-width:70ch}
+
+/* ── 표 ────────────────────────────────────────────────────── */
+.compare-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:2px;margin-top:1rem}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--grey);font-weight:500;background:var(--surface)}
+tbody tr:last-child td{border-bottom:0}
+td.el{font-family:var(--mono);font-size:11px;white-space:nowrap;color:var(--grey)}
+td.nm{font-weight:600;white-space:nowrap}
+tr.skip td{color:var(--grey)}
+tr.skip td.nm{font-weight:400}
+
+/* ── 기록물 대장 ───────────────────────────────────────────── */
+.m{display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
+.m.on{color:var(--green-fill)}.m.half{color:var(--orange-fill)}
+.m.miss{background:repeating-linear-gradient(135deg,transparent 0 4px,rgb(26 26 24/.16) 4px 5px)}
+.legend{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9.5px;color:var(--grey);margin-left:auto;flex-wrap:wrap}
+.legend .m{width:13px;height:13px;border:1px solid var(--line);margin-left:6px}
+.switch{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 .75rem}
+.sw-l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--grey);text-transform:uppercase;margin-right:2px}
+.sw{font-family:var(--mono);font-size:11px;border:1px solid var(--line);background:transparent;color:var(--grey);padding:3px 9px;border-radius:2px;cursor:pointer}
+.sw.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.reg{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--paper);overflow-x:auto}
+.row{display:grid;grid-template-columns:96px minmax(200px,1fr) var(--marks,240px) 52px;align-items:stretch;border-bottom:1px solid var(--line);min-width:640px}
+.row:last-child{border-bottom:0}
+.row.head{border-bottom:1px solid var(--ink);background:var(--surface)}
+.row.head .n-cre,.row.head .c-ref span,.row.head .c-have span{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--grey);font-weight:500}
+.row.weak{background:repeating-linear-gradient(135deg,transparent 0 7px,rgb(26 26 24/.03) 7px 8px)}
+.row.weak .n-cre{color:var(--grey)}
+.c-ref{display:flex;align-items:center;border-right:1px solid rgb(26 26 24/.12);padding:0 8px;overflow:hidden}
+.c-ref span{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--grey);white-space:nowrap}
+.c-name{padding:8px 10px;min-width:0;border-right:1px solid rgb(26 26 24/.12)}
+.n-cre{margin:0;font-size:12.5px;font-weight:700;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-ti{margin:1px 0 0;font-size:11px;line-height:15px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-yr{font-family:var(--mono);font-size:9.5px}
+.n-g{display:flex;align-items:center;gap:4px;margin:5px 0 0;flex-wrap:wrap}
+.gl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--grey)}
+.pips{display:inline-flex;gap:1px;margin-right:2px}
+.pips i{width:5px;height:9px;border:1px solid var(--line)}
+.pips i.on{background:var(--green-fill);border-color:var(--green-fill)}
+.pips i.half{background:var(--orange-fill);border-color:var(--orange-fill)}
+.pips i.miss{background:repeating-linear-gradient(135deg,transparent 0 2px,rgb(26 26 24/.28) 2px 3px)}
+.gt{font-family:var(--mono);font-size:9px;font-weight:700;margin-right:8px}
+.c-marks{display:none;grid-auto-flow:column;grid-auto-columns:1fr}
+.c-marks .m{border-right:1px solid rgb(26 26 24/.08);min-height:100%;padding:4px 2px}
+.c-marks .m:last-child{border-right:0}
+.c-marks .m.h{font-family:var(--mono);font-size:8.5px;color:var(--grey);text-align:center;line-height:1.2;word-break:keep-all;background:none}
+.reg.show-a6 .c-marks.a6{display:grid}
+.reg.show-a9 .c-marks.a9{display:grid}
+.reg.show-a6{--marks:240px}.reg.show-a9{--marks:330px}
+.c-have{display:flex;align-items:center;justify-content:center;border-left:1px solid rgb(26 26 24/.12)}
+.c-have .have{font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid var(--ink);padding:1px 5px}
+.c-have .have.zero{border-style:dashed;border-color:var(--line);color:var(--grey);font-weight:400}
+.foot-note{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--line);max-width:64ch;font-size:13px;color:var(--grey)}
+.foot-note strong,.foot-note b{color:var(--ink)}
+:focus-visible{outline:2px solid var(--green-fill);outline-offset:2px}
+</style>
+
+<div class="wrap">
+  <p class="kicker">구술 사업 · ISAD(G) 2판</p>
+  <h1>계열 수준 기술로 다시 짠 라벨</h1>
+  <p class="lede">
+    ISAD(G)는 26개 요소를 7개 영역으로 묶고, 그중 <b>국제 교환용 필수 6요소</b>를 따로 못 박는다 —
+    참조코드 · 제목 · 생산자 · 일자 · 기술계층 · 규모. <em>닫힌 라벨이 져야 할 것이 정확히 그 여섯이다.</em>
+  </p>
+  <p class="lede">
+    표준을 따르기로 하니 그동안 미뤄 둔 물음 셋이 한꺼번에 정해졌다 —
+    <b>계열이냐 시리즈냐</b>, <b>확인 수준을 어디에 두느냐</b>, <b>발주기관이 곧 생산자냐</b>.
+  </p>
+  <hr class="rule">
+
+<section class="option"><div class="option-head"><h2>표준이 정해 준 것 셋</h2><span class="tag pick">묵은 물음</span></div>
+<p class="note"><b>① 계열이다.</b> ISAD(G)의 기술계층(3.1.4)은 fonds–series–file–item이고,
+국가기록원 영구기록물 기술규칙이 이를 우리말로 옮겼다. 이 화면이 쓰는 층은 아래 셋이다 — <b>계열(시리즈) · 철(파일) · 건(아이템)</b>. 그 위 층(fonds)은 이름부터 갈려 있어 나중에 다시 본다.
+<code>시리즈</code>도 흔히 쓰이지만, <code>철</code>·<code>건</code>이 공공기록물법의 한자어인 이상
+한 벌로 맞는 쪽은 <code>계열</code>이다. 라벨에 <code>기술계층</code>이라는 요소 자체가 있으므로 값으로 적는다.</p>
+<p class="note"><b>② 확인 수준은 기술통제 영역(3.7)이다.</b> ●●●는 자료에 관한 값이 아니라
+<em>기술한 사람이 어디까지 확인했는가</em>에 관한 값이다. ISAD(G)에는 그 자리가 따로 있다 —
+기술담당자 주기(3.7.1) · 규칙과 협약(3.7.2) · 기술일자(3.7.3). 라벨 맨 아랫줄이 그 영역이다.
+다만 <b>●●●만 맨 위 오른쪽으로 올렸다</b> — 영역으로는 3.7이 맞지만, 이 상자를 열어 볼지 말지를 가르는 첫 잣대라 훑는 눈에 가장 먼저 걸려야 해서다. 그리고 영역 이름 대신 <b>따른 규칙</b>(<code>ISAD(G) 2판</code>)을 값으로 적는다 — “기술통제”는 기록학 용어라 라벨에서 안 읽히는데, 3.7.2가 요구하는 것은 이름이 아니라 그 값이다.</p>
+<p class="note"><b>③ 발주기관이 곧 생산자는 아니다.</b> ISAD(G)의 생산자명(3.2.1)은 기록을 만들게 한 주체다.
+용역으로 채록한 사업은 <b>발주기관이 생산자</b>이고 수행기관은 별개로 적어야 한다.
+이 문서의 갈래 A(수행기관)가 존재하는 이유가 바로 이것인데, 지금은 갈래로만 갈려 있고
+사업과 수행기관이 이어져 있지 않다. 라벨에 <code>수행</code> 한 줄을 뒀다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>라벨 한 장 — 필수 6요소</h2><span class="tag ">3.1 ~ 3.7</span></div>
+<p class="note">닫힌 라벨은 <b>필수 6요소</b>만 진다. 나머지 20개 요소는 열었을 때 나온다 —
+ISAD(G) 다층기술 규칙(4.1)의 “계층에 적합한 정보를 제공한다”와 “상위에서 말한 것을 하위에서 되풀이하지 않는다”가
+그대로 이 구조다. 갈래(선반)가 공통을 지고, 상자는 제 것만 진다.</p>
+<div class="anat">
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.02<span class="bl-lvl" title="확인 수준">●●●</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">대통령기록관</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">대통령기록관 구술기록 수집</p>
+      <p class="bl-date">2008~</p>
+      <p class="bl-ext">153명 · 약 851시간<br>동영상·녹취록 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>3.5/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="half done"><span class="gy">◐</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    <p class="bl-stamp">사실상 비공개</p>
+  </div>
+</div>
+<ol>
+ <li><b>3.1.1 참조코드</b> — <code>KR-OHP-1.02</code>. 국가코드 + 기관코드 + 고유식별자.
+     이 아카이브는 소장기관이 아니라 <em>기술만 하는 쪽</em>이라 가운데 코드는 우리 것이다(OHP).
+     사진 3의 바코드 자리에 그대로 앉는다.</li>
+ <li><b>3.1.4 기술계층</b> — <code>계열</code>. 이 값이 있어야 “이 기술이 어느 층의 것인가”가 못 박힌다.</li>
+ <li><b>3.2.1 생산자명</b> — 가장 크게. 계열을 부르는 이름은 제목이 아니라 생산자다.
+     수행기관이 따로 있으면 그 아래 잔줄로.</li>
+ <li><b>3.1.2 제목 · 3.1.3 일자</b> — 사업명과 기간.</li>
+ <li><b>3.1.5 규모와 매체</b> — “153명 · 약 851시간 / 동영상·녹취록”.
+     ISAD(G)가 규모와 매체를 <em>한 요소</em>로 묶는 것은 둘이 함께여야 뜻이 서기 때문이다.</li>
+ <li><b>3.2~3.3 / 3.4</b> — 두 축의 체크리스트. 각 머리에 어느 영역인지 잔글씨로 붙였다.</li>
+ <li><b>3.7 기술통제</b> — 맨 아랫줄에 <b>따른 규칙과 기술일자</b>(바탕이 한 단 눌린 칸). 영역 이름(“기술통제”)은 기록학 용어라 라벨에서 빼고 값만 적는다. 확인 수준은 맨 위 참조코드 줄 오른쪽 끝으로 올렸다.</li>
+</ol>
+</div></section>
+<section class="option"><div class="option-head"><h2>26요소 중 무엇을 쓰고 무엇을 비우나</h2><span class="tag ">정직하게</span></div>
+<p class="note">ISAD(G)는 26개를 다 채우라고 하지 않는다 — 필요한 것만, 계층에 맞게 쓰라고 한다.
+이 아카이브가 <b>남의 기관 사업을 기술</b>하는 처지라 애초에 채울 수 없는 요소가 여럿이다.
+비운 것을 표에 적어 두는 편이 나중에 “왜 없지?”를 없앤다.</p>
+<div class="compare-wrap"><table><thead><tr><th>요소</th><th>이름</th><th>이 화면에서</th></tr></thead><tbody>
+<tr class=""><td class="el">3.1.1</td><td class="nm">참조코드</td><td><b>쓴다</b> — KR-OHP-갈래.순번</td></tr>
+<tr class=""><td class="el">3.1.2</td><td class="nm">제목</td><td><b>쓴다</b> — 사업명</td></tr>
+<tr class=""><td class="el">3.1.3</td><td class="nm">일자</td><td><b>쓴다</b> — 사업 기간(“언제”)</td></tr>
+<tr class=""><td class="el">3.1.4</td><td class="nm">기술계층</td><td><b>쓴다</b> — 계열 고정</td></tr>
+<tr class=""><td class="el">3.1.5</td><td class="nm">규모와 매체</td><td><b>쓴다</b> — 인원·시간 / 음성·영상·녹취문</td></tr>
+<tr class=""><td class="el">3.2.1</td><td class="nm">생산자명</td><td><b>쓴다</b> — 발주기관(“어디서”). 수행기관은 따로</td></tr>
+<tr class=""><td class="el">3.2.2</td><td class="nm">행정연혁</td><td><b>쓴다</b> — “왜”가 여기 해당</td></tr>
+<tr class="skip"><td class="el">3.2.3</td><td class="nm">기록물 이력</td><td>비운다 — 소장하지 않으므로 이관 이력이 없다</td></tr>
+<tr class=""><td class="el">3.2.4</td><td class="nm">수집의 직접적 출처</td><td><b>일부</b> — 활용정책의 “동의서”가 이 자리</td></tr>
+<tr class=""><td class="el">3.3.1</td><td class="nm">범위와 내용</td><td><b>쓴다</b> — “누구를”·“무엇을”</td></tr>
+<tr class=""><td class="el">3.3.2</td><td class="nm">평가·폐기·처리일정</td><td><b>일부</b> — 활용정책의 “철회·삭제”</td></tr>
+<tr class="skip"><td class="el">3.3.3</td><td class="nm">추가수집 예상</td><td>비운다 — 남의 사업이라 예상할 자리가 아니다</td></tr>
+<tr class=""><td class="el">3.3.4</td><td class="nm">정리체계</td><td><b>쓴다</b> — “어떻게”</td></tr>
+<tr class=""><td class="el">3.4.1</td><td class="nm">접근환경</td><td><b>쓴다</b> — 공개등급·열람절차·사망 시</td></tr>
+<tr class=""><td class="el">3.4.2</td><td class="nm">재생산 환경</td><td><b>쓴다</b> — 저작권·2차활용·연락 중개</td></tr>
+<tr class="skip"><td class="el">3.4.3</td><td class="nm">언어와 문자</td><td>비운다 — 전부 한국어. 제주어 구술만 예외라 주기로</td></tr>
+<tr class="skip"><td class="el">3.4.4</td><td class="nm">물리적 특성</td><td>비운다 — 실물을 보지 못한다</td></tr>
+<tr class=""><td class="el">3.4.5</td><td class="nm">검색도구</td><td><b>쓴다</b> — 목록·DB 주소가 “어디서”에 섞여 있다</td></tr>
+<tr class=""><td class="el">3.5.1</td><td class="nm">원본의 존재와 위치</td><td><b>쓴다</b> — 방문 열람 여부가 곧 이것</td></tr>
+<tr class="skip"><td class="el">3.5.2</td><td class="nm">사본의 존재와 위치</td><td>비운다</td></tr>
+<tr class=""><td class="el">3.5.3</td><td class="nm">관련 기술단위</td><td><b>쓴다</b> — 대통령기록관↔대한민국역사박물관 같은 겹침</td></tr>
+<tr class=""><td class="el">3.5.4</td><td class="nm">출판주기</td><td><b>쓴다</b> — 선집·시리즈 발간이 여기</td></tr>
+<tr class=""><td class="el">3.6.1</td><td class="nm">주기</td><td><b>쓴다</b> — 문서의 “참고”·“접점” 필드</td></tr>
+<tr class=""><td class="el">3.7.1</td><td class="nm">기술담당자 주기</td><td><b>쓴다</b> — 확인 수준 ●●●의 괄호 설명</td></tr>
+<tr class=""><td class="el">3.7.2</td><td class="nm">규칙과 협약</td><td><b>쓴다</b> — ISAD(G) 2판. 상자마다 같으므로 서가 머리에 한 번만</td></tr>
+<tr class=""><td class="el">3.7.3</td><td class="nm">기술일자</td><td><b>쓴다</b> — 조사한 날(YYYY-MM-DD)</td></tr>
+</tbody></table></div>
+<p class="cap">26개 중 21개를 쓰고 5개를 비운다. 비우는 다섯은 전부 “소장하지 않아서” 생긴 것이다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>서가</h2><span class="tag ">목록 화면</span></div>
+<p class="note">참조코드가 생기니 선반이 곧 <b>배열 체계</b>가 된다 — <code>KR-OHP-1.**</code>이 한 선반,
+<code>2.**</code>가 다음 선반. 갈래를 이름으로 부르지 않아도 코드가 자리를 정한다.</p>
+<p class="rulebar checkkey"><b>왼쪽</b> ● 확인 ◐ 일부 ╱ 봤으나 못 찾음 · 아직 안 봄 <span class="sep">|</span> <b>오른쪽</b> <span class="mini"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span> 내가 켠 것 — 더 볼 일 없음</p>
+<p class="rulebar">기술계층 <b>계열</b>(시리즈) · 참조코드 <b>KR-OHP-*</b></p>
+<div class="stacks">
+<div class="shelf"><span class="shelf-n">KR-OHP-1.** · 2.** — 역사 전반 · 예술문화</span>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.01<span class="bl-lvl" title="확인 수준">●●●</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">국사편찬위원회</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">구술사료수집사업 / 구술사료선집</p>
+      <p class="bl-date">2004~</p>
+      <p class="bl-ext">약 1,900명 · 4,600여 시간<br>음성·영상·녹취문 · 가진 것 3건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>3.5/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="miss done"><span class="gy">╱</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss done"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    <p class="bl-stamp">기관 방문 열람</p>
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.02<span class="bl-lvl" title="확인 수준">●●●</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">대통령기록관</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">대통령기록관 구술기록 수집</p>
+      <p class="bl-date">2008~</p>
+      <p class="bl-ext">153명 · 약 851시간<br>동영상·녹취록 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>3.5/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="half done"><span class="gy">◐</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    <p class="bl-stamp">사실상 비공개</p>
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.03<span class="bl-lvl" title="확인 수준">●●●</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">한국학중앙연구원</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">현대한국구술자료관</p>
+      <p class="bl-date">2003~</p>
+      <p class="bl-ext">규모 미확인<br>동영상·녹취문 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>4/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-2.01<span class="bl-lvl" title="확인 수준">●●●</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 예술·문화</p>
+      <p class="bl-creator">아르코예술기록원</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">한국근현대예술사 구술채록사업</p>
+      <p class="bl-date">2003~</p>
+      <p class="bl-ext">328명 (누적 327건)<br>녹취문(웹) · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>3.5/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="half done"><span class="gy">◐</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    <p class="bl-stamp">로그인 필요</p>
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-2.02<span class="bl-lvl" title="확인 수준">●●○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 예술·문화</p>
+      <p class="bl-creator">한국영상자료원</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">원로영화인 구술채록사업</p>
+      <p class="bl-date">2004~</p>
+      <p class="bl-ext">규모 미확인<br>녹취문·발간도서 · 가진 것 5건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>2.5/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="miss done"><span class="gy">╱</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half"><span class="gy">◐</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+</div><div class="shelf"><span class="shelf-n">KR-OHP-3.** ~ 8.** — 민주화 · 지역 · 체육 · 전쟁 · 수행기관</span>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-3.01<span class="bl-lvl" title="확인 수준">●●○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 민주화·인권</p>
+      <p class="bl-creator">5·18민주화운동기록관</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">구술증언 채록사업</p>
+      <p class="bl-date">2016~</p>
+      <p class="bl-ext">규모 미확인<br>매체 미확인 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>1/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="miss"><span class="gy">╱</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-6.01<span class="bl-lvl" title="확인 수준">●●○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 지역·현대사</p>
+      <p class="bl-creator">제주4·3평화재단</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">제주4·3 천인증언채록사업</p>
+      <p class="bl-date">2004~2008</p>
+      <p class="bl-ext">목표 1,000명<br>매체 미확인 · 가진 것 8건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-7.01<span class="bl-lvl" title="확인 수준">●●○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 체육</p>
+      <p class="bl-creator">국민체육진흥공단</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">스포츠 발전 공헌자 구술 채록</p>
+      <p class="bl-date">2025</p>
+      <p class="bl-ext">10인<br>매체 미확인 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-4.01<span class="bl-lvl" title="확인 수준">●○○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 전쟁·피해</p>
+      <p class="bl-creator">국방부 군사편찬연구소</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">(구술사업 존재 여부 불확실)</p>
+      <p class="bl-date">2000 설립</p>
+      <p class="bl-ext">규모 미확인<br>매체 미확인 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>2/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-8.01<span class="bl-lvl" title="확인 수준">●○○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 수행기관</p>
+      <p class="bl-creator">김영삼민주센터</p>
+      <p class="bl-agent">수행 한국구술사연구소</p>
+      <p class="bl-title">김영삼 전 대통령 관련 구술채록사업</p>
+      <p class="bl-date">2012</p>
+      <p class="bl-ext">규모 미확인<br>매체 미확인 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>1/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+</div><div class="shelf"><span class="shelf-n">확인했으나 정보 불충분 — 필수 6요소 중 제목·생산자만 선 것</span>
+<div class="bx bx-blank">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.04<span class="bl-lvl" title="확인 수준">●○○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">대전광역시사편찬위원회</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">(구술채록 사업 내용 특정 못함)</p>
+      <p class="bl-date">일자 미상</p>
+      <p class="bl-ext">규모 미확인<br>매체 미확인 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>0/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="miss"><span class="gy">╱</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx bx-blank bx-empty">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.05<span class="bl-lvl" title="확인 수준">●○○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">서울대 여성연구원</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">(인용 6편, 사업 특정 못함)</p>
+      <p class="bl-date">일자 미상</p>
+      <p class="bl-ext">규모 미확인<br>매체 미확인 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>0/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx bx-blank">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-5.01<span class="bl-lvl" title="확인 수준">●○○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 노동운동</p>
+      <p class="bl-creator">마산창원여성노동자회</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">『언니들에게 듣는다』</p>
+      <p class="bl-date">2012</p>
+      <p class="bl-ext">규모 미확인<br>발간도서 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>1/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+</div></div>
+<p class="cap">아랫칸은 참조코드·제목·생산자·기술계층까지만 서고 일자·규모가 빈 상자들이다 — ISAD(G)로 보면 <b>필수 6요소가 미완인 기술</b>.</p>
+</section>
+<section class="option"><div class="option-head"><h2>열면 — 영역별로</h2><span class="tag ">3.2~3.3 / 3.4</span></div>
+<p class="note">열린 면의 탭은 이제 <b>ISAD(G) 영역</b>이고, 칸마다 요소 번호가 붙는다.
+번호가 붙으면 “이 값이 표준의 어디에 해당하는가”가 기술 안에 기록된다 —
+나중에 이 데이터를 내보내거나 남의 목록과 맞춰 볼 때 필요한 것이 정확히 그것이다.</p>
+<div class="open">
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.02<span class="bl-lvl" title="확인 수준">●●●</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">대통령기록관</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">대통령기록관 구술기록 수집</p>
+      <p class="bl-date">2008~</p>
+      <p class="bl-ext">153명 · 약 851시간<br>동영상·녹취록 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b><span class="bl-area">3.2~3.3 배경 · 내용과 구조</span></p>
+        <ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>3.5/9</b><span class="bl-area">3.4 접근과 이용조건</span></p>
+        <ul><li class="half done"><span class="gy">◐</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="half done"><span class="gy">◐</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    <p class="bl-stamp">사실상 비공개</p>
+  </div>
+</div>
+<div class="desc"><div class="d-axis"><button class="da on" data-da="w">사업 개요<small>3.2~3.3 배경 · 내용과 구조</small></button><button class="da" data-da="p">활용정책<small>3.4 접근과 이용조건</small></button></div>
+<div class="d-body" data-da="w"><div class="dts"><button class="dt on" data-p="w" data-i="0"><span class="tk on">☑</span>언제</button><button class="dt" data-p="w" data-i="1"><span class="tk on">☑</span>어디서</button><button class="dt" data-p="w" data-i="2"><span class="tk on">☑</span>누구를</button><button class="dt" data-p="w" data-i="3"><span class="tk on">☑</span>무엇을</button><button class="dt" data-p="w" data-i="4"><span class="tk on">☑</span>왜</button><button class="dt" data-p="w" data-i="5"><span class="tk on">☑</span>어떻게</button></div><div class="dbs"><div class="db on" data-p="w" data-i="0"><p class="db-l">언제<span class="el">3.1.3</span><span class="st on">확인</span></p><p class="db-v">최소 2008년부터 연도별로 추진돼 현재까지 지속(2023·2024년도 공고까지 확인). 2022년 6월 수집관리 지침 제정.</p></div><div class="db" data-p="w" data-i="1"><p class="db-l">어디서<span class="el">3.2.1</span><span class="st on">확인</span></p><p class="db-v">대통령기록관(행정안전부 국가기록원 소속), pa.go.kr</p></div><div class="db" data-p="w" data-i="2"><p class="db-l">누구를<span class="el">3.3.1</span><span class="st on">확인</span></p><p class="db-v">역대 대통령 본인, 장·차관 등 재임기 주요 인사 — 최근에는 요리·조경·운전·출입기자 등 보좌 실무 인력까지 확대.</p></div><div class="db" data-p="w" data-i="3"><p class="db-l">무엇을<span class="el">3.3.1</span><span class="st on">확인</span></p><p class="db-v">재임기 주요 정책 증언. 2014.12 기준 누적 153명·약 851시간.</p></div><div class="db" data-p="w" data-i="4"><p class="db-l">왜<span class="el">3.2.2</span><span class="st on">확인</span></p><p class="db-v">역대 정부의 국정수행 과정과 결과를 입체적으로 조명하고 국가기록으로 후대에 전승.</p></div><div class="db" data-p="w" data-i="5"><p class="db-l">어떻게<span class="el">3.3.4</span><span class="st on">확인</span></p><p class="db-v">수집관리 지침(2022.06)에 따라 대통령·인물별로 대상을 선정해 채록 → 대통령기록관이 소장·관리.</p></div></div></div>
+<div class="d-body off" data-da="p"><div class="dts"><button class="dt on" data-p="p" data-i="0"><span class="tk half">◪</span>동의서</button><button class="dt" data-p="p" data-i="1"><span class="tk on">☑</span>저작권</button><button class="dt" data-p="p" data-i="2"><span class="tk half">◪</span>공개등급</button><button class="dt" data-p="p" data-i="3"><span class="tk half">◪</span>열람절차</button><button class="dt" data-p="p" data-i="4"><span class="tk miss">☒</span>2차활용</button><button class="dt" data-p="p" data-i="5"><span class="tk miss">☒</span>인용표기</button><button class="dt" data-p="p" data-i="6"><span class="tk miss">☒</span>사망 시</button><button class="dt" data-p="p" data-i="7"><span class="tk on">☑</span>철회·삭제</button><button class="dt" data-p="p" data-i="8"><span class="tk miss">☒</span>연락 중개</button></div><div class="dbs"><div class="db on" data-p="p" data-i="0"><p class="db-l">동의서<span class="el">3.2.4</span><span class="st half">일부</span></p><p class="db-v">구술자용만 확인 — 별지 제1호 「대통령기록관 구술기록 동의서」(지침 제6조). 면담자에게는 동의서가 아니라 「면담자 검독확인서」가 있다.</p></div><div class="db" data-p="p" data-i="1"><p class="db-l">저작권<span class="el">3.4.2</span><span class="st on">확인</span></p><p class="db-v">기관 양도. 별지 제2호 「관리조건 협의서」 제1항 — 복제·전송·방송·배포·전시·2차적저작물작성권을 보호기간 만료 시까지 양도하고, 제2항에서 저작인격권 행사를 위임.</p></div><div class="db" data-p="p" data-i="2"><p class="db-l">공개등급<span class="el">3.4.1</span><span class="st half">일부</span></p><p class="db-v">별도 등급 체계는 확인 못함. 지침 제15조의 공개/비공개 구분만 있고 「비공개 내역서」에 구간별 사유·기간을 적는다. 30년 범위 내 비공개 가능.</p></div><div class="db" data-p="p" data-i="3"><p class="db-l">열람절차<span class="el">3.4.1</span><span class="st half">일부</span></p><p class="db-v">지침 제14조는 열람용 파일 제작을 규정하나, 2019년 실태조사에서 “구술자료 접근 불가(10년간 서비스된 적 없음)”로 확인.</p></div><div class="db" data-p="p" data-i="4"><p class="db-l">2차활용<span class="el">3.4.2</span><span class="st miss">못 찾음</span></p><p class="db-v">확인 못함. 구술자 본인의 자서전·회고록·전시 이용 조항은 있으나 제3자 활용 승인 절차는 못 찾음.</p></div><div class="db" data-p="p" data-i="5"><p class="db-l">인용표기<span class="el">3.6.1</span><span class="st miss">못 찾음</span></p><p class="db-v">확인 못함.</p></div><div class="db" data-p="p" data-i="6"><p class="db-l">사망 시<span class="el">3.4.1</span><span class="st miss">못 찾음</span></p><p class="db-v">확인 못함.</p></div><div class="db" data-p="p" data-i="7"><p class="db-l">철회·삭제<span class="el">3.3.2</span><span class="st on">확인</span></p><p class="db-v">지침 제8조 제3·4항 — 수정·추가·일부 삭제 요구 시 수정본을 만들고 원본은 보존, 동영상 삭제 요구 시 폐기 등 조치.</p></div><div class="db" data-p="p" data-i="8"><p class="db-l">연락 중개<span class="el">3.4.2</span><span class="st miss">못 찾음</span></p><p class="db-v">확인 못함.</p></div></div></div>
+</div></div>
+<p class="cap">“동의서”가 3.2.4(수집의 직접적 출처)로, “철회·삭제”가 3.3.2(평가·폐기)로 간다 — 아홉 칸이 전부 3.4는 아니다.</p>
+</section>
+<hr class="rule">
+<section class="option"><div class="option-head"><h2>기록물 대장</h2><span class="tag ">화면 맨 아래</span></div>
+<p class="note">서가는 <b>하나를 고르는</b> 자리라 상자마다 제 라벨을 들고 서 있고, 같은 칸이 세로로 안 선다.
+“누가 열람절차(3.4.1)를 확인했나”처럼 <em>한 요소를 여러 계열에 걸쳐</em> 훑으려면 눕힌 표가 따로 있어야 한다.
+단추로 갈아 끼우지 않고 맨 아래에 쌓는 이유는, 갈아 끼우면 둘 중 하나가 늘 숨어서다.</p>
+<div class="switch"><span class="sw-l">칸</span>
+  <button class="sw on" data-axis="a6">사업 개요 <b>6칸</b></button>
+  <button class="sw" data-axis="a9">활용정책 <b>9칸</b></button>
+  <span class="legend"><i class="m on">●</i>확인 <i class="m half">◐</i>일부 <i class="m miss"></i>봤으나 못 찾음 <i class="m"></i>아직 안 봄</span></div>
+<div class="reg show-a6">
+<div class="row head"><div class="c-ref"><span>참조코드</span></div><div class="c-name"><p class="n-cre">생산자 · 제목</p></div><div class="c-marks a6"><div class="m h">언제</div><div class="m h">어디서</div><div class="m h">누구를</div><div class="m h">무엇을</div><div class="m h">왜</div><div class="m h">어떻게</div></div><div class="c-marks a9"><div class="m h">동의서</div><div class="m h">저작권</div><div class="m h">공개등급</div><div class="m h">열람절차</div><div class="m h">2차활용</div><div class="m h">인용표기</div><div class="m h">사망 시</div><div class="m h">철회·삭제</div><div class="m h">연락 중개</div></div><div class="c-have"><span>가진 것</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-1.01</span></div>
+  <div class="c-name"><p class="n-cre">국사편찬위원회</p>
+    <p class="n-ti">구술사료수집사업 / 구술사료선집 <span class="n-yr">2004~</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="miss"></i><i class="on"></i><i class="half"></i><i class="on"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have">3건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-1.02</span></div>
+  <div class="c-name"><p class="n-cre">대통령기록관</p>
+    <p class="n-ti">대통령기록관 구술기록 수집 <span class="n-yr">2008~</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="half"></i><i class="on"></i><i class="half"></i><i class="half"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="on"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-1.03</span></div>
+  <div class="c-name"><p class="n-cre">한국학중앙연구원</p>
+    <p class="n-ti">현대한국구술자료관 <span class="n-yr">2003~</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="on"></i><i class="half"></i><i class="half"></i><i class="on"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">4/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-2.01</span></div>
+  <div class="c-name"><p class="n-cre">아르코예술기록원</p>
+    <p class="n-ti">한국근현대예술사 구술채록사업 <span class="n-yr">2003~</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="half"></i><i class="half"></i><i class="half"></i><i class="on"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-2.02</span></div>
+  <div class="c-name"><p class="n-cre">한국영상자료원</p>
+    <p class="n-ti">원로영화인 구술채록사업 <span class="n-yr">2004~</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="half"></i></span><span class="gt">2.5/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m half" title="일부">◐</div></div>
+  <div class="c-have"><span class="have">5건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-3.01</span></div>
+  <div class="c-name"><p class="n-cre">5·18민주화운동기록관</p>
+    <p class="n-ti">구술증언 채록사업 <span class="n-yr">2016~</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">1/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-6.01</span></div>
+  <div class="c-name"><p class="n-cre">제주4·3평화재단</p>
+    <p class="n-ti">제주4·3 천인증언채록사업 <span class="n-yr">2004~2008</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have">8건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-7.01</span></div>
+  <div class="c-name"><p class="n-cre">국민체육진흥공단</p>
+    <p class="n-ti">스포츠 발전 공헌자 구술 채록 <span class="n-yr">2025</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div><div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-4.01</span></div>
+  <div class="c-name"><p class="n-cre">국방부 군사편찬연구소</p>
+    <p class="n-ti">(구술사업 존재 여부 불확실) <span class="n-yr">2000 설립</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">2/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div><div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row">
+  <div class="c-ref"><span>KR-OHP-8.01</span></div>
+  <div class="c-name"><p class="n-cre">김영삼민주센터</p>
+    <p class="n-ti">김영삼 전 대통령 관련 구술채록사업 <span class="n-yr">2012</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">1/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div><div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row weak">
+  <div class="c-ref"><span>KR-OHP-1.04</span></div>
+  <div class="c-name"><p class="n-cre">대전광역시사편찬위원회</p>
+    <p class="n-ti">(구술채록 사업 내용 특정 못함) <span class="n-yr">일자 미상</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="miss"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p></div>
+  <div class="c-marks a6"><div class="m miss" title="못 찾음"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div><div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row weak">
+  <div class="c-ref"><span>KR-OHP-1.05</span></div>
+  <div class="c-name"><p class="n-cre">서울대 여성연구원</p>
+    <p class="n-ti">(인용 6편, 사업 특정 못함) <span class="n-yr">일자 미상</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p></div>
+  <div class="c-marks a6"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div><div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+<div class="row weak">
+  <div class="c-ref"><span>KR-OHP-5.01</span></div>
+  <div class="c-name"><p class="n-cre">마산창원여성노동자회</p>
+    <p class="n-ti">『언니들에게 듣는다』 <span class="n-yr">2012</span></p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="untouched"></i><i class="miss"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">1/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p></div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m untouched" title="안 봄"></div><div class="m miss" title="못 찾음"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div><div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div></div>
+</div>
+<p class="cap">첫 열이 참조코드다 — 정렬 기준이자 배열 체계. 서가의 선반 구분과 같은 값이다.</p>
+</section>
+<hr class="rule">
+<p class="foot-note"><strong>남은 문제 둘.</strong> 하나, <b>참조코드를 우리가 매겨도 되는가.</b>
+ISAD(G)의 참조코드는 보존기관이 제 소장품에 붙이는 것인데 우리는 소장하지 않는다.
+그래서 <code>OHP</code>는 기관코드가 아니라 <em>이 검색도구의 식별자</em>로 읽어야 하고,
+그 사실을 3.7.2(규칙과 협약)에 적어 두는 것이 정직하다.</p>
+<p class="foot-note">둘, <b>계열이 맞는 층인가.</b> 큰 기관은 사업 하나가 계열이 맞지만,
+노동자역사 한내처럼 단체 자체가 곧 그 사업인 곳은 계열보다 한 층 위에 가깝다.
+ISAD(G)는 이럴 때 기술계층을 다르게 적는 것을 허용하므로, <code>계열</code>을 고정값으로 박지 말고
+<b>값으로 두되 기본을 계열</b>로 하면 된다.</p>
+<p class="foot-note"><strong>데이터 쪽.</strong> <code>oral-history-projects.ts</code>에 필요한 것은 셋이다 —
+활용정책 아홉 칸을 번호 붙은 칸으로 쪼개기, “확인 못함”으로 시작하는지 보아 <b>못 찾음</b>과 <b>안 봄</b> 가르기,
+그리고 각 필드에 <b>ISAD(G) 요소 번호</b>를 붙이기. 셋째가 있어야 나중에 EAD·다른 목록으로 내보낼 수 있다.</p>
+</div>
+<script>
+document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".sw").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".reg").forEach(r=>{r.classList.remove("show-a6","show-a9");r.classList.add("show-"+b.dataset.axis);});
+});
+document.querySelectorAll(".da").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".da").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".d-body").forEach(x=>x.classList.toggle("off",x.dataset.da!==b.dataset.da));
+});
+document.querySelectorAll(".dt").forEach(b=>b.onclick=()=>{
+  const p=b.dataset.p,i=b.dataset.i;
+  document.querySelectorAll('.dt[data-p="'+p+'"]').forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll('.db[data-p="'+p+'"]').forEach(x=>x.classList.toggle("on",x.dataset.i===i));
+});
+</script>

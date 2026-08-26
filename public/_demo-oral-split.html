@@ -1,0 +1,399 @@
+<title>한 기관, 여러 계열</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{color-scheme:light;--paper:#fff;--surface:#f4f4f2;--line:#e2e2df;--grey:#6b6b68;--ink:#1a1a18;
+ --green-tint:#eaf3e2;--green-fill:#6aa84f;--green-text:#35632a;--yellow-tint:#fdf6d9;--yellow-mark:#f9e58a;--yellow-fill:#e8c72c;
+ --orange-tint:#fdeadb;--orange-fill:#ef8129;--red-text:#8f2116;--voice:#8a5f86;--board:#cfcbc4;
+ --sans:"Gothic A1",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+ --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+ --serif:ui-serif,Georgia,"AppleMyungjo","Nanum Myeongjo",바탕,serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin-inline:auto;padding:3.5rem 1.25rem 6rem}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);margin:0 0 .85rem}
+h1{font-family:var(--serif);font-size:clamp(26px,4vw,34px);font-weight:700;line-height:1.35;letter-spacing:-.01em;text-wrap:balance;margin:0 0 1rem}
+.lede{max-width:62ch;margin:0}.lede+.lede{margin-top:.75rem}
+.rule{height:1px;background:var(--line);border:0;margin:2.75rem 0}
+.option{margin-bottom:3.5rem}
+.option-head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:.6rem;margin-bottom:1rem}
+h2{font-family:var(--serif);font-size:19px;font-weight:700;margin:0;letter-spacing:-.005em}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--grey);border:1px solid var(--line);border-radius:2px;padding:.1rem .4rem;white-space:nowrap}
+.tag.now{border-color:var(--orange-fill);color:var(--orange-fill)}
+.tag.pick{border-color:var(--green-fill);color:var(--green-text);background:var(--green-tint)}
+.note{max-width:64ch;margin:0 0 1.1rem;font-size:13.5px}
+.note em{font-style:normal;background:var(--yellow-tint);padding:0 .15em}
+.note code{font-family:var(--mono);font-size:12px;background:var(--surface);padding:0 .25em;border-radius:2px}
+.cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--grey);margin:.6rem 0 0}
+
+/* ── 서가 ──────────────────────────────────────────────────── */
+.rulebar{margin:0 0 .5rem;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--grey)}
+.rulebar b{color:var(--ink)}
+.checkkey{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.checkkey .sep{color:var(--line)}
+.checkkey .mini{width:14px;height:14px;display:inline-block}
+.checkkey .mini svg{width:100%;height:100%}
+.checkkey .mini path{fill:none;stroke:var(--yellow-fill);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+.stacks{background:#eceae6;border:1px solid var(--line);padding:0 14px 14px}
+.shelf{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:16px 0 0;position:relative}
+.shelf::after{content:"";display:block;width:100%;height:9px;margin-top:14px;
+  background:linear-gradient(var(--board),#b6b1a8);border-top:1px solid #fff6;box-shadow:0 2px 4px rgb(0 0 0/.18)}
+.shelf-n{position:absolute;left:6px;bottom:-1px;font-family:var(--mono);font-size:9px;color:#6f6a61;z-index:1}
+
+/* ── 상자 ──────────────────────────────────────────────────── */
+.bx{width:202px;background:color-mix(in oklab,var(--voice) 7%,#efece7);
+  border:1px solid #b9b3aa;border-bottom-width:2px;box-shadow:1px 2px 3px rgb(0 0 0/.12);padding:0 0 8px}
+.bx-lip{height:15px;border-bottom:1px solid #c9c3ba;display:flex;justify-content:center;align-items:flex-end}
+.bx-notch{width:34px;height:6px;background:#00000018;border-radius:2px 2px 0 0}
+.bx-label{margin:8px 9px 0;background:var(--paper);border:1px solid #cfc9c0;padding:0;position:relative}
+
+/* 3.1.1 참조코드 — 사진 3의 바코드 자리 */
+.bl-ref{display:flex;align-items:center;gap:5px;margin:0;padding:4px 7px;border-bottom:1px solid var(--ink);
+  font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.06em}
+.bl-lvl{margin-left:auto;letter-spacing:.02em;font-weight:400;color:var(--grey)}
+.bl-bar{flex-shrink:0;width:26px;height:11px;background:repeating-linear-gradient(90deg,
+  var(--ink) 0 1px,transparent 1px 2px,var(--ink) 2px 4px,transparent 4px 5px,var(--ink) 5px 6px,transparent 6px 8px)}
+
+/* 3.1~3.2 식별·배경 영역 */
+.bl-id{padding:6px 8px 7px}
+.bl-lv{margin:0;font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:var(--grey)}
+.bl-lv b{color:var(--ink);letter-spacing:.16em}
+.bl-creator{margin:3px 0 0;font-family:var(--serif);font-size:14.5px;font-weight:700;line-height:1.25;letter-spacing:-.01em;
+  height:36px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bl-agent{margin:1px 0 0;font-family:var(--mono);font-size:7.5px;color:var(--grey);height:13px;overflow:hidden}
+.bl-title{margin:2px 0 0;font-size:12px;line-height:15px;height:30px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bl-date{margin:2px 0 0;font-family:var(--mono);font-size:9px;color:var(--grey)}
+.bl-ext{margin:5px 0 0;padding-top:5px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:8px;line-height:1.55;color:var(--ink);height:29px}
+
+/* 3.3 / 3.4 두 영역 체크리스트 */
+.bl-checks{display:grid;grid-template-columns:1fr 1fr;gap:0 7px;margin:0 8px;padding:6px 0;border-top:1px solid var(--ink)}
+.bl-h{margin:0 0 3px;font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;color:var(--grey);white-space:nowrap}
+.bl-h b{color:var(--ink)}
+.bl-area{display:block;font-size:6.5px;letter-spacing:0;color:#a5a19b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bl-checks ul{margin:0;padding:0;list-style:none}
+/* 왼쪽 글리프 = 문서가 찍는 것(무채색). 오른쪽 획 = 내가 켜는 것(노랑 하나). */
+.bl-checks li .gy{text-align:center}
+.bl-checks li .lb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bl-checks li.on .gy,.bl-checks li.on .lb{color:var(--ink)}
+.bl-checks li.half .gy{color:#5c5c58}.bl-checks li.half .lb{color:#3d3d3a}
+.bl-checks li.miss .gy,.bl-checks li.miss .lb{color:#9b9791}
+.bl-checks li.untouched .gy,.bl-checks li.untouched .lb{color:#c0bcb6}
+.bl-checks li .ck{width:12px;height:12px}
+.bl-checks li .ck svg{width:100%;height:100%;overflow:visible}
+.bl-checks li .ck path{fill:none;stroke:#ececea;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.bl-checks li.done .ck path{stroke:var(--yellow-fill);stroke-width:3.6}
+.bl-checks li{display:grid;grid-template-columns:8px 1fr 12px;align-items:center;gap:3px;font-family:var(--mono);font-size:8px;line-height:14px;color:var(--grey)}
+/* 3.7 기술통제 영역 */
+.bl-ctrl{margin:0;padding:4px 8px;border-top:1px solid var(--ink);background:var(--surface);
+  font-family:var(--mono);font-size:7.5px;letter-spacing:.03em;color:var(--grey)}
+.bl-ctrl b{color:var(--ink)}
+.bl-stamp{position:absolute;right:-5px;bottom:34px;transform:rotate(-7deg);margin:0;
+  font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.06em;
+  color:var(--red-text);border:1.5px solid var(--red-text);padding:1px 5px;background:#fffc}
+.bx.bx-empty{background:#f2f0ec}
+.bx.bx-empty .bl-creator{color:var(--grey)}
+
+.anat{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap;background:#eceae6;border:1px solid var(--line);padding:18px}
+.anat ol{margin:0;padding-left:1.15rem;max-width:46ch;font-size:12.5px;line-height:1.7}
+.anat li{margin-bottom:.55rem}
+.anat li b{font-family:var(--mono);font-size:11px}
+
+/* ── 열린 상자 ─────────────────────────────────────────────── */
+.open{display:flex;align-items:stretch;flex-wrap:wrap}
+.open .bx{flex-shrink:0}
+.desc{flex:1;min-width:300px;border:1px solid var(--ink);border-left:0;background:var(--paper)}
+.d-axis{display:flex;border-bottom:1px solid var(--ink);flex-wrap:wrap}
+.da{font-family:var(--sans);font-size:12.5px;font-weight:700;border:0;border-right:1px solid var(--line);
+  background:var(--surface);color:var(--grey);padding:8px 16px;cursor:pointer;text-align:left}
+.da small{display:block;font-family:var(--mono);font-size:8.5px;font-weight:400;letter-spacing:.04em}
+.da.on{background:var(--ink);color:#fff}
+.d-body.off{display:none}
+.dts{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);background:var(--surface)}
+.dt{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;border:0;
+  border-right:1px solid var(--line);background:transparent;color:var(--grey);padding:6px 9px;cursor:pointer}
+.dt.on{background:var(--paper);color:var(--ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--ink)}
+.dt .tk.on{color:var(--green-text)}.dt .tk.half{color:var(--orange-fill)}
+.db{display:none;padding:14px 16px}.db.on{display:block}
+.db-l{margin:0;font-size:12.5px;font-weight:700}
+.db-l .el{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--grey);margin-left:6px}
+.db-l .st{font-family:var(--mono);font-size:9.5px;font-weight:400;border:1px solid var(--line);padding:1px 5px;margin-left:6px;vertical-align:2px;color:var(--grey)}
+.db-l .st.on{color:var(--green-text);border-color:var(--green-fill);background:var(--green-tint)}
+.db-l .st.half{color:var(--ink);border-color:var(--orange-fill);background:var(--orange-tint)}
+.db-v{margin:7px 0 0;font-size:13px;line-height:1.75;max-width:70ch}
+
+/* ── 표 ────────────────────────────────────────────────────── */
+.compare-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:2px;margin-top:1rem}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px}
+th,td{text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--grey);font-weight:500;background:var(--surface)}
+tbody tr:last-child td{border-bottom:0}
+td.el{font-family:var(--mono);font-size:11px;white-space:nowrap;color:var(--grey)}
+td.nm{font-weight:600;white-space:nowrap}
+tr.skip td{color:var(--grey)}
+tr.skip td.nm{font-weight:400}
+
+/* ── 기록물 대장 ───────────────────────────────────────────── */
+.m{display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
+.m.on{color:var(--green-fill)}.m.half{color:var(--orange-fill)}
+.m.miss{background:repeating-linear-gradient(135deg,transparent 0 4px,rgb(26 26 24/.16) 4px 5px)}
+.legend{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9.5px;color:var(--grey);margin-left:auto;flex-wrap:wrap}
+.legend .m{width:13px;height:13px;border:1px solid var(--line);margin-left:6px}
+.switch{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 .75rem}
+.sw-l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--grey);text-transform:uppercase;margin-right:2px}
+.sw{font-family:var(--mono);font-size:11px;border:1px solid var(--line);background:transparent;color:var(--grey);padding:3px 9px;border-radius:2px;cursor:pointer}
+.sw.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.reg{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--paper);overflow-x:auto}
+.row{display:grid;grid-template-columns:96px minmax(200px,1fr) var(--marks,240px) 52px;align-items:stretch;border-bottom:1px solid var(--line);min-width:640px}
+.row:last-child{border-bottom:0}
+.row.head{border-bottom:1px solid var(--ink);background:var(--surface)}
+.row.head .n-cre,.row.head .c-ref span,.row.head .c-have span{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--grey);font-weight:500}
+.row.weak{background:repeating-linear-gradient(135deg,transparent 0 7px,rgb(26 26 24/.03) 7px 8px)}
+.row.weak .n-cre{color:var(--grey)}
+.c-ref{display:flex;align-items:center;border-right:1px solid rgb(26 26 24/.12);padding:0 8px;overflow:hidden}
+.c-ref span{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--grey);white-space:nowrap}
+.c-name{padding:8px 10px;min-width:0;border-right:1px solid rgb(26 26 24/.12)}
+.n-cre{margin:0;font-size:12.5px;font-weight:700;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-ti{margin:1px 0 0;font-size:11px;line-height:15px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-yr{font-family:var(--mono);font-size:9.5px}
+.n-g{display:flex;align-items:center;gap:4px;margin:5px 0 0;flex-wrap:wrap}
+.gl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--grey)}
+.pips{display:inline-flex;gap:1px;margin-right:2px}
+.pips i{width:5px;height:9px;border:1px solid var(--line)}
+.pips i.on{background:var(--green-fill);border-color:var(--green-fill)}
+.pips i.half{background:var(--orange-fill);border-color:var(--orange-fill)}
+.pips i.miss{background:repeating-linear-gradient(135deg,transparent 0 2px,rgb(26 26 24/.28) 2px 3px)}
+.gt{font-family:var(--mono);font-size:9px;font-weight:700;margin-right:8px}
+.c-marks{display:none;grid-auto-flow:column;grid-auto-columns:1fr}
+.c-marks .m{border-right:1px solid rgb(26 26 24/.08);min-height:100%;padding:4px 2px}
+.c-marks .m:last-child{border-right:0}
+.c-marks .m.h{font-family:var(--mono);font-size:8.5px;color:var(--grey);text-align:center;line-height:1.2;word-break:keep-all;background:none}
+.reg.show-a6 .c-marks.a6{display:grid}
+.reg.show-a9 .c-marks.a9{display:grid}
+.reg.show-a6{--marks:240px}.reg.show-a9{--marks:330px}
+.c-have{display:flex;align-items:center;justify-content:center;border-left:1px solid rgb(26 26 24/.12)}
+.c-have .have{font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid var(--ink);padding:1px 5px}
+.c-have .have.zero{border-style:dashed;border-color:var(--line);color:var(--grey);font-weight:400}
+.foot-note{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--line);max-width:64ch;font-size:13px;color:var(--grey)}
+.foot-note strong,.foot-note b{color:var(--ink)}
+
+/* ── 판정표 ─────────────────────────────────────────────── */
+.cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:1rem}
+.case{border:1px solid var(--line);border-left-width:3px;padding:12px 14px;background:var(--paper)}
+.case.v-split{border-left-color:var(--voice)}
+.case.v-pub{border-left-color:var(--grey)}
+.case.v-edu{border-left-color:var(--line)}
+.case-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.case-i{margin:0;font-size:13px;font-weight:700;letter-spacing:-.01em}
+.case-v{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--grey);white-space:nowrap;border:1px solid var(--line);padding:1px 5px}
+.v-split .case-v{color:var(--voice);border-color:var(--voice)}
+.case-t{margin:4px 0 0;font-family:var(--mono);font-size:10.5px;color:var(--grey);line-height:1.5}
+.case-w{margin:8px 0 0;font-size:12px;line-height:1.65;padding-left:9px;border-left:2px solid var(--surface)}
+.case-o{margin:9px 0 0;font-size:12px;line-height:1.7}
+.case-o .arr{font-family:var(--mono);color:var(--grey)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;background:var(--surface);padding:1px 6px;margin:3px 3px 0 0;border-radius:2px}
+.tally{display:flex;gap:12px;flex-wrap:wrap;margin-top:1rem}
+.tally>div{flex:1;min-width:150px;border:1px solid var(--line);background:var(--surface);padding:11px 14px;font-size:12.5px}
+.tally b{font-family:var(--serif);font-size:22px}
+.tally small{color:var(--grey);font-family:var(--mono);font-size:9.5px}
+pre.code{margin:1rem 0 0;padding:.8rem 1rem;background:var(--surface);border:1px solid var(--line);
+  font-family:var(--mono);font-size:11.5px;line-height:1.8;overflow-x:auto}
+pre.code b{color:var(--voice)}
+.down{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:1rem}
+.dn{border:1px solid var(--line);padding:12px 14px}
+.dn-h{margin:0 0 8px;font-size:12.5px;font-weight:700}
+.dn-b{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 0}
+.dn-r{display:grid;grid-template-columns:78px 1fr;gap:8px;margin:0;padding:3px 0;font-size:11.5px;line-height:1.5}
+.dn-r span{font-family:var(--mono);font-size:9px;color:var(--grey);padding-top:2px}
+.dn-n{margin:8px 0 0;font-size:12px;line-height:1.6;color:var(--ink)}
+.bl-note{margin:0;padding:3px 8px;border-top:1px solid var(--line);font-family:var(--mono);font-size:7.5px;color:var(--grey)}
+.shelf{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:16px 14px 0;background:#eceae6;border:1px solid var(--line)}
+.shelf::after{content:"";display:block;width:100%;height:9px;margin-top:14px;background:linear-gradient(var(--board),#b6b1a8);box-shadow:0 2px 4px rgb(0 0 0/.18)}
+.settled{margin:1.25rem 0 0;padding:12px 16px;border:1px solid var(--green-fill);background:var(--green-tint);font-size:13px;line-height:1.7;max-width:64ch}
+.settled code{background:#fff8;font-family:var(--mono);font-size:11.5px;padding:0 .25em}
+.settled-x{color:var(--grey)}
+:focus-visible{outline:2px solid var(--green-fill);outline-offset:2px}
+</style>
+
+<div class="wrap">
+  <p class="kicker">구술 사업 · 계열 가르기</p>
+  <h1>한 기관, 여러 계열</h1>
+  <p class="lede">
+    계열이 “한 사업이 낳은 한 벌”이라면, 한 기관이 계열을 여럿 가질 수 있다.
+    문서에는 이미 그런 것이 <b>10건</b> 있는데, 제목에 <code>/</code>로 뭉쳐 한 항목으로 서 있었다.
+  </p>
+  <p class="lede">
+    다만 <code>/</code>로 붙었다고 다 계열 둘은 아니다 — <b>셋으로 갈린다.</b>
+  </p>
+  <p class="settled">
+    <b>확정</b> — 기술의 단위는 기관이 아니라 <b>사업</b>이다. 사업 하나가 계열 하나.
+    <code>docs/oral_history_projects.md</code>의 「기술 단위 — 사업마다 한 계열」에 적어 두었다.<br>
+    <span class="settled-x">실제 데이터 정제는 자료조사를 더 한 뒤로 미룬다</span> —
+    기관마다 사업 구성이 제각각이라, 지금 있는 10건만 보고 가르면 곧 다시 손대게 된다.
+    아래는 <b>가르는 기준</b>을 보이는 판이지 정제 결과가 아니다.
+  </p>
+  <hr class="rule">
+
+<section class="option"><div class="option-head"><h2>10건을 하나씩 판정하면</h2><span class="tag">기준 · 정제는 나중에</span></div>
+<p class="note">제목에 <code>/</code>로 붙어 있다고 다 계열 둘은 아니다. 문서의 <b>무엇을·어떻게</b> 서술이 이미 답을 적어 두고 있었다 — 아래 근거는 전부 그 원문이다.</p>
+<div class="cases">
+<div class="case v-split">
+  <div class="case-h"><p class="case-i">제주학연구센터(제주연구원)</p><span class="case-v">계열 둘</span></div>
+  <p class="case-t">제주어 구술채록사업 / 구술로 기록하는 제주 세시풍속</p>
+  <p class="case-w">무엇을: “<b>제주어 자체</b>(어휘·구술 발화), <b>세시풍속 등 생활문화</b>에 대한 구술” — 채록 대상이 둘이다</p>
+  <p class="case-o"><span class="arr">→</span> 상자를 나눈다<br>
+     <span class="chip">제주어 구술채록사업</span><span class="chip">구술로 기록하는 제주 세시풍속</span></p>
+</div>
+<div class="case v-split">
+  <div class="case-h"><p class="case-i">춘천학연구소(춘천문화원)</p><span class="case-v">계열 둘</span></div>
+  <p class="case-t">「춘천인」 구술 인터뷰 / 지역문화조사사업</p>
+  <p class="case-w">어떻게: “인터뷰 후 매거진 「춘천인」으로 발간. <b>별도로</b> …지역문화조사사업도 <b>병행</b>” — 문서가 직접 별개라 적었다</p>
+  <p class="case-o"><span class="arr">→</span> 상자를 나눈다<br>
+     <span class="chip">「춘천인」 구술 인터뷰</span><span class="chip">지역문화조사사업</span></p>
+</div>
+<div class="case v-split">
+  <div class="case-h"><p class="case-i">대구광역시 중구 도심재생문화재단</p><span class="case-v">계열 둘</span></div>
+  <p class="case-t">「대구 중구 생애사 열전」 100권 / 「가게생애사」</p>
+  <p class="case-w">어떻게: “<b>인물별로</b> …1인 1권으로 발간. <b>「가게생애사」는 가게 한 곳</b>” — 기술 단위가 사람이냐 가게냐로 갈린다</p>
+  <p class="case-o"><span class="arr">→</span> 상자를 나눈다<br>
+     <span class="chip">「대구 중구 생애사 열전」</span><span class="chip">「가게생애사」</span></p>
+</div>
+<div class="case v-pub">
+  <div class="case-h"><p class="case-i">국사편찬위원회</p><span class="case-v">계열 하나 + 산출물</span></div>
+  <p class="case-t">구술사료수집사업 / 구술사료선집</p>
+  <p class="case-w">어떻게: “주제·인물 선정 → 면담 → 녹취문 편찬 → <b>구술사료선집 발간(총 21권)</b>” — 사업의 마지막 단계다</p>
+  <p class="case-o"><span class="arr">→</span> 3.5.4 출판주기로 내린다<br>
+     <span class="chip">구술사료수집사업</span><span class="chip">『구술사료선집』 21권</span></p>
+</div>
+<div class="case v-pub">
+  <div class="case-h"><p class="case-i">부산광역시사편찬위원회</p><span class="case-v">계열 하나 + 산출물</span></div>
+  <p class="case-t">부산근현대구술자료집성 / 구술로 보는 부산의 역사</p>
+  <p class="case-w">어떻게: “채록 결과를 『구술로 보는 부산의 역사』 등 <b>발간물로 정리·출판</b>”</p>
+  <p class="case-o"><span class="arr">→</span> 3.5.4 출판주기로 내린다<br>
+     <span class="chip">부산근현대구술자료집성</span><span class="chip">『구술로 보는 부산의 역사』</span></p>
+</div>
+<div class="case v-pub">
+  <div class="case-h"><p class="case-i">경북여성정책개발원</p><span class="case-v">계열 하나 + 산출물</span></div>
+  <p class="case-t">경북여성 구술생애사 채록사업 / 「풀뿌리 경북여성의 삶이야기」</p>
+  <p class="case-w">채록사업이 사업명이고 「풀뿌리…」는 그 결과 나온 발간물이다</p>
+  <p class="case-o"><span class="arr">→</span> 3.5.4 출판주기로 내린다<br>
+     <span class="chip">경북여성 구술생애사 채록사업</span><span class="chip">「풀뿌리 경북여성의 삶이야기」</span></p>
+</div>
+<div class="case v-pub">
+  <div class="case-h"><p class="case-i">전남여성가족재단</p><span class="case-v">계열 하나 + 산출물</span></div>
+  <p class="case-t">「전남여성 생애사」 / 전남여성생애구술사 / 「가고싶은 섬, 여성이야기」</p>
+  <p class="case-w">가운데가 사업명, 앞뒤 둘은 어떻게에 적힌 “<b>스토리북</b>” 제목이다</p>
+  <p class="case-o"><span class="arr">→</span> 3.5.4 출판주기로 내린다<br>
+     <span class="chip">전남여성생애구술사</span><span class="chip">「전남여성 생애사」 · 「가고싶은 섬, 여성이야기」</span></p>
+</div>
+<div class="case v-edu">
+  <div class="case-h"><p class="case-i">광주여성가족재단</p><span class="case-v">계열 하나 + 교육</span></div>
+  <p class="case-t">구술채록학교 / 「광주여성 생애구술」 시리즈</p>
+  <p class="case-w">어떻게: “<b>구술채록학교로 시민을 양성 → 수료생을 채록단으로 위촉 → 실제 채록</b>” — 교육이 채록 사업의 <b>한 단계</b>다</p>
+  <p class="case-o"><span class="arr">→</span> 계열이 아니다 — 3.3.4 / 3.2.2로 내린다<br>
+     <span class="chip">「광주여성 생애구술」 시리즈</span><span class="chip">구술채록학교 → 어떻게(3.3.4)</span></p>
+</div>
+<div class="case v-edu">
+  <div class="case-h"><p class="case-i">경상남도여성가족재단</p><span class="case-v">계열 하나 + 교육</span></div>
+  <p class="case-t">「경남여성 생애구술사」 시리즈 / 구술 기록전문가 양성 교육</p>
+  <p class="case-w">어떻게: “<b>시민 양성 → 공동필진 선발 → 채록 → 발간</b>의 3단계” — 위와 같은 짜임이다</p>
+  <p class="case-o"><span class="arr">→</span> 계열이 아니다 — 3.3.4 / 3.2.2로 내린다<br>
+     <span class="chip">「경남여성 생애구술사」 시리즈</span><span class="chip">양성 교육 → 어떻게(3.3.4)</span></p>
+</div>
+<div class="case v-edu">
+  <div class="case-h"><p class="case-i">한국구술사연구소</p><span class="case-v">계열 하나 + 교육</span></div>
+  <p class="case-t">구술채록 용역 수행 / 구술채록사 양성</p>
+  <p class="case-w">어떻게: “①기관 발주 용역 수행 <b>②구술채록사 양성과정</b> ③자문·심사” — 양성은 독립 사업이지만 <b>구술 기록을 낳지 않는다</b></p>
+  <p class="case-o"><span class="arr">→</span> 계열이 아니다 — 3.3.4 / 3.2.2로 내린다<br>
+     <span class="chip">구술채록 용역 수행</span><span class="chip">구술채록사 양성 → 행정연혁(3.2.2)</span></p>
+</div>
+</div>
+<div class="tally"><div><b>3</b>곳 나눔<br><small>계열 52 → 55건</small></div><div><b>4</b>곳 산출물로<br><small>3.5.4 출판주기</small></div><div><b>3</b>곳 교육 내림<br><small>3.3.4 · 3.2.2</small></div></div>
+</section>
+<section class="option"><div class="option-head"><h2>① 나누면 이렇게 선다</h2><span class="tag pick">제주학연구센터</span></div>
+<p class="note">한 기관의 두 계열은 <b>참조코드 앞자리가 같아</b> 서가에서 저절로 이웃한다. 생산자 이름도 같으니 한 벌로 읽힌다 — 묶는 층에 <em>이름을 안 붙이고도</em> 계층이 선다.</p>
+<div class="shelf">
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.03.1<span class="bl-lvl">●●○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">제주학연구센터</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">제주어 구술채록사업</p>
+      <p class="bl-date">2008~</p>
+      <p class="bl-ext">규모 미확인<br>음성·전사·자료집 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b></p><ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b></p><ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.03.2<span class="bl-lvl">●●○</span></p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">제주학연구센터</p>
+      <p class="bl-agent"></p>
+      <p class="bl-title">구술로 기록하는 제주 세시풍속</p>
+      <p class="bl-date">2018~</p>
+      <p class="bl-ext">규모 미확인<br>음성·전사·자료집 · 가진 것 0건</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요 <b>6/6</b></p><ul><li class="on done"><span class="gy">●</span><span class="lb">언제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">어디서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on done"><span class="gy">●</span><span class="lb">누구를</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">왜</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="on"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책 <b>0/9</b></p><ul><li class="untouched"><span class="gy">·</span><span class="lb">동의서</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">저작권</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="untouched"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26</p>
+    
+  </div>
+</div>
+</div>
+<p class="cap">1.03.<b>1</b> 과 1.03.<b>2</b> — 끝자리만 다르다.</p>
+<p class="note" style="margin-top:1.25rem"><b>참조코드는 세 자리로 간다.</b>
+계열이 하나뿐인 기관도 <code>.1</code>을 붙인다 — 나중에 둘로 갈릴 때
+<code>1.01</code>이 <code>1.01.1</code>로 바뀌면 코드가 흔들리는데,
+<em>안 흔들리는 것이 참조코드의 존재 이유</em>라서다.</p>
+<pre class="code">KR-OHP-<b>1</b>.<b>03</b>.<b>2</b>
+        │  │   └ 계열 — 그 기관의 몇 번째 사업
+        │  └──── 생산자 — 갈래 안에서 몇 번째 기관
+        └─────── 갈래 — 1~7, A</pre>
+</section>
+<section class="option"><div class="option-head"><h2>② ③ 내리는 것들</h2><span class="tag">계열이 아니다</span></div>
+<p class="note">산출물과 교육은 상자를 늘리지 않는다. <b>열었을 때</b> 제 칸에서 나온다.</p>
+<div class="down">
+<div class="dn"><p class="dn-h">② 산출물 — 국사편찬위원회</p>
+<div class="dn-b"><p class="dn-r"><span>3.1.2 제목</span>구술사료수집사업</p>
+<p class="dn-r"><span>3.5.4 출판주기</span><b>『구술사료선집』 총 21권</b></p></div>
+<p class="dn-n">발간물은 사업이 아니라 <b>사업의 결과</b>다. ISAD(G)에 그 칸이 따로 있다.</p></div>
+<div class="dn"><p class="dn-h">③ 교육 — 광주여성가족재단</p>
+<div class="dn-b"><p class="dn-r"><span>3.1.2 제목</span>「광주여성 생애구술」 시리즈</p>
+<p class="dn-r"><span>3.3.4 정리체계</span><b>구술채록학교로 시민 양성 → 채록단 위촉 → 채록</b></p></div>
+<p class="dn-n">교육은 채록 사업의 <b>한 단계</b>다. 이미 “어떻게”에 적혀 있었고, 제목에서만 따로 떼어져 있었다.</p></div>
+<div class="dn"><p class="dn-h">③ 교육 — 한국구술사연구소</p>
+<div class="dn-b"><p class="dn-r"><span>3.1.2 제목</span>구술채록 용역 수행</p>
+<p class="dn-r"><span>3.2.2 행정연혁</span><b>구술채록사 양성과정 · 인터넷 강좌</b></p></div>
+<p class="dn-n">여기는 양성이 <b>독립 사업</b>이다. 그래도 계열은 아니다 — <em>구술 기록을 낳지 않으므로 기술할 기록이 없다.</em></p></div>
+</div></section>
+<section class="option"><div class="option-head"><h2>나누고 나니 생긴 것</h2><span class="tag now">아직 안 푼 것</span></div>
+<p class="note"><b>활용정책 9칸은 대개 기관 단위다.</b> 제주학연구센터의 두 계열이 저작권·열람절차를 따로 두진 않을 것이다.
+위 두 상자를 보면 정책 아홉 칸이 <em>똑같이 두 번</em> 적혀 있다 — ISAD(G) 4.1이 금하는 되풀이다.</p>
+<p class="note">지금은 <b>일부러 그대로 뒀다.</b> 감추면 문제가 안 보이고,
+정책이 실제로 갈리는 사례를 하나도 못 본 채 층을 하나 더 만들면 그게 더 비싸다.
+가르는 사례가 나오면 그때 <b>정책을 생산자 단위로 올리면</b> 된다 — 그게 미뤄 둔 fonds 층이다.</p>
+</section>
+<hr class="rule">
+<p class="foot-note"><strong>데이터 쪽.</strong> <code>docs/oral_history_projects.md</code>의 제목에서
+<code>/</code>를 걷어내는 일이다. ①은 <code>###</code> 항목을 둘로 쪼개고,
+②는 뒤엣것을 <code>- **출판**:</code> 필드로, ③은 <code>어떻게</code>·<code>행정연혁</code> 서술로 옮긴다.
+셋 다 문서만 고치면 화면이 따라온다 — 파서는 이미 <code>###</code> 단위로 끊고 있다.</p>
+<p class="foot-note">다만 ①을 쪼개면 <code>어디서·왜</code> 같은 기관 공통 서술을 두 항목에 베껴 적게 된다.
+그건 위의 활용정책과 똑같은 문제라, 함께 풀린다.</p>
+</div>

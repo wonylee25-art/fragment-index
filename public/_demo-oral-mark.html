@@ -1,0 +1,389 @@
+<title>왼쪽은 문서가, 오른쪽은 내가</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{color-scheme:light;--paper:#fff;--surface:#f4f4f2;--line:#e2e2df;--grey:#6b6b68;--ink:#1a1a18;
+ --green-tint:#eaf3e2;--green-fill:#6aa84f;--green-text:#35632a;
+ --yellow-tint:#fdf6d9;--yellow-mark:#f9e58a;--yellow-fill:#e8c72c;
+ --orange-fill:#ef8129;--red-text:#8f2116;--voice:#8a5f86;--board:#cfcbc4;
+ --sans:"Gothic A1",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+ --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+ --serif:ui-serif,Georgia,"AppleMyungjo","Nanum Myeongjo",바탕,serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin-inline:auto;padding:3.5rem 1.25rem 6rem}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);margin:0 0 .85rem}
+h1{font-family:var(--serif);font-size:clamp(26px,4vw,34px);font-weight:700;line-height:1.35;margin:0 0 1rem}
+.lede{max-width:60ch;margin:0;font-size:15px}
+.rule{height:1px;background:var(--line);border:0;margin:2.5rem 0}
+.option{margin-bottom:3.25rem}
+.option-head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:.6rem;margin-bottom:1rem}
+h2{font-family:var(--serif);font-size:19px;font-weight:700;margin:0}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--grey);border:1px solid var(--line);border-radius:2px;padding:.1rem .4rem;white-space:nowrap}
+.tag.now{border-color:var(--orange-fill);color:var(--orange-fill)}
+.tag.pick{border-color:var(--green-fill);color:var(--green-text);background:var(--green-tint)}
+.note{max-width:60ch;margin:0 0 1.1rem;font-size:13.5px}
+.note em{font-style:normal;background:var(--yellow-mark);padding:0 .15em}
+.cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:var(--grey);margin:.6rem 0 0}
+.big{font-size:15.5px;font-weight:700;margin:0 0 .9rem}
+
+/* ── 상자 ─────────────────────────────────────────────────── */
+.pad{background:#eceae6;border:1px solid var(--line);padding:18px;display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.bx{width:208px;background:color-mix(in oklab,var(--voice) 7%,#efece7);border:1px solid #b9b3aa;border-bottom-width:2px;
+  box-shadow:1px 2px 3px rgb(0 0 0/.12);padding:0 0 8px;flex-shrink:0}
+.bx-lip{height:15px;border-bottom:1px solid #c9c3ba;display:flex;justify-content:center;align-items:flex-end}
+.bx-notch{width:34px;height:6px;background:#00000018;border-radius:2px 2px 0 0}
+.bx-label{margin:8px 9px 0;background:var(--paper);border:1px solid #cfc9c0;position:relative}
+.bl-ref{display:flex;align-items:center;gap:5px;margin:0;padding:4px 7px;border-bottom:1px solid var(--ink);
+  font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.05em}
+.bl-bar{flex-shrink:0;width:26px;height:11px;background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 2px,var(--ink) 2px 4px,transparent 4px 5px,var(--ink) 5px 6px,transparent 6px 8px)}
+.bl-id{padding:6px 8px 7px}
+.bl-lv{margin:0;font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:var(--grey)}
+.bl-lv b{color:var(--ink)}
+.bl-creator{margin:3px 0 0;font-family:var(--serif);font-size:15px;font-weight:700;line-height:1.25}
+.bl-title{margin:2px 0 0;font-size:12px;line-height:15px;height:30px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bl-date{margin:2px 0 0;font-family:var(--mono);font-size:9px;color:var(--grey)}
+.bl-checks{display:grid;grid-template-columns:1fr 1fr;gap:0 6px;margin:0 8px;padding:6px 0;border-top:1px solid var(--ink)}
+.bl-h{margin:0 0 3px;font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;color:var(--grey)}
+.bl-checks ul{margin:0;padding:0;list-style:none}
+.bl-ctrl{margin:0;padding:4px 8px;border-top:1px solid var(--ink);background:var(--surface);
+  font-family:var(--mono);font-size:7.5px;color:var(--grey);display:flex;justify-content:space-between}
+.bl-ctrl .cnt{color:var(--ink);font-weight:700}
+.bl-stamp{position:absolute;right:-6px;bottom:30px;transform:rotate(-8deg) scale(.7);margin:0;opacity:0;
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.25;
+  color:var(--red-text);border:2px solid var(--red-text);padding:3px 7px;background:#fffd;
+  transition:opacity .18s,transform .18s;pointer-events:none}
+.bl-stamp small{font-size:7.5px;font-weight:400}
+.bl-stamp.on{opacity:1;transform:rotate(-8deg) scale(1)}
+
+/* ── 한 줄 = 두 겹 ────────────────────────────────────────────
+   아래 겹: 문서가 말하는 것 — 무채색 글리프. 위 겹: 내가 그은 것 — 노란 형광펜. */
+.ln{display:grid;grid-template-columns:8px 1fr 14px;align-items:center;gap:4px;
+  font-family:var(--mono);font-size:8.5px;line-height:15px;padding:0 1px}
+.ln .gy{text-align:center}
+.ln .lb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 문서가 말하는 것 — 색 없음. 모양과 진하기로만 갈린다. */
+.g-on   .gy{color:var(--ink)}      .g-on   .lb{color:var(--ink)}
+.g-half .gy{color:#5c5c58}          .g-half .lb{color:#3d3d3a}
+.g-miss .gy{color:#9b9791}          .g-miss .lb{color:var(--grey)}
+.g-none .gy{color:#c9c5bf}          .g-none .lb{color:#b6b2ac}
+/* 내가 켠 것 — 붓으로 그은 ✓ 하나. 네모도 바탕도 없이 획만 남는다.
+   꺼진 자리에는 같은 획을 아주 옅게 두어 자리를 지키고 "여기 켤 수 있다"를 알린다. */
+.ln .ck{width:14px;height:14px;display:flex;align-items:center;justify-content:center}
+.ln .ck svg{width:100%;height:100%;overflow:visible}
+.ln .ck path{fill:none;stroke:#ececea;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;
+  transition:stroke .12s}
+.ln.struck .ck path{stroke:var(--yellow-fill);stroke-width:3.6}
+.bx.live .ln{cursor:pointer}
+.bx.live .ln:hover .ck{border-color:var(--yellow-fill)}
+
+
+/* 획 견주기 */
+.ticks{display:flex;gap:0;flex-wrap:wrap;border:1px solid var(--line);border-radius:2px;overflow:hidden;max-width:620px;margin-top:1rem}
+.tk-c{flex:1;min-width:150px;border-right:1px solid var(--line);padding:16px 14px;text-align:center}
+.tk-c:last-child{border-right:0}
+.tk-c .sw{width:46px;height:46px;margin:0 auto}
+.tk-c .sw svg{width:100%;height:100%}
+.tk-c .sw path{fill:none;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+.tk-plain path{stroke:var(--yellow-fill)}
+.tk-edge path{stroke:var(--yellow-fill)}
+.tk-edge svg{filter:drop-shadow(0 0 .7px rgb(26 26 24/.9)) drop-shadow(0 0 .7px rgb(26 26 24/.7))}
+.tk-c.picked{background:var(--green-tint)}
+.tk-c.picked .tk-n{color:var(--green-text)}
+.tk-off path{stroke:#ececea;stroke-width:2.6}
+.tk-n{margin:9px 0 0;font-size:12.5px;font-weight:700}
+.tk-d{margin:2px 0 0;font-family:var(--mono);font-size:9.5px;color:var(--grey);line-height:1.5}
+
+
+/* 표시 한 가지 / 두 가지 견주기 */
+.two{display:flex;gap:16px;flex-wrap:wrap;margin-top:1rem}
+.two-c{flex:1;min-width:270px;border:1px solid var(--line);padding:0}
+.two-c.pick{border-color:var(--green-fill)}
+.two-h{margin:0;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.two-c.pick .two-h{background:var(--green-tint)}
+.two-t{margin:0;font-size:13.5px;font-weight:700}
+.two-s{margin:2px 0 0;font-family:var(--mono);font-size:9.5px;color:var(--grey)}
+.two-b{padding:14px}
+.demo{list-style:none;margin:0;padding:0;max-width:190px}
+.demo li{display:grid;grid-template-columns:8px 1fr 16px;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10px;line-height:19px;cursor:pointer;padding:1px 2px}
+.demo li:hover{background:var(--surface)}
+.demo .gy{text-align:center;color:var(--ink)}
+.demo .mk{width:16px;height:16px}
+.demo .mk svg{width:100%;height:100%}
+.demo .mk path{fill:none;stroke:#ececea;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.demo li[data-v="1"] .mk path{stroke:var(--yellow-fill);stroke-width:3.6}
+.demo li[data-v="2"] .mk path{stroke:var(--orange-fill);stroke-width:3.2}
+.demo .re{display:none}
+.demo li[data-v="2"] .tick{display:none}
+.demo li[data-v="2"] .re{display:block}
+.two-n{margin:10px 0 0;font-size:12px;line-height:1.6;color:var(--ink)}
+.two-n b{font-weight:700}
+.cost{margin:8px 0 0;font-family:var(--mono);font-size:9.5px;color:var(--grey)}
+
+/* ── 넉 줄 × 두 겹 표 ─────────────────────────────────────── */
+.mx{border:1px solid var(--line);border-radius:2px;overflow:hidden;margin-top:1rem;max-width:640px}
+.mx-r{display:grid;grid-template-columns:118px 1fr 1fr;border-bottom:1px solid var(--line)}
+.mx-r:last-child{border-bottom:0}
+.mx-r.h{background:var(--surface)}
+.mx-r>div{padding:9px 12px;border-right:1px solid var(--line);font-size:12px;line-height:1.5}
+.mx-r>div:last-child{border-right:0}
+.mx-r.h>div{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--grey)}
+.mx-k{font-family:var(--mono);font-size:10px;color:var(--grey);display:flex;align-items:center;gap:5px}
+.mx-k b{font-size:12px;color:var(--ink)}
+.mx-hit{background:var(--yellow-tint)}
+.mx-hit b{color:var(--ink)}
+.mx-cell ul{margin:0 0 5px;padding:0;list-style:none}
+
+/* ── 지금/바꾼 것 ─────────────────────────────────────────── */
+.vs{display:flex;gap:18px;flex-wrap:wrap}
+.vs-b{flex:1;min-width:250px}
+.vs-t{font-family:var(--mono);font-size:10px;letter-spacing:.08em;margin:0 0 .5rem;color:var(--grey)}
+.vs-t b{color:var(--ink)}
+.old .g-on .gy{color:var(--green-fill)}
+.old .g-half .gy{color:var(--orange-fill)}
+.old .ln .ck{display:none}
+.old .ln{grid-template-columns:8px 1fr}
+
+/* ── 서가 ─────────────────────────────────────────────────── */
+.rulebar{margin:0 0 .5rem;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--grey)}
+.rulebar b{color:var(--ink)}
+.shelf{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:16px 14px 0;background:#eceae6;border:1px solid var(--line)}
+.shelf::after{content:"";display:block;width:100%;height:9px;margin-top:14px;background:linear-gradient(var(--board),#b6b1a8);box-shadow:0 2px 4px rgb(0 0 0/.18)}
+.opts{display:flex;gap:14px;flex-wrap:wrap;margin-top:1rem}
+.opt{flex:1;min-width:240px;border:1px solid var(--line);padding:14px 16px}
+.opt.pick{border-color:var(--green-fill);background:var(--green-tint)}
+.opt h3{margin:0 0 .4rem;font-size:13.5px}
+.opt p{margin:0;font-size:12.5px;line-height:1.6}
+.foot-note{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--line);max-width:62ch;font-size:13px;color:var(--grey)}
+.foot-note b{color:var(--ink)}
+:focus-visible{outline:2px solid var(--yellow-fill);outline-offset:1px}
+</style>
+<div class="wrap">
+<p class="kicker">구술 사업 · 표시</p>
+<h1>오른쪽 끝을 눌러 보세요</h1>
+<p class="lede">아래 라벨의 <b>줄을 누르면</b> 오른쪽 끝 네모에 노란 체크가 켜진다. 열다섯 개를 다 켜면 도장이 찍힌다.</p>
+<hr class="rule">
+<section class="option"><div class="option-head"><h2>① 직접 켜 보기</h2><span class="tag pick">눌러 보세요</span></div>
+<div class="pad">
+<div class="bx live">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.01</p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">국사편찬위원회</p>
+      <p class="bl-title">구술사료수집사업 / 구술사료선집</p>
+      <p class="bl-date">2004~</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요</p><ul><li class="ln g-on" data-i=a0 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">언제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=a1 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">어디서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=a2 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">누구를</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=a3 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">무엇을</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=a4 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">왜</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=a5 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">어떻게</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책</p><ul><li class="ln g-miss" data-i=b0 tabindex=0 role=checkbox aria-checked=false><span class="gy">╱</span><span class="lb">동의서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=b1 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">저작권</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-half" data-i=b2 tabindex=0 role=checkbox aria-checked=false><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=b3 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">열람절차</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss" data-i=b4 tabindex=0 role=checkbox aria-checked=false><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on" data-i=b5 tabindex=0 role=checkbox aria-checked=false><span class="gy">●</span><span class="lb">인용표기</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss" data-i=b6 tabindex=0 role=checkbox aria-checked=false><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss" data-i=b7 tabindex=0 role=checkbox aria-checked=false><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss" data-i=b8 tabindex=0 role=checkbox aria-checked=false><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26<span class="cnt">0/15</span></p>
+    <p class="bl-stamp">조사 종결<br><small>2026-08-26</small></p>
+  </div>
+</div>
+<div style="max-width:34ch">
+<p class="big">왼쪽 칸은 문서가, 오른쪽 칸은 내가.</p>
+<p class="note"><b>● ◐ ╱ ·</b> — 이건 <em>문서에서 자동으로 찍힌다</em>.
+칸에 내용을 적으면 ●, "확인 못함"이 섞이면 ◐, "확인 못함"으로 시작하면 ╱, 블록이 아예 없으면 ·.
+누를 수 없고, 누를 이유도 없다.</p>
+<p class="note"><b>오른쪽 끝 네모</b> — 이건 <em>내가 켠다</em>.
+“여기는 더 볼 일 없다”는 뜻이다. 문서에 없던 정보라 겹치지 않는다.</p>
+<p class="note">왼쪽은 색이 없고 오른쪽 체크만 색을 가진다 —
+이 아카이브의 규칙이 “색은 사람이 손댄 흔적”이라서다.</p>
+</div>
+</div>
+<p class="cap">줄을 누르면 켜지고, 다시 누르면 꺼진다. 오른쪽 아래 숫자가 15/15가 되면 도장.</p>
+</section>
+<section class="option"><div class="option-head"><h2>①-2 획을 견주면</h2><span class="tag pick">정함 — 노랑만</span></div>
+<p class="note">노랑은 흰 바탕에서 <b>1.66:1</b>이다 — 이 팔레트가 “fill 위에 흰 글씨를 올리지 않는다”고 못 박을 때 든 그 숫자다. 획이 굵어 안 보이지는 않지만, 비문자 요소 기준(3:1)에는 못 미친다. 가장자리에 먹선을 한 겹 깔면 색은 그대로 두고 윤곽만 또렷해진다.</p>
+<div class="ticks">
+ <div class="tk-c tk-plain picked"><div class="sw"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></div><p class="tk-n">노랑만 ✔</p><p class="tk-d">흰 바탕 1.66:1<br><b>고른 안</b></p></div>
+ <div class="tk-c tk-edge"><div class="sw"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></div><p class="tk-n">노랑 + 먹선</p><p class="tk-d">획 가장자리 윤곽<br>안 쓰기로</p></div>
+ <div class="tk-c tk-off"><div class="sw"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></div><p class="tk-n">꺼짐</p><p class="tk-d">자리만 지킨다<br>가늘고 옅게</p></div>
+</div>
+<p class="cap">노랑만으로 정했다. 먹선은 획이 탁해져 매직펜 느낌이 죽는다 — 대비는 굵기와 꺼짐의 옅기가 대신 진다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>② 색이 뒤바뀌어 있었다</h2><span class="tag now">고칠 것</span></div>
+<p class="note">지금 라벨은 <b>문서가 말한 값</b>에 초록·주황을 쓰고, <b>내가 표시한 것</b>에는 색이 하나도 없다. 규칙과 정반대다.</p>
+<div class="pad"><div class="vs">
+<div class="vs-b"><p class="vs-t">지금 — <b>파생 값이 색을 가진다</b></p>
+<div class="old"><div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.01</p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">국사편찬위원회</p>
+      <p class="bl-title">구술사료수집사업 / 구술사료선집</p>
+      <p class="bl-date">2004~</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요</p><ul><li class="ln g-on"><span class="gy">●</span><span class="lb">언제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">어디서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">누구를</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">왜</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책</p><ul><li class="ln g-miss"><span class="gy">╱</span><span class="lb">동의서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">저작권</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-half"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">인용표기</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26<span class="cnt">0/15</span></p>
+    <p class="bl-stamp">조사 종결<br><small>2026-08-26</small></p>
+  </div>
+</div></div>
+<p class="cap">초록·주황이 “확인·일부”를 뜻한다. 내가 끝낸 칸은 표시할 데가 없다.</p></div>
+<div class="vs-b"><p class="vs-t">바꾼 것 — <b>내 표시만 색을 가진다</b></p>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.01</p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">국사편찬위원회</p>
+      <p class="bl-title">구술사료수집사업 / 구술사료선집</p>
+      <p class="bl-date">2004~</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요</p><ul><li class="ln g-on struck"><span class="gy">●</span><span class="lb">언제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">어디서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">누구를</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">왜</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책</p><ul><li class="ln g-miss"><span class="gy">╱</span><span class="lb">동의서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">저작권</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-half"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">인용표기</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26<span class="cnt">9/15</span></p>
+    <p class="bl-stamp">조사 종결<br><small>2026-08-26</small></p>
+  </div>
+</div>
+<p class="cap">왼쪽은 무채색. 오른쪽 노랑만 “내가 끝냈다”를 뜻한다.</p></div>
+</div></div></section>
+<section class="option"><div class="option-head"><h2>③ 한 칸에 두 겹이 겹친다</h2><span class="tag">왜 필요한가</span></div>
+<p class="note">네 가지 글리프 × 체크를 켰나 껐나. 특히 <b>╱ 못 찾음 + 체크</b> 자리가 지금은 적을 데가 없는 정보다.</p>
+<div class="mx">
+<div class="mx-r h"><div>문서가 말한 것</div><div>체크 꺼짐</div><div>체크 켜짐</div></div>
+<div class="mx-r"><div class="mx-k"><b>●</b>확인</div><div>2019년 자료라 갱신이 필요할 수 있다</div><div>지침 원문까지 봤다. 끝.</div></div>
+<div class="mx-r"><div class="mx-k"><b>◐</b>일부</div><div>어디까지가 확인된 건지 더 봐야 한다</div><div>이 기관은 여기까지가 최대다.</div></div>
+<div class="mx-r"><div class="mx-k"><b>╱</b>못 찾음</div><div>더 파면 나올 것 같다</div><div class="mx-hit"><b>파도 없다 — 이게 결과다</b></div></div>
+<div class="mx-r"><div class="mx-k"><b>·</b>안 봄</div><div>다음 조사 대상</div><div>해당 없는 항목이다</div></div>
+</div>
+<p class="cap">셋째 줄 오른쪽 — 활용정책 71칸이 “못 찾음”인데, 그중 어느 것이 “파도 없는 것”인지 지금은 아무 데도 안 적힌다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>④ 멀리서 보면</h2><span class="tag">서가</span></div>
+<p class="note">오른쪽 노랑 줄이 <b>내가 어디까지 훑었나</b>를, 글리프 밀도가 <b>문서가 어디까지 찼나</b>를 말한다. 두 겹이라 섞이지 않는다.</p>
+<p class="rulebar">기술계층 <b>계열</b></p>
+<div class="shelf">
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-1.01</p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">국사편찬위원회</p>
+      <p class="bl-title">구술사료수집사업 / 구술사료선집</p>
+      <p class="bl-date">2004~</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요</p><ul><li class="ln g-on struck"><span class="gy">●</span><span class="lb">언제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">어디서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">누구를</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">왜</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책</p><ul><li class="ln g-miss struck"><span class="gy">╱</span><span class="lb">동의서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">저작권</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-half struck"><span class="gy">◐</span><span class="lb">공개등급</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss struck"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">인용표기</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss struck"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss struck"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss struck"><span class="gy">╱</span><span class="lb">연락 중개</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26<span class="cnt">15/15</span></p>
+    <p class="bl-stamp on">조사 종결<br><small>2026-08-26</small></p>
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-2.02</p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">한국영상자료원</p>
+      <p class="bl-title">원로영화인 구술채록사업</p>
+      <p class="bl-date">2004~</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요</p><ul><li class="ln g-on struck"><span class="gy">●</span><span class="lb">언제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">어디서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">누구를</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">왜</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책</p><ul><li class="ln g-miss struck"><span class="gy">╱</span><span class="lb">동의서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">저작권</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">공개등급</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">열람절차</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">2차활용</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">인용표기</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">사망 시</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">철회·삭제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-half"><span class="gy">◐</span><span class="lb">연락 중개</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26<span class="cnt">8/15</span></p>
+    <p class="bl-stamp">조사 종결<br><small>2026-08-26</small></p>
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-6.01</p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">제주4·3평화재단</p>
+      <p class="bl-title">제주4·3 천인증언채록사업</p>
+      <p class="bl-date">2004~2008</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요</p><ul><li class="ln g-on struck"><span class="gy">●</span><span class="lb">언제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">어디서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">누구를</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on struck"><span class="gy">●</span><span class="lb">무엇을</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">왜</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">어떻게</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책</p><ul><li class="ln g-none"><span class="gy">·</span><span class="lb">동의서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">저작권</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26<span class="cnt">4/15</span></p>
+    <p class="bl-stamp">조사 종결<br><small>2026-08-26</small></p>
+  </div>
+</div>
+<div class="bx">
+  <div class="bx-lip"><span class="bx-notch"></span></div>
+  <div class="bx-label">
+    <p class="bl-ref"><span class="bl-bar"></span>KR-OHP-4.01</p>
+    <div class="bl-id">
+      <p class="bl-lv"><b>계열</b> · 역사 전반</p>
+      <p class="bl-creator">국방부 군사편찬연구소</p>
+      <p class="bl-title">(구술사업 존재 여부 불확실)</p>
+      <p class="bl-date">2000 설립</p>
+    </div>
+    <div class="bl-checks">
+      <div><p class="bl-h">사업 개요</p><ul><li class="ln g-on"><span class="gy">●</span><span class="lb">언제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-on"><span class="gy">●</span><span class="lb">어디서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">누구를</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">무엇을</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">왜</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-miss"><span class="gy">╱</span><span class="lb">어떻게</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+      <div><p class="bl-h">활용정책</p><ul><li class="ln g-none"><span class="gy">·</span><span class="lb">동의서</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">저작권</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">공개등급</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">열람절차</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">2차활용</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">인용표기</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">사망 시</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">철회·삭제</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li><li class="ln g-none"><span class="gy">·</span><span class="lb">연락 중개</span><span class="ck" aria-hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span></li></ul></div>
+    </div>
+    <p class="bl-ctrl">ISAD(G) 2판 · 2026-08-26<span class="cnt">0/15</span></p>
+    <p class="bl-stamp">조사 종결<br><small>2026-08-26</small></p>
+  </div>
+</div>
+</div>
+<p class="cap">왼쪽은 도장까지 찍힌 종결된 철. 오른쪽으로 갈수록 손이 덜 갔다 — 국방부는 아직 하나도 안 켰다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>⑤ 표시를 몇 가지 둘까</h2><span class="tag pick">정함 — 한 가지</span></div>
+<p class="note">노란 ✓ 말고 <b>다른 표시를 하나 더</b> 둘 것이냐는 물음이다. 아래 줄을 눌러 보면 차이가 바로 보인다.</p>
+<div class="two">
+ <div class="two-c pick">
+  <div class="two-h"><p class="two-t">한 가지 — ✓ 하나만 ✔</p>
+   <p class="two-s"><b>고른 안</b> · 누르면 켜지고, 다시 누르면 꺼진다</p></div>
+  <div class="two-b"><ul class="demo one"><li data-v="0"><span class="gy">●</span><span>동의서</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">●</span><span>저작권</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">◐</span><span>공개등급</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">●</span><span>열람절차</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">╱</span><span>2차활용</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li></ul>
+   <p class="two-n">✓ = <b>더 볼 일 없다.</b><br>안 켠 것 = 아직 판단 안 함 <b>= 다시 봐야 함</b>.</p>
+   <p class="cost">판단 한 번 · 상태 2가지 · 색 하나</p></div>
+ </div>
+ <div class="two-c">
+  <div class="two-h"><p class="two-t">두 가지 — ✓ 와 ↻</p>
+   <p class="two-s">안 쓰기로 · 누를 때마다 ✓ → ↻ → 꺼짐 으로 돈다</p></div>
+  <div class="two-b"><ul class="demo cycle"><li data-v="0"><span class="gy">●</span><span>동의서</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">●</span><span>저작권</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">◐</span><span>공개등급</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">●</span><span>열람절차</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li><li data-v="0"><span class="gy">╱</span><span>2차활용</span><span class="mk tick"><svg viewBox="0 0 24 24"><path d="M4 12.6 L9.6 18.6 L20.6 4.2"/></svg></span><span class="mk re"><svg viewBox="0 0 24 24"><path d="M19.5 9.5A8 8 0 1 0 20 14"/><path d="M20 3.5 L20 10 L13.5 10"/></svg></span></li></ul>
+   <p class="two-n">✓ = 더 볼 일 없다.<br>↻ = <b>확인은 했지만 낡았다, 다시 볼 것.</b><br>안 켠 것 = 아직 판단 안 함.</p>
+   <p class="cost">판단 두 번 · 상태 3가지 · 색 둘</p></div>
+ </div>
+</div>
+<p class="note" style="margin-top:1.25rem"><b>한 가지로 정했다.</b> ↻로 찍고 싶은 것 — “대통령기록관 열람절차는 2019년 실태조사 자료라 낡았다” 같은 것 — 은 사실 <em>그냥 ✓를 안 켜면 되는 일</em>이다. 안 켠 칸이 이미 “다시 봐야 함”이라서, ↻를 만들면 칸마다 두 번 판단하게 된다. 15칸 × 52사업이다.</p>
+<p class="note">그리고 오른쪽에 색이 둘(노랑·주황)이 되면, 이 라벨에서 색이 지던 뜻 하나 — “내가 손댄 자리” — 가 둘로 갈라진다.</p>
+</section>
+<hr class="rule">
+<p class="foot-note">저장은 DB다. 앞서 파생 상태는 문서에 둬야 한다고 했던 것과 반대인데, 이유가 다르다 —
+파생 상태는 문서 내용의 <b>중복</b>이라 갈리지만, 이 체크는 문서에 없던 <b>새 정보</b>라 갈릴 것이 없다.
+코드에 이미 같은 패턴이 있다(<b>is_important · highlighted</b>).</p>
+</div>
+<script>
+document.querySelectorAll(".demo").forEach(ul=>{
+  const max = ul.classList.contains("cycle") ? 3 : 2;
+  ul.querySelectorAll("li").forEach(li=>li.onclick=()=>{
+    li.dataset.v = (Number(li.dataset.v) + 1) % max;
+  });
+});
+document.querySelectorAll(".bx.live").forEach(bx=>{
+  const cnt=bx.querySelector(".cnt"), stamp=bx.querySelector(".bl-stamp");
+  const sync=()=>{const n=bx.querySelectorAll(".ln.struck").length;
+    cnt.textContent=n+"/15"; stamp.classList.toggle("on", n===15);};
+  bx.querySelectorAll(".ln").forEach(ln=>{
+    const flip=()=>{ln.classList.toggle("struck");
+      ln.setAttribute("aria-checked", ln.classList.contains("struck")); sync();};
+    ln.onclick=flip;
+    ln.onkeydown=e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();flip();}};
+  });
+  sync();
+});
+</script>
