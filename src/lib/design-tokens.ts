@@ -2,6 +2,7 @@
 // 이후 다른 화면(연표 목록, 발견 화면 등)에서도 이 규칙을 그대로 재사용한다.
 
 import { ArchiveItemType, SpeakerRole } from "./types";
+import { CellState } from "./oral-history-projects";
 
 // ── 글씨 크기 ────────────────────────────────────────────────────────────────
 // 화면마다 따로 정하다 보니 같은 자리가 12·13·15·16·17px으로 흩어져 있었고, 연표에서
@@ -174,3 +175,32 @@ export function archiveTintStyle(hue: string, strength: number): { background: s
   const step = ARCHIVE_TINT_STEPS[Math.min(strength, ARCHIVE_TINT_STEPS.length - 1)];
   return { background: `color-mix(in oklab, ${hue} ${step}%, var(--background))` };
 }
+
+// ── 기술 칸의 네 상태 ────────────────────────────────────────────────────────
+// 구술 사업 라벨의 왼쪽 칸이다. 이 넷은 자료가 스스로 말하는 것 — 문서에 무엇이 적혀
+// 있느냐 — 이므로 색을 갖지 않는다. 모양과 진하기로만 가른다.
+//
+// "못찾음"과 "안봄"을 가르는 것이 이 화면의 핵심이다. 앞은 봤는데 기관이 공개하지
+// 않는다는 발견이고(그 자체가 조사 결과다), 뒤는 아직 손대지 않은 다음 조사 대상이다.
+// 둘을 한 칸으로 뭉개면 무엇을 더 조사해야 하는지가 사라진다.
+export const CELL_GLYPH: Record<CellState, string> = {
+  확인: "●",
+  일부: "◐",
+  못찾음: "╱",
+  안봄: "·",
+};
+
+// 진하기 네 단. 확인이 가장 진하고 안봄이 가장 옅다 — 옅은 쪽에 손대야 할 것이 모인다.
+export const CELL_TEXT_CLASSNAME: Record<CellState, string> = {
+  확인: "text-ink",
+  일부: "text-ink/75",
+  못찾음: "text-grey",
+  안봄: "text-ink/25",
+};
+
+// 라벨에서 내가 켜는 자리. 붓으로 그은 노란 획 하나 — 뜻은 "여기는 더 볼 일 없다"이고,
+// 켜고 끄는 한 가지 상태만 있다. 색을 가지는 것은 이쪽뿐이다(색은 사람이 손댄 흔적).
+// 노랑을 획 색으로 쓰면 흰 바탕에 1.66:1이라, 켠 획을 굵게(3.6) 두고 꺼진 획은 가늘고
+// 옅게(2.6) 두어 굵기가 색을 거들게 한다.
+export const TICK_ON_CLASSNAME = "stroke-yellow-fill [stroke-width:3.6]";
+export const TICK_OFF_CLASSNAME = "stroke-line [stroke-width:2.6]";
