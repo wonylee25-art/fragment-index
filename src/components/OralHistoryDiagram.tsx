@@ -18,8 +18,9 @@ import { OralRegister } from "./OralRegister";
 // 격자가 아니라 선반인 것도 뜻이 있다. 격자는 칸이 균등한 배열이지만 선반은 얹혀 있음이라,
 // 그것만으로 이미 "카드를 늘어놓은 판"이 아니게 된다. 갈래마다 선반 하나를 준다.
 //
-// 상자를 누르면 기술지가 그 위로 덧창처럼 열린다(SeriesBox). 줄 안에 끼워 넣으면 선반이
-// 밀려서, 상자가 열 개인 갈래에서는 첫 줄을 눌러도 기술지가 화면 밖에서 열렸다.
+// 상자를 누르면 그 상자가 선반의 첫 자리로 끌려 나오고, 기술지가 그 오른쪽에 펴진다
+// (ShelfWithSheet). 누른 상자에 매달아 두면 자리가 상자마다 달라져, 어느 것을 눌렀느냐에
+// 따라 글이 나타나는 데를 눈이 매번 다시 찾아야 했다.
 //
 // 화면은 두 층이다 — 위의 서가는 하나를 고르는 자리(라벨 한 장이 그 사업의 전부를 말한다),
 // 아래의 대장은 여럿을 견주는 자리(한 칸이 52건에 걸쳐 한 열로 선다). 단추로 갈아 끼우지
@@ -102,23 +103,30 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
       <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
         {doc.categories.map((category) => {
           const openEntry = category.entries.find((e) => e.referenceCode === picked) ?? null;
+          const label = (entry: OralHistoryEntry) => (
+            <SeriesLabel
+              key={entry.referenceCode}
+              entry={entry}
+              active={picked === entry.referenceCode}
+              dimmed={!matchesFilter(entry, query)}
+              onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
+              doneOverview={doneSet(entry, "overview")}
+              donePolicy={doneSet(entry, "policy")}
+            />
+          );
           return (
             <ShelfWithSheet
               key={category.label}
               label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
-              pickedRef={openEntry ? openEntry.referenceCode : null}
+              open={openEntry !== null}
               onClose={() => setPicked(null)}
-              boxes={category.entries.map((entry) => (
-                <SeriesLabel
-                  key={entry.referenceCode}
-                  entry={entry}
-                  active={picked === entry.referenceCode}
-                  dimmed={!matchesFilter(entry, query)}
-                  onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
-                  doneOverview={doneSet(entry, "overview")}
-                  donePolicy={doneSet(entry, "policy")}
-                />
-              ))}
+              boxes={{
+                // 누른 상자를 첫 자리로 끌어내고 나머지는 기술지 뒤로 흐른다.
+                picked: openEntry ? label(openEntry) : null,
+                rest: category.entries
+                  .filter((e) => e.referenceCode !== openEntry?.referenceCode)
+                  .map(label),
+              }}
               sheet={
                 openEntry && (
                   <SeriesSheet
