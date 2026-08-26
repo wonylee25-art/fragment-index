@@ -1,0 +1,451 @@
+<title>건이 아니라 계열</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{color-scheme:light;--paper:#fff;--surface:#f4f4f2;--line:#e2e2df;--grey:#6b6b68;--ink:#1a1a18;
+ --green-tint:#eaf3e2;--green-fill:#6aa84f;--green-text:#35632a;--yellow-tint:#fdf6d9;
+ --orange-tint:#fdeadb;--orange-fill:#ef8129;--voice:#8a5f86;
+ --sans:"Gothic A1",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+ --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+ --serif:ui-serif,Georgia,"AppleMyungjo","Nanum Myeongjo",바탕,serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin-inline:auto;padding:3.5rem 1.25rem 6rem}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);margin:0 0 .85rem}
+h1{font-family:var(--serif);font-size:clamp(26px,4vw,34px);font-weight:700;line-height:1.35;letter-spacing:-.01em;text-wrap:balance;margin:0 0 1rem}
+.lede{max-width:62ch;margin:0}.lede+.lede{margin-top:.75rem}
+.rule{height:1px;background:var(--line);border:0;margin:2.75rem 0}
+.option{margin-bottom:3.5rem}
+.option-head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:.6rem;margin-bottom:1rem}
+h2{font-family:var(--serif);font-size:19px;font-weight:700;margin:0;letter-spacing:-.005em}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--grey);border:1px solid var(--line);border-radius:2px;padding:.1rem .4rem;white-space:nowrap}
+.tag.now{border-color:var(--orange-fill);color:var(--orange-fill)}
+.tag.pick{border-color:var(--green-fill);color:var(--green-text);background:var(--green-tint)}
+.note{max-width:64ch;margin:0 0 1.1rem;font-size:13.5px}
+.note em{font-style:normal;background:var(--yellow-tint);padding:0 .15em}
+.note code{font-family:var(--mono);font-size:12px;background:var(--surface);padding:0 .25em;border-radius:2px}
+.cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--grey);margin:.6rem 0 0}
+
+/* ── 층위 그림 ─────────────────────────────────────────────── */
+.levels{display:flex;gap:0;margin-top:1.25rem;border:1px solid var(--line);background:var(--surface)}
+.lv{flex:1;padding:12px 14px;border-right:1px solid var(--line);position:relative}
+.lv:last-child{border-right:0}
+.lv-k{margin:0;font-family:var(--serif);font-size:15px;font-weight:700}
+.lv-en{font-family:var(--mono);font-size:9.5px;font-weight:400;color:var(--grey);letter-spacing:.04em}
+.lv-d{margin:4px 0 0;font-size:11.5px;line-height:16px;color:var(--grey)}
+.lv-d b{color:var(--ink)}
+.lv.is{background:color-mix(in oklab,var(--voice) 13%,#fff)}
+.lv.is2{background:color-mix(in oklab,#5b7c99 13%,#fff)}
+
+/* ── 상태 표시 ─────────────────────────────────────────────── */
+.m{display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
+.m.on{color:var(--green-fill)}
+.m.half{color:var(--orange-fill)}
+.m.miss{background:repeating-linear-gradient(135deg,transparent 0 4px,rgb(26 26 24/.16) 4px 5px)}
+.m.untouched{background:transparent}
+.legend{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9.5px;color:var(--grey);margin-left:auto;flex-wrap:wrap}
+.legend .m{width:13px;height:13px;border:1px solid var(--line);margin-left:6px}
+
+/* ── 축 전환 ───────────────────────────────────────────────── */
+.switch{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 .75rem}
+.sw-l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--grey);text-transform:uppercase;margin-right:2px}
+.sw{font-family:var(--mono);font-size:11px;border:1px solid var(--line);background:transparent;color:var(--grey);padding:3px 9px;border-radius:2px;cursor:pointer}
+.sw b{font-weight:700}
+.sw.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* ── 대장 ──────────────────────────────────────────────────── */
+/* 카드는 닫힌 상자, 대장은 열린 줄이다 — 좌우 테두리 없이 위아래 선만 공유한다. */
+.reg{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--paper);overflow-x:auto}
+.row{display:grid;grid-template-columns:104px minmax(210px,1fr) var(--marks,240px) 54px;align-items:stretch;border-bottom:1px solid var(--line);min-width:640px}
+.row:last-child{border-bottom:0}
+.row.head{border-bottom:1px solid var(--ink);background:var(--surface)}
+.row.head .n-inst,.row.head .c-slot span,.row.head .c-have span{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--grey);font-weight:500}
+.row.head .c-slot span{margin-left:0}
+.row.head .c-slot span::before{display:none}
+.row.weak{background:repeating-linear-gradient(135deg,transparent 0 7px,rgb(26 26 24/.03) 7px 8px)}
+.row.weak .n-inst{color:var(--grey)}
+.c-slot{display:flex;align-items:center;border-right:1px solid rgb(26 26 24/.12);padding:0 8px;overflow:hidden}
+.c-slot span{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--grey);margin-left:calc(var(--slot,0)*7px);white-space:nowrap}
+.c-slot span::before{content:"";display:inline-block;width:4px;height:1px;background:var(--grey);vertical-align:middle;margin-right:4px}
+.c-name{padding:8px 10px;min-width:0;border-right:1px solid rgb(26 26 24/.12)}
+.n-inst{margin:0;font-size:12.5px;font-weight:700;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-proj{margin:1px 0 0;font-size:11px;line-height:15px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-yr{font-family:var(--mono);font-size:9.5px}
+.n-tail{margin:1px 0 0;font-family:var(--mono);font-size:9px;color:var(--grey)}
+.n-g{display:flex;align-items:center;gap:4px;margin:5px 0 0;flex-wrap:wrap}
+.gl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:var(--grey)}
+.pips{display:inline-flex;gap:1px;margin-right:2px}
+.pips i{width:5px;height:9px;border:1px solid var(--line)}
+.pips i.on{background:var(--green-fill);border-color:var(--green-fill)}
+.pips i.half{background:var(--orange-fill);border-color:var(--orange-fill)}
+.pips i.miss{background:repeating-linear-gradient(135deg,transparent 0 2px,rgb(26 26 24/.28) 2px 3px)}
+.gt{font-family:var(--mono);font-size:9px;font-weight:700;margin-right:8px}
+.c-marks{display:none;grid-auto-flow:column;grid-auto-columns:1fr}
+.c-marks .m{border-right:1px solid rgb(26 26 24/.08);min-height:100%;padding:4px 2px}
+.c-marks .m:last-child{border-right:0}
+.c-marks .m.h{font-family:var(--mono);font-size:8.5px;letter-spacing:0;color:var(--grey);writing-mode:horizontal-tb;text-align:center;line-height:1.2;word-break:keep-all;background:none}
+.reg.show-a6 .c-marks.a6{display:grid}
+.reg.show-a9 .c-marks.a9{display:grid}
+.reg.show-a6{--marks:240px}
+.reg.show-a9{--marks:330px}
+.c-have{display:flex;align-items:center;justify-content:center;border-left:1px solid rgb(26 26 24/.12)}
+.c-have .have{font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid var(--ink);padding:1px 5px}
+.c-have .have.zero{border-style:dashed;border-color:var(--line);color:var(--grey);font-weight:400}
+
+/* ── 숫자 ──────────────────────────────────────────────────── */
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:1rem}
+.st-b{flex:1;min-width:120px;border:1px solid var(--line);padding:12px 14px;background:var(--surface)}
+.st-n{margin:0;font-family:var(--serif);font-size:26px;font-weight:700;line-height:1}
+.st-l{margin:6px 0 0;font-size:11.5px;color:var(--ink)}
+.st-d{margin:1px 0 0;font-family:var(--mono);font-size:9.5px;color:var(--grey)}
+
+/* ── 펼친 기술지 ───────────────────────────────────────────── */
+.sheet{border:1px solid var(--ink);background:var(--paper)}
+.sh-head{display:flex;justify-content:space-between;gap:14px;padding:12px 14px;border-bottom:1px solid var(--ink);background:color-mix(in oklab,var(--voice) 7%,#fff)}
+.sh-cat{margin:0;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--grey)}
+.sh-inst{margin:5px 0 0;font-family:var(--serif);font-size:19px;font-weight:700;line-height:1.25}
+.sh-proj{margin:2px 0 0;font-size:12px;color:var(--grey)}
+.sh-g{text-align:right;flex-shrink:0}
+.sh-g p{margin:0;font-family:var(--mono);font-size:10px;color:var(--grey);line-height:1.7}
+.sh-g b{color:var(--ink);font-size:12px}
+.sh-axis{display:flex;border-bottom:1px solid var(--ink)}
+.sa{flex:0 0 auto;font-family:var(--sans);font-size:12.5px;font-weight:700;border:0;border-right:1px solid var(--line);background:var(--surface);color:var(--grey);padding:8px 20px;cursor:pointer}
+.sa.on{background:var(--ink);color:#fff}
+.sh-body.off{display:none}
+.pts{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);background:var(--surface)}
+.pt{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;border:0;border-right:1px solid var(--line);background:transparent;color:var(--grey);padding:6px 10px;cursor:pointer}
+.pt .m{width:11px;height:11px;border:1px solid var(--line);font-size:8px}
+.pt.on{background:var(--paper);color:var(--ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--ink)}
+.pb{display:none;padding:14px 16px}
+.pb.on{display:block}
+.pb-l{margin:0;font-size:12.5px;font-weight:700}
+.pb-l .st{font-family:var(--mono);font-size:9.5px;font-weight:400;border:1px solid var(--line);padding:1px 5px;margin-left:6px;vertical-align:2px}
+.pb-l .st.on{color:var(--green-text);border-color:var(--green-fill);background:var(--green-tint)}
+.pb-l .st.half{color:var(--ink);border-color:var(--orange-fill);background:var(--orange-tint)}
+.pb-l .st.miss{color:var(--grey)}
+.pb-v{margin:7px 0 0;font-size:13px;line-height:1.75;max-width:70ch}
+.foot-note{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--line);max-width:64ch;font-size:13px;color:var(--grey)}
+.foot-note strong,.foot-note b{color:var(--ink)}
+:focus-visible{outline:2px solid var(--green-fill);outline-offset:2px}
+</style>
+
+<div class="wrap">
+  <p style="margin:0 0 1.5rem;padding:11px 15px;border:1px solid #ef8129;background:#fdeadb;font-size:13.5px;line-height:1.7;max-width:64ch;font-family:'Gothic A1',-apple-system,sans-serif"><b>지나온 안입니다.</b> 지금 화면은 이 안이 아니라 <a href="/_demo-oral-isad.html" style="color:#8f2116">_demo-oral-isad.html</a>(ISAD(G) 계열 기술 라벨·서가·대장)로 갔습니다. 여기 “기술지” 개념은 살아남았지만, 겉모양은 카드가 아니라 라벨 붙은 상자로 바뀌었습니다. 판단의 흐름을 남기려고 두는 것이니, 여기 그림을 지금 화면의 근거로 쓰지 마세요.</p>
+  <p class="kicker">구술 사업 · 층위와 두 축</p>
+  <h1>건이 아니라 계열</h1>
+  <p class="lede">
+    사업은 카드보다 큰 상자가 아니다. <b>다른 층위의 기술</b>이다.
+    그래서 “서류철”로는 안 됐다 — 서류철도 결국 물건이고, 카드의 형제뻘이라서다.
+  </p>
+  <p class="lede">
+    층위가 올라가면 적어야 할 영역이 늘어난다. 낱장은 “이게 무엇이냐” 하나면 되지만,
+    한 사업은 <b>무엇을 어떻게 만들었나(사업 개요)</b>와 <b>누가 어떤 조건으로 쓸 수 있나(활용정책)</b>를 함께 져야 한다.
+    축이 둘이면 면도 둘이다.
+  </p>
+  <hr class="rule">
+
+<section class="option"><div class="option-head"><h2>왜 카드가 아닌가</h2><span class="tag">개념</span></div>
+<p class="note">기록학은 자료를 한 층위로 기술하지 않는다. <b>계열 → 철 → 건</b>으로 층을 나누고,
+층마다 <em>서식 자체가 다르다</em>. 사료 카드는 <b>건(件)</b>의 기술이다 — 손에 잡히는 한 장을 적는다.
+구술 사업은 물건이 아니라 <b>범위</b>다. 몇백 건이 어떤 규칙 아래 생산됐고, 누가 어떤 조건으로 볼 수 있는가.</p>
+<p class="note">그래서 “서류철”은 틀린 개념이었다 — 서류철도 결국 물건이고, 카드의 형제뻘이다.
+사업은 물건이 아니라 <b>면(面)</b>이다. 한 장이 아니라 <b>한 벌의 기술</b>. 이름을 붙이면 <b>기술지(記述紙)</b>.</p>
+<div class="levels">
+ <div class="lv is"><p class="lv-k">계열 <span class="lv-en">시리즈</span></p><p class="lv-d">한 사업이 낳은 한 벌<br><b>← 구술 사업이 여기다</b></p></div>
+ <div class="lv"><p class="lv-k">철 <span class="lv-en">파일</span></p><p class="lv-d">한 구술자의 면담 묶음</p></div>
+ <div class="lv is2"><p class="lv-k">건 <span class="lv-en">아이템</span></p><p class="lv-d">낱장 하나<br><b>← 사료 카드가 여기다</b></p></div>
+</div>
+<p class="note" style="margin-top:1.25rem">그리고 층이 다르면 <b>기술해야 할 영역</b>도 다르다.
+건은 “이게 무엇이냐”만 적으면 되지만, 계열은 두 가지를 함께 적어야 한다 —
+<b>무엇을 어떻게 만들었나(사업 개요)</b>와 <b>누가 어떤 조건으로 쓸 수 있나(활용정책)</b>.
+이 둘은 성격이 달라서 한 면에 겹쳐 놓으면 서로를 가린다. <em>축이 둘이면 면도 둘이어야 한다</em> — 탭이 필요한 진짜 이유다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>축을 갈아 끼우는 대장</h2><span class="tag pick">권함</span></div>
+<p class="note">항목마다 탭을 다는 대신 <b>대장 전체의 축을 한 번에 간다</b>. 활용정책 조사는
+“누가 열람절차를 확인했나”를 <em>세로로</em> 훑는 일이라, 항목마다 눌러 열면 52번을 눌러야 한다.
+축을 갈면 같은 칸이 한 열로 서서 기관끼리 바로 견줘진다.</p>
+<p class="note">두 축의 <b>채움 정도는 축과 무관하게 늘 보인다</b>(기관명 아래 두 게이지).
+어느 축을 펼치고 있든 “이 사업은 개요는 다 됐는데 정책은 손도 안 댔다”가 읽혀야 해서다.</p>
+<div class="switch">
+  <span class="sw-l">축</span>
+  <button class="sw on" data-axis="a6">사업 개요 <b>6칸</b></button>
+  <button class="sw" data-axis="a9">활용정책 <b>9칸</b></button>
+  <span class="legend"><i class="m on">●</i>확인 <i class="m half">◐</i>일부 <i class="m miss"></i>봤으나 못 찾음 <i class="m untouched"></i>아직 안 봄</span>
+</div>
+<div class="reg show-a6">
+<div class="row head">
+  <div class="c-slot"><span>갈래</span></div>
+  <div class="c-name"><p class="n-inst">발주기관 · 사업명</p></div>
+  <div class="c-marks a6"><div class="m h">언제</div><div class="m h">어디서</div><div class="m h">누구를</div><div class="m h">무엇을</div><div class="m h">왜</div><div class="m h">어떻게</div></div>
+  <div class="c-marks a9"><div class="m h">동의서</div><div class="m h">저작권</div><div class="m h">공개등급</div><div class="m h">열람절차</div><div class="m h">2차활용</div><div class="m h">인용표기</div><div class="m h">사망 시</div><div class="m h">철회·삭제</div><div class="m h">연락 중개</div></div>
+  <div class="c-have"><span>가진 것</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="c-name">
+    <p class="n-inst">국사편찬위원회</p>
+    <p class="n-proj">구술사료수집사업 / 구술사료선집 <span class="n-yr">2004~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="miss"></i><i class="on"></i><i class="half"></i><i class="on"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have">3건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="c-name">
+    <p class="n-inst">대통령기록관</p>
+    <p class="n-proj">대통령기록관 구술기록 수집 <span class="n-yr">2008~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="half"></i><i class="on"></i><i class="half"></i><i class="half"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="on"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="c-name">
+    <p class="n-inst">한국학중앙연구원</p>
+    <p class="n-proj">현대한국구술자료관 <span class="n-yr">2003~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="on"></i><i class="half"></i><i class="half"></i><i class="on"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">4/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:1">2 예술·문화</span></div>
+  <div class="c-name">
+    <p class="n-inst">아르코예술기록원</p>
+    <p class="n-proj">한국근현대예술사 구술채록사업 <span class="n-yr">2003~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="half"></i><i class="half"></i><i class="half"></i><i class="on"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:1">2 예술·문화</span></div>
+  <div class="c-name">
+    <p class="n-inst">한국영상자료원</p>
+    <p class="n-proj">원로영화인 구술채록사업 <span class="n-yr">2004~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="half"></i></span><span class="gt">2.5/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m half" title="일부">◐</div></div>
+  <div class="c-have"><span class="have">5건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:2">3 민주화·인권</span></div>
+  <div class="c-name">
+    <p class="n-inst">5·18민주화운동기록관</p>
+    <p class="n-proj">구술증언 채록사업 <span class="n-yr">2016~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">1/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:5">6 지역·현대사</span></div>
+  <div class="c-name">
+    <p class="n-inst">제주4·3평화재단</p>
+    <p class="n-proj">제주4·3 천인증언채록사업 <span class="n-yr">2004~2008</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have">8건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:6">7 체육</span></div>
+  <div class="c-name">
+    <p class="n-inst">국민체육진흥공단</p>
+    <p class="n-proj">스포츠 발전 공헌자 구술 채록 <span class="n-yr">2025</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:3">4 전쟁·피해</span></div>
+  <div class="c-name">
+    <p class="n-inst">국방부 군사편찬연구소</p>
+    <p class="n-proj">(구술사업 존재 여부 불확실) <span class="n-yr">2000 설립</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">2/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+</div>
+<p class="cap">단추를 눌러 축을 갈아 보라. 왼쪽 두 열(갈래·기관)과 게이지는 그대로 있고 오른쪽 칸만 6칸 ↔ 9칸으로 바뀐다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>활용정책 축을 켜면 보이는 것</h2><span class="tag now">문서가 말하는 사실</span></div>
+<p class="note">문서 전체를 세어 봤다. 사업 <b>52건 중 활용정책 아홉 칸을 들여다본 것은 15건</b>뿐이고,
+나머지 <b>37건은 아직 손도 안 댔다</b>. 그리고 들여다본 15건 중에서도 <b>아홉 칸을 다 채운 것은 하나도 없다</b> —
+가장 많이 채운 인천문화재단·경기도여성가족재단이 6/9다.</p>
+<p class="note">그래서 이 축에서는 <em>“안 본 것”과 “봤는데 없는 것”을 반드시 갈라야 한다.</em>
+빈칸은 다음에 조사할 곳이고, 빗금은 조사해도 기관이 공개하지 않는다는 <b>발견</b>이다 —
+구술 활용정책 연구에서는 후자가 오히려 결과다. 카드에는 이런 구분이 들어갈 자리가 없었다.</p>
+<div class="stats">
+<div class="st-b"><p class="st-n">52</p><p class="st-l">사업 전체</p><p class="st-d"></p></div>
+<div class="st-b"><p class="st-n">15</p><p class="st-l">활용정책을 본 것</p><p class="st-d">29%</p></div>
+<div class="st-b"><p class="st-n">37</p><p class="st-l">아직 안 본 것</p><p class="st-d">71%</p></div>
+<div class="st-b"><p class="st-n">6/9</p><p class="st-l">가장 많이 채운 것</p><p class="st-d">최대치</p></div>
+</div>
+</section>
+<section class="option"><div class="option-head"><h2>한 줄을 열면 — 기술지 한 면</h2><span class="tag">항목 안쪽</span></div>
+<p class="note">줄을 열면 그 자리에서 기술지가 펼쳐지고, <b>여기에도 탭 두 벌</b>이 선다.
+대장의 축 전환이 “여러 기관을 한 칸으로 견주는” 일이라면, 이쪽은 “한 기관의 아홉 칸을 다 읽는” 일이다.
+칸 이름 옆에 상태 표시가 붙어 있어, 읽기 전에 어느 칸이 비었는지부터 보인다.</p>
+<div class="sheet">
+<div class="sh-head"><div><p class="sh-cat">계열 · 1 역사전반</p><p class="sh-inst">대통령기록관</p><p class="sh-proj">대통령기록관 구술기록 수집 <span class="n-yr">2008~</span></p></div><div class="sh-g"><p><span class="gl">개요</span> <b>6/6</b></p><p><span class="gl">정책</span> <b>3.5/9</b></p></div></div>
+<div class="sh-axis"><button class="sa on" data-sa="w">사업 개요</button><button class="sa" data-sa="p">활용정책</button></div>
+<div class="sh-body" data-sa="w"><div class="panel a6"><div class="pts"><button class="pt on" data-p="w" data-i="0">언제<i class="m on">●</i></button><button class="pt" data-p="w" data-i="1">어디서<i class="m on">●</i></button><button class="pt" data-p="w" data-i="2">누구를<i class="m on">●</i></button><button class="pt" data-p="w" data-i="3">무엇을<i class="m on">●</i></button><button class="pt" data-p="w" data-i="4">왜<i class="m on">●</i></button><button class="pt" data-p="w" data-i="5">어떻게<i class="m on">●</i></button></div><div class="pbs"><div class="pb on" data-p="w" data-i="0"><p class="pb-l">언제 <span class="st on">확인</span></p><p class="pb-v">최소 2008년부터 연도별로 추진돼 현재까지 지속(2023·2024년도 공고까지 확인). 2022년 6월 수집관리 지침 제정.</p></div><div class="pb" data-p="w" data-i="1"><p class="pb-l">어디서 <span class="st on">확인</span></p><p class="pb-v">대통령기록관(행정안전부 국가기록원 소속), pa.go.kr</p></div><div class="pb" data-p="w" data-i="2"><p class="pb-l">누구를 <span class="st on">확인</span></p><p class="pb-v">역대 대통령 본인, 장·차관 등 재임기 주요 인사 — 최근에는 요리·조경·운전·출입기자 등 보좌 실무 인력까지 확대.</p></div><div class="pb" data-p="w" data-i="3"><p class="pb-l">무엇을 <span class="st on">확인</span></p><p class="pb-v">재임기 주요 정책 증언. 2014.12 기준 누적 153명·약 851시간(이승만 13명 … 김대중 13명).</p></div><div class="pb" data-p="w" data-i="4"><p class="pb-l">왜 <span class="st on">확인</span></p><p class="pb-v">역대 정부의 국정수행 과정과 결과를 입체적으로 조명하고 국가기록으로 후대에 전승.</p></div><div class="pb" data-p="w" data-i="5"><p class="pb-l">어떻게 <span class="st on">확인</span></p><p class="pb-v">수집관리 지침(2022.06)에 따라 대통령·인물별로 대상을 선정해 채록 → 대통령기록관이 소장·관리.</p></div></div></div></div>
+<div class="sh-body off" data-sa="p"><div class="panel a9"><div class="pts"><button class="pt on" data-p="p" data-i="0">동의서<i class="m half">◐</i></button><button class="pt" data-p="p" data-i="1">저작권<i class="m on">●</i></button><button class="pt" data-p="p" data-i="2">공개등급<i class="m half">◐</i></button><button class="pt" data-p="p" data-i="3">열람절차<i class="m half">◐</i></button><button class="pt" data-p="p" data-i="4">2차활용<i class="m miss"></i></button><button class="pt" data-p="p" data-i="5">인용표기<i class="m miss"></i></button><button class="pt" data-p="p" data-i="6">사망 시<i class="m miss"></i></button><button class="pt" data-p="p" data-i="7">철회·삭제<i class="m on">●</i></button><button class="pt" data-p="p" data-i="8">연락 중개<i class="m miss"></i></button></div><div class="pbs"><div class="pb on" data-p="p" data-i="0"><p class="pb-l">동의서 <span class="st half">일부</span></p><p class="pb-v">구술자용만 확인 — 별지 제1호 「대통령기록관 구술기록 동의서」(지침 제6조). 면담자용은 별도 동의서가 아니라 「면담자 검독확인서」.</p></div><div class="pb" data-p="p" data-i="1"><p class="pb-l">저작권 <span class="st on">확인</span></p><p class="pb-v">기관 양도. 별지 제2호 「관리조건 협의서」 제1항에서 복제·전송·방송·배포·전시·2차적저작물작성권을 보호기간 만료 시까지 대통령기록관에 양도, 제2항에서 저작인격권 행사를 위임.</p></div><div class="pb" data-p="p" data-i="2"><p class="pb-l">공개등급 <span class="st half">일부</span></p><p class="pb-v">별도 등급 체계는 확인 못함. 지침 제15조에 따른 공개/비공개 구분만 존재하며 「비공개 내역서」에 구간별 사유·기간을 적는다. 30년 범위 내 비공개 가능.</p></div><div class="pb" data-p="p" data-i="3"><p class="pb-l">열람절차 <span class="st half">일부</span></p><p class="pb-v">지침 제14조는 열람용 파일 제작을 규정하나, 2019년 실태조사에서 “구술자료 접근 불가(10년간 서비스된 적 없음)”로 확인.</p></div><div class="pb" data-p="p" data-i="4"><p class="pb-l">2차활용 <span class="st miss">못 찾음</span></p><p class="pb-v">확인 못함. 협의서 제3항의 “구술자 본인의 자서전·회고록·전시 이용” 조항은 있으나 제3자 활용 승인 절차는 못 찾음.</p></div><div class="pb" data-p="p" data-i="5"><p class="pb-l">인용표기 <span class="st miss">못 찾음</span></p><p class="pb-v">확인 못함.</p></div><div class="pb" data-p="p" data-i="6"><p class="pb-l">사망 시 <span class="st miss">못 찾음</span></p><p class="pb-v">확인 못함.</p></div><div class="pb" data-p="p" data-i="7"><p class="pb-l">철회·삭제 <span class="st on">확인</span></p><p class="pb-v">지침 제8조 제3·4항 — 수정·추가·일부 삭제 요구 시 수정본 제작하고 원본은 보존, 동영상 삭제 요구 시 폐기 등 조치.</p></div><div class="pb" data-p="p" data-i="8"><p class="pb-l">연락 중개 <span class="st miss">못 찾음</span></p><p class="pb-v">확인 못함.</p></div></div></div></div>
+</div>
+<p class="cap">위 두 단추가 축을, 안쪽 탭이 칸을 고른다. 지금 보이는 값은 문서에 적힌 실제 내용이다.</p>
+</section>
+<section class="option"><div class="option-head"><h2>불충분한 것도 이름을 갖는다</h2><span class="tag">8-1 ~ 8-8</span></div>
+<p class="note">지금은 “확인했으나 정보 불충분” 스물몇 건이 <code>&lt;details&gt;</code> 안에 줄글로 접혀 있어,
+<b>발주기관 이름조차 목록에 안 선다</b>. 같은 대장에 세우면 이름과 사업명이 그대로 나오고,
+두 게이지가 0에 가깝다는 것으로 “아직 아무것도 아닌 것”임이 저절로 말해진다.</p>
+<p class="note">따로 접어 둘 필요가 없어진다 — <em>접어 두는 것이 아니라 옅은 것</em>으로 구분한다.
+그리고 이것들이야말로 다음 조사 대상이라, 목록 밖이 아니라 목록 안에 있어야 맞다.</p>
+<div class="reg show-a9">
+<div class="row head">
+  <div class="c-slot"><span>갈래</span></div>
+  <div class="c-name"><p class="n-inst">발주기관 · 사업명</p></div>
+  <div class="c-marks a6"><div class="m h">언제</div><div class="m h">어디서</div><div class="m h">누구를</div><div class="m h">무엇을</div><div class="m h">왜</div><div class="m h">어떻게</div></div>
+  <div class="c-marks a9"><div class="m h">동의서</div><div class="m h">저작권</div><div class="m h">공개등급</div><div class="m h">열람절차</div><div class="m h">2차활용</div><div class="m h">인용표기</div><div class="m h">사망 시</div><div class="m h">철회·삭제</div><div class="m h">연락 중개</div></div>
+  <div class="c-have"><span>가진 것</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="c-name">
+    <p class="n-inst">국사편찬위원회</p>
+    <p class="n-proj">구술사료수집사업 / 구술사료선집 <span class="n-yr">2004~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="miss"></i><i class="on"></i><i class="half"></i><i class="on"></i><i class="miss"></i><i class="on"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have">3건</span></div>
+</div>
+<div class="row">
+  <div class="c-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="c-name">
+    <p class="n-inst">대통령기록관</p>
+    <p class="n-proj">대통령기록관 구술기록 수집 <span class="n-yr">2008~</span></p>
+    
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="gt">6/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="half"></i><i class="on"></i><i class="half"></i><i class="half"></i><i class="miss"></i><i class="miss"></i><i class="miss"></i><i class="on"></i><i class="miss"></i></span><span class="gt">3.5/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div><div class="m on" title="확인">●</div></div>
+  <div class="c-marks a9"><div class="m half" title="일부">◐</div><div class="m on" title="확인">●</div><div class="m half" title="일부">◐</div><div class="m half" title="일부">◐</div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m miss" title="못 찾음"></div><div class="m on" title="확인">●</div><div class="m miss" title="못 찾음"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row weak">
+  <div class="c-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="c-name">
+    <p class="n-inst">대전광역시사편찬위원회</p>
+    <p class="n-proj">(구술채록 사업 내용 특정 못함) <span class="n-yr">—</span></p>
+    <p class="n-tail">8-1 광역시·도 지역사</p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="miss"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m miss" title="못 찾음"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row weak">
+  <div class="c-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="c-name">
+    <p class="n-inst">서울대 여성연구원</p>
+    <p class="n-proj">(인용 6편, 사업 특정 못함) <span class="n-yr">—</span></p>
+    <p class="n-tail">8-5 논문 인용만</p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row weak">
+  <div class="c-slot"><span style="--slot:4">5 노동운동</span></div>
+  <div class="c-name">
+    <p class="n-inst">마산창원여성노동자회</p>
+    <p class="n-proj">『언니들에게 듣는다』(2012) <span class="n-yr">2012</span></p>
+    <p class="n-tail">8-8 지역 여성단체</p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="untouched"></i><i class="miss"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">1/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m untouched" title="안 봄"></div><div class="m miss" title="못 찾음"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+<div class="row weak">
+  <div class="c-slot"><span style="--slot:7">A 수행기관</span></div>
+  <div class="c-name">
+    <p class="n-inst">김영삼민주센터</p>
+    <p class="n-proj">김영삼 전 대통령 관련 구술채록사업 <span class="n-yr">2012</span></p>
+    <p class="n-tail">8-7 수행기관 연혁</p>
+    <p class="n-g"><span class="gl">개요</span><span class="pips"><i class="on"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">1/6</span>
+       <span class="gl">정책</span><span class="pips"><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i><i class="untouched"></i></span><span class="gt">0/9</span></p>
+  </div>
+  <div class="c-marks a6"><div class="m on" title="확인">●</div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-marks a9"><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div><div class="m untouched" title="안 봄"></div></div>
+  <div class="c-have"><span class="have zero">0건</span></div>
+</div>
+</div>
+<p class="cap">위 둘은 채워진 사업, 아래 넷은 이름만 있는 것. 같은 줄에 서지만 옅기로 갈린다.</p>
+</section>
+<hr class="rule">
+<p class="foot-note"><strong>정리.</strong> 사업은 카드보다 큰 상자가 아니라 <b>다른 층위의 기술</b>이다.
+건은 “무엇이냐” 하나면 되고, 계열은 <b>사업 개요</b>과 <b>활용정책</b> 두 영역을 함께 져야 한다.
+그 둘을 한 면에 못 겹치니 탭이 생기고, 탭이 생기는 순간 그것은 이미 카드가 아니다 —
+카드는 면이 하나뿐인 물건이라서다.</p>
+<p class="foot-note">데이터 쪽으로 필요한 것은 하나다. <code>oral-history-projects.ts</code>가 지금 활용정책 아홉 칸을
+<code>notes</code>의 <code>subItems</code> 줄글로 뭉뚱그려 갖고 있다. 이걸 <b>번호 붙은 아홉 칸</b>으로 쪼개고,
+값이 “확인 못함”으로 시작하는지 보아 <b>못 찾음</b>과 <b>안 봄</b>을 가르면 위 화면이 그대로 선다.
+8-1~8-8도 <code>- **기관명** — 설명</code> 꼴이라 기관·사업명 분리가 된다.</p>
+</div>
+<script>
+document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".sw").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".reg").forEach(r=>{
+    r.classList.remove("show-a6","show-a9"); r.classList.add("show-"+b.dataset.axis);
+  });
+});
+document.querySelectorAll(".sa").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".sa").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".sh-body").forEach(x=>x.classList.toggle("off",x.dataset.sa!==b.dataset.sa));
+});
+document.querySelectorAll(".pt").forEach(b=>b.onclick=()=>{
+  const p=b.dataset.p,i=b.dataset.i;
+  document.querySelectorAll('.pt[data-p="'+p+'"]').forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll('.pb[data-p="'+p+'"]').forEach(x=>x.classList.toggle("on",x.dataset.i===i));
+});
+</script>

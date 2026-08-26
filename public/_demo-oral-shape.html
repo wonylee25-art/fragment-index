@@ -1,0 +1,430 @@
+<title>섞어 세우면 갈리는가</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{color-scheme:light;--paper:#fff;--surface:#f4f4f2;--line:#e2e2df;--grey:#6b6b68;--ink:#1a1a18;
+ --green-tint:#eaf3e2;--green-fill:#6aa84f;--green-text:#35632a;--yellow-tint:#fdf6d9;--orange-fill:#ef8129;
+ --sans:"Gothic A1",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+ --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+ --serif:ui-serif,Georgia,"AppleMyungjo","Nanum Myeongjo",바탕,serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin-inline:auto;padding:3.5rem 1.25rem 6rem}
+.kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--grey);margin:0 0 .85rem}
+h1{font-family:var(--serif);font-size:clamp(26px,4vw,34px);font-weight:700;line-height:1.35;letter-spacing:-.01em;text-wrap:balance;margin:0 0 1rem}
+.lede{max-width:62ch;margin:0}.lede+.lede{margin-top:.75rem}
+.rule{height:1px;background:var(--line);border:0;margin:2.75rem 0}
+.option{margin-bottom:3.5rem}
+.option-head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:.6rem;margin-bottom:1rem}
+h2{font-family:var(--serif);font-size:19px;font-weight:700;margin:0;letter-spacing:-.005em}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--grey);border:1px solid var(--line);border-radius:2px;padding:.1rem .4rem;white-space:nowrap}
+.tag.fail{border-color:var(--orange-fill);color:var(--orange-fill)}
+.tag.pick{border-color:var(--green-fill);color:var(--green-text);background:var(--green-tint)}
+.note{max-width:62ch;margin:0 0 1.25rem;font-size:13.5px}
+.note em{font-style:normal;background:var(--yellow-tint);padding:0 .15em}
+.note code{font-family:var(--mono);font-size:12px;background:var(--surface);padding:0 .25em;border-radius:2px}
+.board{display:flex;flex-wrap:wrap;gap:18px 12px;padding:16px 14px;background:var(--surface);border:1px solid var(--line);border-radius:2px;align-items:start}
+.board.col{flex-direction:column;gap:0}
+.cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--grey);margin:.5rem 0 0}
+
+/* ── 공통 서식 부품 ─────────────────────────────────────────── */
+.tab{position:relative;height:17px;width:fit-content;margin-left:calc(var(--slot,0)*9%)}
+.tab i,.tab u{position:absolute;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 100%,0 100%)}
+.tab i{inset:0;background:var(--line)}
+.tab u{inset:1px 1px 0 1px;background:var(--paper)}
+.tab span{position:relative;display:block;padding:0 14px 0 8px;font-family:var(--mono);font-size:9.5px;font-weight:700;line-height:17px;letter-spacing:.14em;white-space:nowrap}
+.cell{padding:6px 10px}
+.lab{font-family:var(--mono);font-size:8.5px;line-height:1;letter-spacing:.18em;text-transform:uppercase;color:var(--grey);margin:0}
+.lab b{letter-spacing:normal;font-weight:400}
+.head{display:flex;align-items:stretch;border-bottom:1px solid var(--ink)}
+.head .who{flex:1;min-width:0}
+.head .when{flex-shrink:0;text-align:right;border-left:1px solid rgb(26 26 24/.15)}
+.head .who p.v{margin:2px 0 0;font-size:11.5px;font-weight:800;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.head .when p.v{margin:2px 0 0;font-family:var(--mono);font-size:10.5px;font-variant-numeric:tabular-nums}
+.foot{display:flex;align-items:stretch;justify-content:space-between;border-top:1px solid var(--ink);margin-top:auto}
+.foot .btns{display:flex;align-items:center;gap:4px;padding:5px 8px;min-width:0}
+.btn{font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--ink);padding:1px 5px;white-space:nowrap}
+.btn.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.btn.zero{color:var(--grey);border-style:dashed}
+.foot a{display:flex;align-items:center;flex-shrink:0;border-left:1px solid rgb(26 26 24/.15);padding:0 8px;font-family:var(--mono);font-size:10px;color:var(--grey);text-decoration:underline dotted;text-underline-offset:4px}
+.dots{font-size:9px;letter-spacing:.06em}
+.dots.full{color:var(--green-fill)}.dots.part{color:var(--grey)}.dots.thin{color:var(--line)}
+
+/* ── 견줄 사료 카드 ─────────────────────────────────────────── */
+.rc{display:flex;flex-direction:column;width:260px}
+.rc-sheet{border:1px solid var(--line);display:flex;flex-direction:column;height:158px}
+.rc-body{flex:1}
+.rc-t{margin:0;font-size:12px;font-weight:700;line-height:16px}
+.rc-x{margin:4px 0 0;font-size:11.5px;line-height:16px;color:var(--grey);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ── 모양 0 — 지금 데모 ─────────────────────────────────────── */
+.s0{display:flex;flex-direction:column;width:300px}
+.s0-sheet{border:1px solid var(--line);display:flex;flex-direction:column}
+.title{border-bottom:1px solid rgb(26 26 24/.15)}
+.title p.v{margin:2px 0 0;height:32px;font-size:12px;font-weight:600;line-height:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.form{display:grid;grid-template-columns:1fr 1fr}
+.form>div{padding:5px 10px 6px;border-bottom:1px solid rgb(26 26 24/.15);height:46px}
+.form>div:nth-child(odd){border-right:1px solid rgb(26 26 24/.15)}
+.form>div:nth-child(3),.form>div:nth-child(4){border-bottom:0}
+.form p.v{margin:2px 0 0;font-size:11.5px;line-height:15px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.form>div.void{background:repeating-linear-gradient(135deg,transparent 0 5px,rgb(26 26 24/.06) 5px 6px)}
+.form>div.void p.v{color:var(--grey);font-family:var(--mono);font-size:9.5px}
+
+/* ── 모양 1 — 낱장이 삐져나온 철 ────────────────────────────── */
+/* 겉장의 위 가장자리가 물건의 위 가장자리가 아니다 — 안의 것이 그 위로 솟는다. */
+.s1{position:relative;width:300px;padding-top:16px}
+.s1-stack{position:absolute;left:0;right:0;top:0;height:16px}
+.s1-stack .leaf{position:absolute;top:calc(12px - var(--i)*5px);left:calc(10px + var(--i)*4px);right:calc(-2px - var(--i)*4px);height:22px;background:var(--paper);border:1px solid var(--line);border-bottom:0}
+.s1-front{position:relative;border:1px solid var(--ink);border-top-width:3px;padding:11px 12px 12px 20px;min-height:118px}
+/* 철끈 자리 — 왼쪽 가장자리에 구멍 두 개. 묶인 것이라는 표시. */
+.s1-front::before{content:"";position:absolute;left:7px;top:26px;width:5px;height:5px;border-radius:50%;background:var(--ink);opacity:.35;box-shadow:0 34px 0 var(--ink)}
+.s1-cat{margin:0;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--grey)}
+.s1-inst{margin:6px 0 0;font-family:var(--serif);font-size:17px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+.s1-proj{margin:3px 0 0;font-size:12px;line-height:17px;color:var(--ink)}
+.s1-meta{margin:9px 0 0;padding-top:7px;border-top:1px solid rgb(26 26 24/.18);font-family:var(--mono);font-size:10px;color:var(--grey)}
+
+/* ── 모양 2 — 가로 띠(대장 한 줄) ───────────────────────────── */
+/* 카드는 닫힌 상자, 대장은 열린 줄이다 — 좌우 테두리가 없고 아랫줄과 선을 나눠 쓴다. */
+.ledger{width:100%;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:var(--paper)}
+.s2{display:grid;grid-template-columns:96px 188px 1fr 54px;align-items:stretch;border-bottom:1px solid var(--line);min-height:58px}
+.ledger .s2:last-child{border-bottom:0}
+.s2-slot{display:flex;align-items:center;border-right:1px solid rgb(26 26 24/.15);padding:0 8px}
+.s2-slot span{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--grey);margin-left:calc(var(--slot,0)*9px);white-space:nowrap}
+.s2-slot span::before{content:"";display:inline-block;width:4px;height:1px;background:var(--grey);vertical-align:middle;margin-right:4px}
+.s2-name{padding:8px 10px;min-width:0;border-right:1px solid rgb(26 26 24/.15)}
+.s2-inst{margin:0;font-size:12.5px;font-weight:700;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s2-proj{margin:2px 0 0;font-size:11px;line-height:15px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s2-yr{font-family:var(--mono);font-size:9.5px}
+.s2-form{display:grid;grid-template-columns:repeat(4,1fr);min-width:0}
+.s2-form>div{padding:8px 10px;border-right:1px solid rgb(26 26 24/.1);min-width:0}
+.s2-form>div:last-child{border-right:0}
+.s2-form .lab{font-size:8.5px;letter-spacing:.14em}
+.s2-form p.v{margin:3px 0 0;font-size:11px;line-height:15px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.s2-form>div.void{background:repeating-linear-gradient(135deg,transparent 0 5px,rgb(26 26 24/.06) 5px 6px)}
+.s2-form>div.void p.v{color:var(--grey);font-family:var(--mono)}
+.s2-have{display:flex;align-items:center;justify-content:center;border-left:1px solid rgb(26 26 24/.15)}
+.s2-have .have{font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid var(--ink);padding:1px 5px}
+.s2-have .have.zero{border-style:dashed;border-color:var(--line);color:var(--grey);font-weight:400}
+
+/* ── 모양 3 — 목차가 붙은 겉장 ──────────────────────────────── */
+.s3{width:300px}
+.s3-front{position:relative;z-index:1;border:1px solid var(--ink);padding:10px 12px 11px}
+.s3-cat{margin:0;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--grey)}
+.s3-inst{margin:5px 0 0;font-family:var(--serif);font-size:16px;font-weight:700;line-height:1.3}
+.s3-proj{margin:2px 0 0;font-size:11.5px;line-height:16px;color:var(--grey)}
+.s3-list{margin:0 6px;padding:0;list-style:none;border:1px solid var(--line);border-top:0;background:var(--paper)}
+.s3-list li{font-size:11px;line-height:15px;padding:5px 10px 5px 16px;border-bottom:1px solid var(--line);position:relative;color:var(--ink)}
+.s3-list li:last-child{border-bottom:0}
+.s3-list li::before{content:"";position:absolute;left:7px;top:8px;width:4px;height:9px;border:1px solid var(--grey);border-right:0;opacity:.5}
+.s3-list li.more{font-family:var(--mono);font-size:9.5px;color:var(--grey)}
+.s3-list li.more::before{display:none}
+.s3-empty{margin:0 6px;border:1px solid var(--line);border-top:0;padding:7px 10px;font-family:var(--mono);font-size:9.5px;color:var(--grey);background:repeating-linear-gradient(135deg,transparent 0 5px,rgb(26 26 24/.05) 5px 6px)}
+
+.compare-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:2px;margin-top:1rem}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:13px}
+th,td{text-align:left;padding:.55rem .8rem;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--grey);font-weight:500;background:var(--surface)}
+tbody tr:last-child td{border-bottom:0}
+td.name{font-weight:600;white-space:nowrap}
+.foot-note{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--line);max-width:62ch;font-size:13px;color:var(--grey)}
+.foot-note strong{color:var(--ink)}
+:focus-visible{outline:2px solid var(--green-fill);outline-offset:2px}
+@media (max-width:1000px){
+  .s2{grid-template-columns:80px 168px 1fr 46px}
+  .s2-form{grid-template-columns:1fr 1fr 22px 22px}
+  .s2-form>div:nth-child(n+3){padding:8px 0;text-align:center}
+  .s2-form>div:nth-child(n+3) .lab{font-size:7.5px;letter-spacing:0}
+  .s2-form>div:nth-child(n+3) p.v{font-size:9px;color:var(--grey);-webkit-line-clamp:1}
+  .s2-form>div:nth-child(n+3):not(.void) p.v::after{content:"●";font-size:8px;color:var(--ink)}
+  .s2-form>div:nth-child(n+3):not(.void) p.v{font-size:0}
+}
+</style>
+
+<div class="wrap">
+  <p style="margin:0 0 1.5rem;padding:11px 15px;border:1px solid #ef8129;background:#fdeadb;font-size:13.5px;line-height:1.7;max-width:64ch;font-family:'Gothic A1',-apple-system,sans-serif"><b>지나온 안입니다.</b> 지금 화면은 이 안이 아니라 <a href="/_demo-oral-isad.html" style="color:#8f2116">_demo-oral-isad.html</a>(ISAD(G) 계열 기술 라벨·서가·대장)로 갔습니다. 여기서 고른 “가로 띠(대장)”는 목록의 기본형이 아니라 화면 맨 아래의 견주는 표로 자리를 옮겼습니다. 판단의 흐름을 남기려고 두는 것이니, 여기 그림을 지금 화면의 근거로 쓰지 마세요.</p>
+  <p class="kicker">구술 사업 · 겉모양 다시</p>
+  <h1>섞어 세우면 갈리는가</h1>
+  <p class="lede">
+    앞 데모의 “서류철”은 말뿐이었다. 겉장에 사업 개요를 1px 먹선으로 나눠 그려 넣는 순간 그것은
+    <em>기록물 카드</em>가 된다 — 칸을 선으로 가르고 칸마다 이름표를 붙이는 것이 바로 사료 카드의 서명이라서다.
+    꼭다리를 얹고 아래에 결을 몇 줄 그은 것으로는 실루엣이 안 바뀐다.
+  </p>
+  <p class="lede">
+    그래서 시험을 하나로 줄인다 — <b>사료 카드와 한 판에 섞어 세워 놓고, 눈이 둘을 가르는가.</b>
+    아래 네 모양은 모두 같은 사업 넷을 담았고, 판마다 진짜 사료 카드를 끼워 두었다.
+  </p>
+  <hr class="rule">
+<section class="option"><div class="option-head"><h2>모양 0 — 앞 데모</h2><span class="tag fail">갈리지 않는다</span></div>
+<p class="note">사료 카드 셋 사이에 사업 둘을 끼웠다. 어느 것이 사업인지 <em>글을 읽어야</em> 안다 — 테두리 굵기도, 칸 짜임도, 서 있는 방향도 같다. 다른 것은 폭 40px과 꼭다리 글자뿐이다.</p>
+<div class="board">
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 13%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 5%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">동아일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1968-03-12</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">女性들의 職場進出 늘어</p><p class="rc-x">지난해 統計에 따르면 女性 就業者가 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s0">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #8a5f86 32%, #fff)"></u><span>1 역사전반</span></div>
+  <div class="s0-sheet" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+    <div class="head"><div class="cell who"><p class="lab">agency <b>주관</b></p><p class="v">국사편찬위원회</p></div>
+      <div class="cell when"><p class="lab">years <b>기간</b></p><p class="v">2004~</p></div></div>
+    <div class="cell title"><p class="lab">project <b>사업</b> <span class="dots part">●●○</span></p><p class="v">구술사료수집사업 / 구술사료선집</p></div>
+    <div class="form"><div><p class="lab">whom <b>누구를</b></p><p class="v">각 분야 원로, 지역사 인물</p></div><div><p class="lab">what <b>무엇을</b></p><p class="v">생애사 및 사건·시기 증언</p></div><div><p class="lab">why <b>왜</b></p><p class="v">문헌이 못 메우는 현대사 공백</p></div><div><p class="lab">how <b>어떻게</b></p><p class="v">면담 → 녹취문 → 선집 21권</p></div></div>
+    <div class="foot"><div class="btns"><button class="btn on">구술 3건</button></div><a href="#">출처 ↗</a></div>
+  </div>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:1"><i></i><u style="background:color-mix(in oklab, #5b7c99 22%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 13%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">국가기록원</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1972</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">새마을운동 推進計劃 綴</p><p class="rc-x">各 市道에 시달된 推進計劃 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s0">
+  <div class="tab" style="--slot:3"><i></i><u style="background:color-mix(in oklab, #8a5f86 13%, #fff)"></u><span>4 전쟁·피해</span></div>
+  <div class="s0-sheet" style="background:color-mix(in oklab, #8a5f86 5%, #fff)">
+    <div class="head"><div class="cell who"><p class="lab">agency <b>주관</b></p><p class="v">국방부 군사편찬연구소</p></div>
+      <div class="cell when"><p class="lab">years <b>기간</b></p><p class="v">2000 설립</p></div></div>
+    <div class="cell title"><p class="lab">project <b>사업</b> <span class="dots thin">●○○</span></p><p class="v">(구술사업 존재 여부 불확실)</p></div>
+    <div class="form"><div class="void"><p class="lab">whom <b>누구를</b></p><p class="v">못 채움</p></div><div><p class="lab">what <b>무엇을</b></p><p class="v">일반 업무는 국방사·전쟁사 편찬</p></div><div class="void"><p class="lab">why <b>왜</b></p><p class="v">못 채움</p></div><div class="void"><p class="lab">how <b>어떻게</b></p><p class="v">못 채움</p></div></div>
+    <div class="foot"><div class="btns"><button class="btn zero">구술 0건</button></div><a href="#">출처 ↗</a></div>
+  </div>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 5%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:#fff">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">부산일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1953-09-04</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">避難民 收容所 實態</p><p class="rc-x">釜山 一圓 收容所 三十餘 곳에 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+</div>
+<p class="cap">이게 지적받은 그대로다. 담는 것과 담기는 것이 같은 급으로 서 있다.</p></section>
+<section class="option"><div class="option-head"><h2>모양 1 — 낱장이 위로 삐져나온 철</h2><span class="tag ">갈린다</span></div>
+<p class="note">겉장의 위 가장자리가 <b>물건의 위 가장자리가 아니게</b> 만든다. 안의 낱장이 겉장 위로 어긋나 솟고, 왼쪽에 철끈 구멍 둘이 뚫린다. 앞면에는 라벨만 — 서식 격자는 열었을 때 나온다.</p>
+<p class="note">서식을 앞면에서 뺀 대신 <code>서식 3/4칸</code> 한 줄이 그 자리를 진다. 훑을 때 필요한 건 “몇 칸 비었나”지 “어느 칸이 비었나”가 아니다.</p>
+<div class="board">
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 13%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 5%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">동아일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1968-03-12</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">女性들의 職場進出 늘어</p><p class="rc-x">지난해 統計에 따르면 女性 就業者가 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s1">
+  <div class="s1-stack"><span class="leaf" style="--i:0"></span><span class="leaf" style="--i:1"></span><span class="leaf" style="--i:2"></span></div>
+  <div class="s1-front" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+    <p class="s1-cat">1 역사전반</p>
+    <p class="s1-inst">국사편찬위원회</p>
+    <p class="s1-proj">구술사료수집사업 / 구술사료선집</p>
+    <p class="s1-meta"><span class="dots part">●●○</span> 2004~ · 서식 4/4칸 · 가진 것 3건</p>
+  </div>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:1"><i></i><u style="background:color-mix(in oklab, #5b7c99 22%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 13%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">국가기록원</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1972</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">새마을운동 推進計劃 綴</p><p class="rc-x">各 市道에 시달된 推進計劃 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s1">
+  <div class="s1-stack"><span class="leaf" style="--i:0"></span><span class="leaf" style="--i:1"></span><span class="leaf" style="--i:2"></span></div>
+  <div class="s1-front" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+    <p class="s1-cat">6 지역·현대사</p>
+    <p class="s1-inst">제주4·3평화재단</p>
+    <p class="s1-proj">제주4·3 천인증언채록사업</p>
+    <p class="s1-meta"><span class="dots part">●●○</span> 2004~2008 · 서식 4/4칸 · 가진 것 8건</p>
+  </div>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 5%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:#fff">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">부산일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1953-09-04</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">避難民 收容所 實態</p><p class="rc-x">釜山 一圓 收容所 三十餘 곳에 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s1">
+  <div class="s1-stack"></div>
+  <div class="s1-front" style="background:color-mix(in oklab, #8a5f86 5%, #fff)">
+    <p class="s1-cat">4 전쟁·피해</p>
+    <p class="s1-inst">국방부 군사편찬연구소</p>
+    <p class="s1-proj">(구술사업 존재 여부 불확실)</p>
+    <p class="s1-meta"><span class="dots thin">●○○</span> 2000 설립 · 서식 1/4칸 · 가진 것 0건</p>
+  </div>
+</div>
+</div>
+<p class="cap">실루엣이 다르다 — 톱니처럼 솟은 위 가장자리, 3px 굵은 머리선, 명조 기관명. 오른쪽 끝 국방부는 낱장이 없어 밋밋하다.</p></section>
+<section class="option"><div class="option-head"><h2>모양 2 — 가로 띠(대장 한 줄)</h2><span class="tag pick">확실히 갈린다</span></div>
+<p class="note">가장 확실한 길은 <b>방향을 바꾸는 것</b>이다. 사료는 세로 타일, 사업은 가로 줄. 그리고 카드는 닫힌 상자지만 대장은 <em>열린 줄</em>이다 — 좌우 테두리가 없고 아랫줄과 선을 나눠 쓴다. 섞일 수가 없다.</p>
+<p class="note">덤도 있다. 칸 하나가 카드의 두 배 가까이 넓어지고, 갈래는 왼쪽 여백에서 계단으로 내려가며, 88건을 정렬·거르기 좋은 표가 된다. 지금 화면이 못 하던 “연도순으로 죽 훑기”가 그냥 된다.</p><p class="note">다만 넷을 다 펴기엔 여전히 빠듯하다 — 창이 1000px 아래로 내려가면 <b>왜·어떻게는 접어</b> 찼는지 비었는지만 남긴다(오른쪽 가는 두 칸). 창을 좁혔다 넓혔다 해 보면 보인다.</p>
+<div class="board"><div class="ledger">
+<div class="s2" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+  <div class="s2-slot"><span style="--slot:0">1 역사전반</span></div>
+  <div class="s2-name">
+    <p class="s2-inst">국사편찬위원회 <span class="dots part">●●○</span></p>
+    <p class="s2-proj">구술사료수집사업 / 구술사료선집 <span class="s2-yr">2004~</span></p>
+  </div>
+  <div class="s2-form"><div><p class="lab">누구를</p><p class="v">각 분야 원로, 지역사 인물</p></div><div><p class="lab">무엇을</p><p class="v">생애사 및 사건·시기 증언</p></div><div><p class="lab">왜</p><p class="v">문헌이 못 메우는 현대사 공백</p></div><div><p class="lab">어떻게</p><p class="v">면담 → 녹취문 → 선집 21권</p></div></div>
+  <div class="s2-have"><span class="have">3건</span></div>
+</div>
+<div class="s2" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+  <div class="s2-slot"><span style="--slot:1">2 예술·문화</span></div>
+  <div class="s2-name">
+    <p class="s2-inst">한국영상자료원 <span class="dots part">●●○</span></p>
+    <p class="s2-proj">원로영화인 구술채록사업 <span class="s2-yr">2004~</span></p>
+  </div>
+  <div class="s2-form"><div><p class="lab">누구를</p><p class="v">감독·촬영기사·배우·성우 등</p></div><div><p class="lab">무엇을</p><p class="v">영화 이야기·대중문화 증언</p></div><div><p class="lab">왜</p><p class="v">문헌이 부족한 한국영화사</p></div><div><p class="lab">어떻게</p><p class="v">『구술채록연구 시리즈』 발간</p></div></div>
+  <div class="s2-have"><span class="have">5건</span></div>
+</div>
+<div class="s2" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+  <div class="s2-slot"><span style="--slot:5">6 지역·현대사</span></div>
+  <div class="s2-name">
+    <p class="s2-inst">제주4·3평화재단 <span class="dots part">●●○</span></p>
+    <p class="s2-proj">제주4·3 천인증언채록사업 <span class="s2-yr">2004~2008</span></p>
+  </div>
+  <div class="s2-form"><div><p class="lab">누구를</p><p class="v">4·3 관련자·유족(목표 천 명)</p></div><div><p class="lab">무엇을</p><p class="v">4·3 사건 관련 증언</p></div><div><p class="lab">왜</p><p class="v">진상규명·평화기념관 사료 기반</p></div><div><p class="lab">어떻게</p><p class="v">대규모 채록 → 디지털 아카이빙</p></div></div>
+  <div class="s2-have"><span class="have">8건</span></div>
+</div>
+<div class="s2" style="background:color-mix(in oklab, #8a5f86 5%, #fff)">
+  <div class="s2-slot"><span style="--slot:3">4 전쟁·피해</span></div>
+  <div class="s2-name">
+    <p class="s2-inst">국방부 군사편찬연구소 <span class="dots thin">●○○</span></p>
+    <p class="s2-proj">(구술사업 존재 여부 불확실) <span class="s2-yr">2000 설립</span></p>
+  </div>
+  <div class="s2-form"><div class="void"><p class="lab">누구를</p><p class="v">—</p></div><div><p class="lab">무엇을</p><p class="v">일반 업무는 국방사·전쟁사 편찬</p></div><div class="void"><p class="lab">왜</p><p class="v">—</p></div><div class="void"><p class="lab">어떻게</p><p class="v">—</p></div></div>
+  <div class="s2-have"><span class="have zero">0건</span></div>
+</div>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 13%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 5%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">동아일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1968-03-12</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">女性들의 職場進出 늘어</p><p class="rc-x">지난해 統計에 따르면 女性 就業者가 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:1"><i></i><u style="background:color-mix(in oklab, #5b7c99 22%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 13%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">국가기록원</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1972</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">새마을운동 推進計劃 綴</p><p class="rc-x">各 市道에 시달된 推進計劃 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 5%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:#fff">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">부산일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1953-09-04</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">避難民 收容所 實態</p><p class="rc-x">釜山 一圓 收容所 三十餘 곳에 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+</div>
+<p class="cap">같은 판 위에 대장 넉 줄과 사료 카드 석 장. 둘을 헷갈릴 여지가 없다.</p></section>
+<section class="option"><div class="option-head"><h2>모양 3 — 목차가 붙은 겉장</h2><span class="tag ">갈린다</span></div>
+<p class="note">담는 것임을 <b>담긴 것으로</b> 말한다. 겉장 아래로 실제 낱장 제목이 새어 나오고, 각 줄 앞에 종이 모서리가 그어진다. 가진 게 없으면 빗금 한 칸 — “빈 철”이 그대로 보인다.</p>
+<div class="board">
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 13%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 5%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">동아일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1968-03-12</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">女性들의 職場進出 늘어</p><p class="rc-x">지난해 統計에 따르면 女性 就業者가 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s3">
+  <div class="s3-front" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+    <p class="s3-cat">1 역사전반 <span class="dots part">●●○</span></p>
+    <p class="s3-inst">국사편찬위원회</p>
+    <p class="s3-proj">구술사료수집사업 / 구술사료선집 · 2004~</p>
+  </div>
+  <ul class="s3-list"><li>박찬일 구술 1차</li><li>김순덕 구술 2차</li><li>이만섭 구술 1차</li></ul>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:1"><i></i><u style="background:color-mix(in oklab, #5b7c99 22%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:color-mix(in oklab, #5b7c99 13%, #fff)">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">국가기록원</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1972</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">새마을운동 推進計劃 綴</p><p class="rc-x">各 市道에 시달된 推進計劃 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s3">
+  <div class="s3-front" style="background:color-mix(in oklab, #8a5f86 32%, #fff)">
+    <p class="s3-cat">2 예술·문화 <span class="dots part">●●○</span></p>
+    <p class="s3-inst">한국영상자료원</p>
+    <p class="s3-proj">원로영화인 구술채록사업 · 2004~</p>
+  </div>
+  <ul class="s3-list"><li>신상옥 구술</li><li>정일성 촬영감독 구술</li><li>최은희 구술 2차</li><li class="more">외 2건</li></ul>
+</div>
+<div class="rc">
+  <div class="tab" style="--slot:0"><i></i><u style="background:color-mix(in oklab, #5b7c99 5%, #fff)"></u><span>신문</span></div>
+  <div class="rc-sheet" style="background:#fff">
+    <div class="head">
+      <div class="cell who"><p class="lab">source <b>출처</b></p><p class="v">부산일보</p></div>
+      <div class="cell when"><p class="lab">date <b>날짜</b></p><p class="v">1953-09-04</p></div>
+    </div>
+    <div class="cell rc-body"><p class="rc-t">避難民 收容所 實態</p><p class="rc-x">釜山 一圓 收容所 三十餘 곳에 …</p></div>
+    <div class="foot"><div class="btns"><button class="btn on">사료 연결</button><button class="btn">보류</button></div><a href="#">원문보기 ↗</a></div>
+  </div>
+</div>
+<div class="s3">
+  <div class="s3-front" style="background:color-mix(in oklab, #8a5f86 5%, #fff)">
+    <p class="s3-cat">4 전쟁·피해 <span class="dots thin">●○○</span></p>
+    <p class="s3-inst">국방부 군사편찬연구소</p>
+    <p class="s3-proj">(구술사업 존재 여부 불확실) · 2000 설립</p>
+  </div>
+  <p class="s3-empty">가진 낱장 없음</p>
+</div>
+</div>
+<p class="cap">사료 카드는 한 덩어리로 끝나지만, 이쪽은 겉장 아래로 목록이 자란다 — 높이가 내용물 수를 따라간다.</p></section>
+<hr class="rule">
+<h2 style="margin-bottom:.9rem">넷을 견주면</h2>
+<div class="compare-wrap"><table><thead><tr><th>모양</th><th>무엇이 다르게 보이나</th><th>치르는 것</th></tr></thead><tbody>
+<tr><td class="name">0 앞 데모</td><td>폭 40px과 꼭다리 글자뿐 — 사실상 안 갈린다.</td><td>없음(그래서 못 쓴다)</td></tr>
+<tr><td class="name">1 삐져나온 철</td><td>위 가장자리가 톱니, 3px 머리선, 철끈 구멍. 실루엣이 갈린다.</td><td>앞면에서 사업 개요 칸을 뺀다 — 어느 칸이 비었는지는 열어야 안다.</td></tr>
+<tr><td class="name">2 가로 띠</td><td>방향과 테두리 짜임이 통째로 다르다. 열린 줄 대 닫힌 상자.</td><td>사업 개요 네 칸을 다 펴기엔 좁아 왜·어떻게를 접어야 한다. 갈래 덩어리도 시각적으로 안 뭉친다.</td></tr>
+<tr><td class="name">3 목차 겉장</td><td>높이가 내용물을 따라 자란다. 겉장 밖으로 목록이 샌다.</td><td>사업↔자료 데이터가 있어야 성립한다. 없으면 빈 철만 늘어선다.</td></tr>
+</tbody></table></div>
+<p class="foot-note"><strong>권하는 것은 2다.</strong> 1과 3은 “서류철처럼 보이게” 그린 것이라 결국 그림에 기댄다 — 판이 커지고 항목이 88개가 되면 톱니와 목차는 노이즈가 된다. 2는 <em>생김새가 아니라 짜임</em>이 달라서 커질수록 오히려 또렷해지고, 지금 화면이 못 하던 정렬·거르기를 덤으로 가져온다.</p>
+<p class="foot-note">2로 가면 앞 데모의 걸음 1(조사표)·3(진하기)·4(바닥칸)은 그대로 살아 줄 안으로 들어가고, 걸음 2(꼭다리)만 왼쪽 여백의 계단 표시로 바뀐다.</p>
+</div>
