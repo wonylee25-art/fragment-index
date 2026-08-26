@@ -104,6 +104,8 @@ export function SeriesLabel({
     <button
       type="button"
       onClick={onClick}
+      // 열린 상자가 선반의 몇 번째 줄에 있는지 재는 표식(ShelfWithSheet가 읽는다).
+      data-ref={entry.referenceCode}
       title={`${entry.institution} — ${entry.projectName}`}
       style={{ ...archiveTintStyle(ARCHIVE_ITEM_HUE.구술, strength), height: SERIES_BOX_HEIGHT_PX }}
       className={`w-[202px] shrink-0 cursor-pointer border border-b-2 pb-2 text-left shadow-[1px_2px_3px_rgba(0,0,0,0.12)] transition-opacity ${

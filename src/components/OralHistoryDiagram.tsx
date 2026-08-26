@@ -6,7 +6,7 @@ import { Inline } from "@/lib/inline-markdown";
 import { OralHistoryDoc, OralHistoryEntry } from "@/lib/oral-history-projects";
 import type { CellMark, MarkAxis } from "@/lib/oral-marks";
 import { setCellMark } from "@/lib/oral-mark-actions";
-import { SeriesBox } from "./SeriesBox";
+import { ShelfWithSheet } from "./SeriesBox";
 import { SeriesLabel } from "./SeriesLabel";
 import { SeriesSheet } from "./SeriesSheet";
 import { OralRegister } from "./OralRegister";
@@ -30,22 +30,6 @@ function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   if (!q) return true;
   return [entry.institution, entry.projectName, entry.referenceCode, ...entry.overviewCells.map((c) => c.value ?? "")]
     .some((s) => s.includes(q));
-}
-
-// 선반 한 칸. 아래로 지나가는 강철 빔이 "얹혀 있음"을 만든다.
-function Shelf({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="relative flex flex-wrap items-end gap-3 pt-4">
-      {children}
-      <div className="w-full">
-        <div
-          className="mt-3.5 h-[9px] w-full shadow-[0_2px_4px_rgba(0,0,0,0.18)]"
-          style={{ background: "linear-gradient(#cfcbc4,#b6b1a8)" }}
-        />
-        <p className="pl-1.5 pt-0.5 font-mono text-[9px] text-grey">{label}</p>
-      </div>
-    </div>
-  );
 }
 
 export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks: CellMark[] }) {
@@ -116,44 +100,41 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
 
       {/* 서가 */}
       <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
-        {doc.categories.map((category) => (
-          <Shelf
-            key={category.label}
-            label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
-          >
-            {category.entries.map((entry) => {
-              const open = picked === entry.referenceCode;
-              return (
-                <SeriesBox
+        {doc.categories.map((category) => {
+          const openEntry = category.entries.find((e) => e.referenceCode === picked) ?? null;
+          return (
+            <ShelfWithSheet
+              key={category.label}
+              label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
+              pickedRef={openEntry ? openEntry.referenceCode : null}
+              onClose={() => setPicked(null)}
+              boxes={category.entries.map((entry) => (
+                <SeriesLabel
                   key={entry.referenceCode}
-                  open={open}
-                  onClose={() => setPicked(null)}
-                  box={
-                    <SeriesLabel
-                      entry={entry}
-                      active={open}
-                      dimmed={!matchesFilter(entry, query)}
-                      onClick={() => setPicked(open ? null : entry.referenceCode)}
-                      doneOverview={doneSet(entry, "overview")}
-                      donePolicy={doneSet(entry, "policy")}
-                    />
-                  }
-                  sheet={
-                    <SeriesSheet
-                      entry={entry}
-                      category={category}
-                      doneOverview={doneSet(entry, "overview")}
-                      donePolicy={doneSet(entry, "policy")}
-                      onToggleOverview={(k) => toggleDone(entry, "overview", k)}
-                      onTogglePolicy={(k) => toggleDone(entry, "policy", k)}
-                      onClose={() => setPicked(null)}
-                    />
-                  }
+                  entry={entry}
+                  active={picked === entry.referenceCode}
+                  dimmed={!matchesFilter(entry, query)}
+                  onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
+                  doneOverview={doneSet(entry, "overview")}
+                  donePolicy={doneSet(entry, "policy")}
                 />
-              );
-            })}
-          </Shelf>
-        ))}
+              ))}
+              sheet={
+                openEntry && (
+                  <SeriesSheet
+                    entry={openEntry}
+                    category={category}
+                    doneOverview={doneSet(openEntry, "overview")}
+                    donePolicy={doneSet(openEntry, "policy")}
+                    onToggleOverview={(k) => toggleDone(openEntry, "overview", k)}
+                    onTogglePolicy={(k) => toggleDone(openEntry, "policy", k)}
+                    onClose={() => setPicked(null)}
+                  />
+                )
+              }
+            />
+          );
+        })}
       </div>
 
       {/* 기록물 대장 — 화면 맨 아래 */}
