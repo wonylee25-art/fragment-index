@@ -6,6 +6,7 @@ import { Inline } from "@/lib/inline-markdown";
 import { OralHistoryDoc, OralHistoryEntry } from "@/lib/oral-history-projects";
 import type { CellMark, MarkAxis } from "@/lib/oral-marks";
 import { setCellMark } from "@/lib/oral-mark-actions";
+import { SeriesBox } from "./SeriesBox";
 import { SeriesLabel } from "./SeriesLabel";
 import { SeriesSheet } from "./SeriesSheet";
 import { OralRegister } from "./OralRegister";
@@ -16,6 +17,9 @@ import { OralRegister } from "./OralRegister";
 //
 // 격자가 아니라 선반인 것도 뜻이 있다. 격자는 칸이 균등한 배열이지만 선반은 얹혀 있음이라,
 // 그것만으로 이미 "카드를 늘어놓은 판"이 아니게 된다. 갈래마다 선반 하나를 준다.
+//
+// 상자를 누르면 기술지가 그 위로 덧창처럼 열린다(SeriesBox). 줄 안에 끼워 넣으면 선반이
+// 밀려서, 상자가 열 개인 갈래에서는 첫 줄을 눌러도 기술지가 화면 밖에서 열렸다.
 //
 // 화면은 두 층이다 — 위의 서가는 하나를 고르는 자리(라벨 한 장이 그 사업의 전부를 말한다),
 // 아래의 대장은 여럿을 견주는 자리(한 칸이 52건에 걸쳐 한 열로 선다). 단추로 갈아 끼우지
@@ -83,9 +87,6 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
   };
 
   const matched = doc.categories.flatMap((c) => c.entries).filter((e) => matchesFilter(e, query)).length;
-  const pickedPair = doc.categories
-    .flatMap((c) => c.entries.map((e) => ({ category: c, entry: e })))
-    .find(({ entry }) => entry.referenceCode === picked);
 
   return (
     <div>
@@ -115,54 +116,44 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
 
       {/* 서가 */}
       <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
-        {doc.categories.map((category) => {
-          // 연 상자는 제 선반의 맨 왼쪽으로 끌어내고, 기술지를 그 옆에 편다 — 서류철에서
-          // 하나를 꺼내 앞에 세우고 펼치는 것과 같다. 예전에는 선반 전체 아래에 폈는데,
-          // 상자가 열 개면 두 줄이라 첫 줄을 눌러도 기술지가 화면 밖에서 열려서 아무 일도
-          // 안 일어난 것처럼 보였다.
-          const openHere = pickedPair && pickedPair.category.label === category.label;
-          const rest = openHere
-            ? category.entries.filter((e) => e.referenceCode !== pickedPair.entry.referenceCode)
-            : category.entries;
-
-          const label = (entry: OralHistoryEntry) => (
-            <SeriesLabel
-              key={entry.referenceCode}
-              entry={entry}
-              active={picked === entry.referenceCode}
-              dimmed={!matchesFilter(entry, query)}
-              onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
-              doneOverview={doneSet(entry, "overview")}
-              donePolicy={doneSet(entry, "policy")}
-            />
-          );
-
-          return (
-            <Shelf
-              key={category.label}
-              label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
-            >
-              {openHere && (
-                // w-full이라 이 줄만 따로 서고, 남은 상자들은 그 아래로 흐른다.
-                <div className="flex w-full flex-wrap items-start gap-3">
-                  {label(pickedPair.entry)}
-                  <div className="min-w-[320px] flex-1">
+        {doc.categories.map((category) => (
+          <Shelf
+            key={category.label}
+            label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
+          >
+            {category.entries.map((entry) => {
+              const open = picked === entry.referenceCode;
+              return (
+                <SeriesBox
+                  key={entry.referenceCode}
+                  open={open}
+                  onClose={() => setPicked(null)}
+                  box={
+                    <SeriesLabel
+                      entry={entry}
+                      active={open}
+                      dimmed={!matchesFilter(entry, query)}
+                      onClick={() => setPicked(open ? null : entry.referenceCode)}
+                      doneOverview={doneSet(entry, "overview")}
+                      donePolicy={doneSet(entry, "policy")}
+                    />
+                  }
+                  sheet={
                     <SeriesSheet
-                      entry={pickedPair.entry}
-                      category={pickedPair.category}
-                      doneOverview={doneSet(pickedPair.entry, "overview")}
-                      donePolicy={doneSet(pickedPair.entry, "policy")}
-                      onToggleOverview={(k) => toggleDone(pickedPair.entry, "overview", k)}
-                      onTogglePolicy={(k) => toggleDone(pickedPair.entry, "policy", k)}
+                      entry={entry}
+                      category={category}
+                      doneOverview={doneSet(entry, "overview")}
+                      donePolicy={doneSet(entry, "policy")}
+                      onToggleOverview={(k) => toggleDone(entry, "overview", k)}
+                      onTogglePolicy={(k) => toggleDone(entry, "policy", k)}
                       onClose={() => setPicked(null)}
                     />
-                  </div>
-                </div>
-              )}
-              {rest.map(label)}
-            </Shelf>
-          );
-        })}
+                  }
+                />
+              );
+            })}
+          </Shelf>
+        ))}
       </div>
 
       {/* 기록물 대장 — 화면 맨 아래 */}
