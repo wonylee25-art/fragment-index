@@ -15,6 +15,18 @@ export interface OralHistoryNote {
   subItems: string[];
 }
 
+// 기술 칸 하나의 상태. 넷을 가르는 것이 이 화면의 핵심이다 —
+// "봤는데 기관이 공개를 안 한다"(못찾음)와 "아직 안 봤다"(안봄)는 전혀 다른 정보다.
+// 앞은 조사의 결과이고 뒤는 다음 조사 대상이다.
+export type CellState = "확인" | "일부" | "못찾음" | "안봄";
+
+export interface DescriptionCell {
+  key: string; // 개요는 "언제"…, 정책은 "1"~"9"
+  label: string;
+  state: CellState;
+  value: string | null; // 안봄이면 null
+}
+
 export interface OralHistoryEntry {
   institution: string;
   projectName: string;
@@ -32,6 +44,12 @@ export interface OralHistoryEntry {
   how: string | null;
   notes: OralHistoryNote[];
   sources: string | null;
+  // ISAD(G) 3.1.1 참조코드. 갈래·생산자·계열 세 자리를 고정으로 쓴다 — 계열이 하나뿐인
+  // 기관도 .1을 붙이는 것은, 나중에 둘로 갈릴 때 코드가 흔들리면 안 되기 때문이다.
+  referenceCode: string;
+  // 두 축의 칸. 개요 6칸(ISAD 3.2~3.3), 정책 9칸(3.4).
+  overviewCells: DescriptionCell[];
+  policyCells: DescriptionCell[];
 }
 
 export interface OralHistoryCategory {
@@ -76,6 +94,80 @@ export interface OralHistoryDoc {
 }
 
 const CORE_FIELD_KEYS = new Set(["언제", "어디서", "누구를", "무엇을", "왜", "어떻게", "출처"]);
+
+// 문서가 "누구를 / 무엇을"로 합쳐 적은 항목이 7건 있다. 필드 유무만 보면 그 일곱이
+// 조사가 안 된 것으로 잘못 찍히므로, 합친 키를 따로 받아 두 칸에 같은 값을 넣는다.
+const MERGED_WHO_WHAT_KEY = "누구를 / 무엇을";
+
+// 사업 개요 여섯 칸. 문서의 필드 이름 그대로다.
+const OVERVIEW_KEYS = ["언제", "어디서", "누구를", "무엇을", "왜", "어떻게"] as const;
+
+// 활용정책 아홉 칸. 문서에서 "- **구술 활용 정책**:" 아래 "(N) 라벨: 값" 꼴로 적힌다.
+// 순서와 이름이 52건 전부 같은 것을 확인하고 고정값으로 둔다.
+const POLICY_LABELS = [
+  "동의서",
+  "저작권",
+  "공개등급",
+  "열람절차",
+  "2차활용 승인",
+  "인용표기",
+  "사망 시 처리",
+  "철회·삭제",
+  "권리자 연락 중개",
+] as const;
+
+const POLICY_NOTE_LABEL = "구술 활용 정책";
+const POLICY_SUB_RE = /^\((\d)\)\s*([^:]{1,16}?)\s*:\s*(.*)$/;
+
+// 값 하나를 넷 중 하나로 판정한다.
+//   "확인 못함"으로 시작   → 봤는데 못 찾았다(못찾음)
+//   문장 안에 섞여 있음     → 일부만 확인했다(일부)
+//   그 밖                  → 확인
+// 문장 안에 섞인 것을 "일부"로 보는 근거는 문서의 실제 서술이다 — 예컨대
+// "별도 명칭의 등급 체계는 확인 못함. …이분 구조만 확인됨"처럼, 못 찾은 것과 찾은 것이
+// 한 칸에 함께 적혀 있다(현재 25칸).
+const NOT_FOUND_MARKS = ["확인 못함", "확인 안 됨", "확인하지 못함"];
+
+function judgeCell(value: string | null): CellState {
+  if (value === null) return "안봄";
+  const v = value.trim();
+  if (!v) return "안봄";
+  if (/^(불명|불확실)/.test(v)) return "못찾음";
+  const hit = NOT_FOUND_MARKS.find((m) => v.includes(m));
+  if (!hit) return "확인";
+  return v.startsWith(hit) ? "못찾음" : "일부";
+}
+
+// 활용정책 블록이 통째로 없는 사업이 37건이다. 그 경우 아홉 칸 전부 "안봄"이 되어야지
+// "못찾음"이 되면 안 된다 — 조사하지 않은 것을 조사해도 없는 것으로 적으면 안 되므로.
+function parsePolicyCells(notes: OralHistoryNote[]): DescriptionCell[] {
+  const note = notes.find((n) => n.label === POLICY_NOTE_LABEL);
+  const found = new Map<string, { label: string; value: string }>();
+  if (note) {
+    for (const raw of note.subItems) {
+      const m = POLICY_SUB_RE.exec(raw.trim());
+      if (m) found.set(m[1], { label: m[2].trim(), value: m[3].trim() });
+    }
+  }
+  return POLICY_LABELS.map((label, i) => {
+    const key = String(i + 1);
+    const hit = found.get(key);
+    return {
+      key,
+      label: hit?.label || label,
+      state: judgeCell(hit ? hit.value : null),
+      value: hit ? hit.value : null,
+    };
+  });
+}
+
+function buildOverviewCells(get: (key: string) => string | null): DescriptionCell[] {
+  const merged = get(MERGED_WHO_WHAT_KEY);
+  return OVERVIEW_KEYS.map((key) => {
+    const raw = get(key) ?? ((key === "누구를" || key === "무엇을") ? merged : null);
+    return { key, label: key, state: judgeCell(raw), value: raw };
+  });
+}
 
 const YEAR_TOKEN_RE = /(19|20)\d{2}/;
 // "2026-08 기준"·"2025-04-02 기준"·"2026년 기준"처럼 조사 시점을 가리키는 날짜는
@@ -206,11 +298,30 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
   }
 
   const notes: OralHistoryNote[] = fields
-    .filter((f) => f.key !== "확인 수준" && f.key !== "하위구분" && !CORE_FIELD_KEYS.has(f.key))
+    .filter(
+      (f) =>
+        f.key !== "확인 수준" &&
+        f.key !== "하위구분" &&
+        f.key !== MERGED_WHO_WHAT_KEY &&
+        !CORE_FIELD_KEYS.has(f.key),
+    )
     .map((f) => ({ label: f.key, value: f.value, subItems: f.subItems }));
 
   const whenField = get("언제");
   const { year, yearApprox } = extractRepresentativeYear(whenField?.value ?? null);
+
+  // 값이 필드 줄에 없고 아래 하위 항목으로만 적힌 자리가 있다(대구 중구의 "누구를 / 무엇을"이
+  // 그렇다 — 열전과 가게생애사를 두 줄로 나눠 적었다). 인라인 값만 보면 내용이 있는데도
+  // "안 봄"으로 찍히므로, 비었으면 하위 항목을 이어 붙여 값으로 삼는다.
+  const getValue = (key: string): string | null => {
+    const field = get(key);
+    if (!field) return null;
+    if (field.value.trim()) return field.value;
+    const joined = field.subItems.join(" · ").trim();
+    return joined || null;
+  };
+  const overviewCells = buildOverviewCells(getValue);
+  const policyCells = parsePolicyCells(notes);
 
   return {
     institution,
@@ -229,15 +340,34 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
     how: get("어떻게")?.value || null,
     notes,
     sources: get("출처")?.value || null,
+    // 참조코드는 갈래를 알아야 지을 수 있다 — 항목 파싱 단계에서는 자리만 비워 두고
+    // 카테고리를 훑는 쪽(parseCategoryEntries)에서 채운다.
+    referenceCode: "",
+    overviewCells,
+    policyCells,
   };
 }
 
-function parseCategoryEntries(body: string[]): OralHistoryEntry[] {
+function parseCategoryEntries(body: string[], categoryLabel: string): OralHistoryEntry[] {
   const text = body.join("\n");
   const parts = text.split(/^###\s+/m).slice(1);
-  return parts
+  const entries = parts
     .map((p) => parseEntryBlock("### " + p.trim()))
     .filter((e): e is OralHistoryEntry => e !== null);
+
+  // KR-OHP-{갈래}.{생산자}.{계열}. 생산자 번호는 갈래 안에서 처음 나온 순서고, 계열 번호는
+  // 같은 생산자가 다시 나올 때만 올라간다(문서 정제 전이라 지금은 전부 .1이다).
+  const producerNo = new Map<string, number>();
+  const seriesNo = new Map<string, number>();
+  for (const entry of entries) {
+    const inst = entry.institution;
+    if (!producerNo.has(inst)) producerNo.set(inst, producerNo.size + 1);
+    const series = (seriesNo.get(inst) ?? 0) + 1;
+    seriesNo.set(inst, series);
+    const producer = String(producerNo.get(inst)).padStart(2, "0");
+    entry.referenceCode = `KR-OHP-${categoryLabel}.${producer}.${series}`;
+  }
+  return entries;
 }
 
 function parseUnresolvedSection(body: string[]): OralHistorySubsection[] {
@@ -331,7 +461,7 @@ export async function getOralHistoryProjectsDoc(): Promise<OralHistoryDoc> {
     // 번호 대열에 끼우지 않고 글자를 준다.
     const headMatch = /^([0-9]+|[A-Z])\.\s+(.*)$/.exec(section.title);
     if (headMatch) {
-      categories.push({ label: headMatch[1], title: headMatch[2].trim(), entries: parseCategoryEntries(section.body) });
+      categories.push({ label: headMatch[1], title: headMatch[2].trim(), entries: parseCategoryEntries(section.body, headMatch[1]) });
     } else if (section.title === "다음으로 고려할 것") {
       planTitle = section.title;
       planGroups = parsePlanSection(section.body);
