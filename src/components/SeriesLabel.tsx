@@ -41,6 +41,12 @@ function cellsScore(cells: DescriptionCell[]): string {
   return `${got % 1 === 0 ? got : got.toFixed(1)}/${cells.length}`;
 }
 
+// 두 칸 벌의 줄 수가 다르다 — 개요 여섯, 정책 아홉. 그대로 두면 왼쪽 칸이 42px 일찍
+// 끝나 라벨 안쪽 밑선이 어긋난다. 긴 쪽에 키를 맞추고 짧은 쪽은 그 안에서 고르게 편다 —
+// 빈 줄을 채워 넣지 않는 것은, 없는 칸이 있는 것처럼 보이면 안 되기 때문이다.
+const CELL_ROW_PX = 14;
+const CELL_LIST_HEIGHT_PX = 9 * CELL_ROW_PX;
+
 // 칸 한 벌. 왼쪽 글리프(문서) · 이름 · 오른쪽 획(나) 세 자리 격자다. 꺼진 획도 자리를
 // 지키는 것은, 자리가 생겼다 없어지면 옆 글자가 좌우로 밀리기 때문이다.
 function CellList({ title, cells, done }: { title: string; cells: DescriptionCell[]; done: Set<string> }) {
@@ -49,7 +55,10 @@ function CellList({ title, cells, done }: { title: string; cells: DescriptionCel
       <p className="font-mono text-[7.5px] tracking-[0.05em] text-grey">
         {title} <b className="text-ink">{cellsScore(cells)}</b>
       </p>
-      <ul className="mt-0.5">
+      <ul
+        className="mt-0.5 flex flex-col justify-between"
+        style={{ height: CELL_LIST_HEIGHT_PX }}
+      >
         {cells.map((cell) => (
           <li
             key={cell.key}
