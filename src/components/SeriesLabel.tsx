@@ -44,6 +44,9 @@ function cellsScore(cells: DescriptionCell[]): string {
 // 두 칸 벌의 줄 수가 다르다 — 개요 여섯, 정책 아홉. 그대로 두면 왼쪽 칸이 42px 일찍
 // 끝나 라벨 안쪽 밑선이 어긋난다. 긴 쪽에 키를 맞추고 짧은 쪽은 그 안에서 고르게 편다 —
 // 빈 줄을 채워 넣지 않는 것은, 없는 칸이 있는 것처럼 보이면 안 되기 때문이다.
+// 상자 키. 내용이 정하게 두면 기술지 덧창과 어긋나므로 명시값으로 못 박고 둘이 나눠 쓴다.
+export const SERIES_BOX_HEIGHT_PX = 363;
+
 const CELL_ROW_PX = 14;
 const CELL_LIST_HEIGHT_PX = 9 * CELL_ROW_PX;
 
@@ -102,10 +105,10 @@ export function SeriesLabel({
       type="button"
       onClick={onClick}
       title={`${entry.institution} — ${entry.projectName}`}
+      style={{ ...archiveTintStyle(ARCHIVE_ITEM_HUE.구술, strength), height: SERIES_BOX_HEIGHT_PX }}
       className={`w-[202px] shrink-0 cursor-pointer border border-b-2 pb-2 text-left shadow-[1px_2px_3px_rgba(0,0,0,0.12)] transition-opacity ${
         active ? "border-ink" : "border-line"
       } ${dimmed ? "opacity-25" : ""}`}
-      style={archiveTintStyle(ARCHIVE_ITEM_HUE.구술, strength)}
     >
       {/* 상자 뚜껑 — 손잡이 홈이 파인 자리 */}
       <span className="flex h-[15px] items-end justify-center border-b border-ink/15">

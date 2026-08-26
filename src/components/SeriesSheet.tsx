@@ -3,15 +3,18 @@
 import { useState } from "react";
 import { DescriptionCell, OralHistoryEntry, OralHistoryCategory } from "@/lib/oral-history-projects";
 import { Inline } from "@/lib/inline-markdown";
-import { CELL_GLYPH, CELL_TEXT_CLASSNAME, TEXT_BODY_CLASSNAME } from "@/lib/design-tokens";
-import { Tick } from "./SeriesLabel";
+import { CELL_GLYPH, CELL_TEXT_CLASSNAME } from "@/lib/design-tokens";
+import { SERIES_BOX_HEIGHT_PX, Tick } from "./SeriesLabel";
 
 // 상자를 연 면. 닫힌 라벨이 "몇 칸 찼나"를 말했다면 이쪽은 "그 칸에 뭐라고 적혀 있나"다.
-// 축이 둘이라 탭도 둘이다 — 사업 개요(ISAD 3.2~3.3)와 활용정책(3.4)은 성격이 달라서
-// 한 면에 겹쳐 놓으면 서로를 가린다.
+//
+// 키는 상자와 같다 — 덧창이 상자보다 크거나 작으면 꺼내 편 것이 아니라 딴 물건이 얹힌 것처럼
+// 보인다. 그 안에서 가로를 길게 쓴다: 왼쪽에 칸 이름을 세로로 세우고 오른쪽을 본문에 준다.
+//
+// 축 탭(사업 개요 / 활용정책)을 걷었다. 그건 칸 열다섯을 한 번에 못 펴서 둔 장치였는데,
+// 세로 난간에는 열다섯이 다 들어간다 — 탭을 눌러 축을 오갈 일 없이 한눈에 보이고,
+// 본문에 줄 자리가 그만큼 늘어난다.
 
-// 각 칸이 ISAD(G)의 어느 요소인지. 값에 요소 번호를 붙여 두면 나중에 EAD나 다른 목록으로
-// 내보낼 때 옮길 자리를 다시 찾지 않아도 된다.
 const OVERVIEW_ELEMENT: Record<string, string> = {
   언제: "3.1.3",
   어디서: "3.2.1",
@@ -34,61 +37,46 @@ const POLICY_ELEMENT: Record<string, string> = {
   "9": "3.4.2",
 };
 
-function CellPanel({
-  cells,
-  elements,
-  done,
-  onToggle,
-}: {
-  cells: DescriptionCell[];
-  elements: Record<string, string>;
-  done: Set<string>;
-  onToggle: (key: string) => void;
-}) {
-  const [picked, setPicked] = useState(cells[0]?.key ?? "");
-  const cell = cells.find((c) => c.key === picked) ?? cells[0];
-  if (!cell) return null;
+type Picked = { axis: "overview" | "policy"; key: string };
 
+function RailGroup({
+  title,
+  cells,
+  axis,
+  picked,
+  done,
+  onPick,
+}: {
+  title: string;
+  cells: DescriptionCell[];
+  axis: "overview" | "policy";
+  picked: Picked;
+  done: Set<string>;
+  onPick: (p: Picked) => void;
+}) {
   return (
-    <div>
-      {/* 칸 고르기. 이름 앞의 글리프가 읽기 전에 어디가 비었는지 알린다. */}
-      <div className="flex flex-wrap border-b border-line bg-surface">
-        {cells.map((c) => (
+    <>
+      <p className="px-2 pb-px pt-1 font-mono text-[8px] tracking-[0.12em] text-grey">{title}</p>
+      {cells.map((c) => {
+        const on = picked.axis === axis && picked.key === c.key;
+        return (
           <button
             key={c.key}
             type="button"
-            onClick={() => setPicked(c.key)}
-            className={`flex items-center gap-1 border-r border-line px-2.5 py-1.5 font-mono text-[10px] ${
-              c.key === cell.key ? "bg-background font-bold text-ink shadow-[inset_0_-2px_0_var(--ink)]" : "text-grey"
+            onClick={() => onPick({ axis, key: c.key })}
+            className={`grid w-full grid-cols-[10px_1fr_12px] items-center gap-x-1 px-2 py-[1.5px] text-left font-mono text-[10px] ${
+              on ? "bg-ink text-white" : "text-grey hover:bg-surface hover:text-ink"
             }`}
           >
-            <span className={CELL_TEXT_CLASSNAME[c.state]}>{CELL_GLYPH[c.state]}</span>
-            {c.label}
+            <span className={on ? "text-center text-white" : `text-center ${CELL_TEXT_CLASSNAME[c.state]}`}>
+              {CELL_GLYPH[c.state]}
+            </span>
+            <span className="truncate">{c.label}</span>
+            <Tick on={done.has(c.key)} />
           </button>
-        ))}
-      </div>
-
-      <div className="px-4 py-3.5">
-        <p className="flex flex-wrap items-center gap-2">
-          <span className="text-[12.5px] font-bold text-ink">{cell.label}</span>
-          <span className="font-mono text-[9px] text-grey">{elements[cell.key]}</span>
-          <span className="border border-line px-1.5 py-px font-mono text-[9.5px] text-grey">{cell.state}</span>
-          {/* 내가 켜는 자리 — "여기는 더 볼 일 없다". 문서에 없던 정보라 문서와 겹치지 않는다. */}
-          <button
-            type="button"
-            onClick={() => onToggle(cell.key)}
-            aria-pressed={done.has(cell.key)}
-            className="ml-auto flex items-center gap-1.5 border border-line px-2 py-0.5 font-mono text-[10px] text-grey hover:border-ink hover:text-ink"
-          >
-            <Tick on={done.has(cell.key)} />
-            {done.has(cell.key) ? "더 볼 일 없음" : "표시하기"}
-          </button>
-        </p>
-        <div className={`mt-2 max-w-[70ch] ${TEXT_BODY_CLASSNAME} leading-7 text-ink`}>
-          {cell.value ? <Inline text={cell.value} /> : <span className="text-grey">아직 조사하지 않은 칸이다.</span>}
-        </div>
-      </div>
-    </div>
+        );
+      })}
+    </>
   );
 }
 
@@ -109,65 +97,89 @@ export function SeriesSheet({
   onTogglePolicy: (key: string) => void;
   onClose: () => void;
 }) {
-  const [axis, setAxis] = useState<"overview" | "policy">("overview");
+  const [picked, setPicked] = useState<Picked>({ axis: "overview", key: entry.overviewCells[0]?.key ?? "언제" });
+
+  const cells = picked.axis === "overview" ? entry.overviewCells : entry.policyCells;
+  const cell = cells.find((c) => c.key === picked.key) ?? cells[0];
+  const done = picked.axis === "overview" ? doneOverview : donePolicy;
+  const toggle = picked.axis === "overview" ? onToggleOverview : onTogglePolicy;
+  const element = (picked.axis === "overview" ? OVERVIEW_ELEMENT : POLICY_ELEMENT)[cell?.key ?? ""] ?? "";
 
   return (
-    <div className="w-full border border-ink bg-background">
-      <div className="flex items-start justify-between gap-4 border-b border-ink px-4 py-3">
-        <div className="min-w-0">
-          <p className="font-mono text-[9.5px] font-bold tracking-[0.14em] text-grey">
-            {entry.referenceCode} · 계열 · {category.label}. {category.title}
-          </p>
-          <h3 className="mt-1 font-serif text-[19px] font-bold leading-tight text-ink">{entry.institution}</h3>
-          <p className="mt-0.5 text-[12px] text-grey">{entry.projectName}</p>
-        </div>
+    <div className="flex flex-col border border-ink bg-background" style={{ height: SERIES_BOX_HEIGHT_PX }}>
+      {/* 머리는 한 줄로 눌러 둔다 — 기관명·사업명은 어느 상자를 열었는지 알리는 만큼만 있으면
+          되고, 자리는 본문이 가져간다. */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-ink px-2.5 py-1">
+        <span className="shrink-0 font-mono text-[9.5px] font-bold tracking-[0.04em] text-ink">
+          {entry.referenceCode}
+        </span>
+        <span className="shrink-0 font-mono text-[9px] text-grey">
+          {category.label}. {category.title}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[11.5px] text-ink">
+          <b className="font-bold">{entry.institution}</b>
+          <span className="text-grey"> · {entry.projectName}</span>
+        </span>
         <button
           type="button"
           onClick={onClose}
           aria-label="닫기"
-          className="shrink-0 border border-line px-2 py-1 font-mono text-[11px] text-grey hover:border-ink hover:text-ink"
+          className="shrink-0 px-1 font-mono text-[11px] text-grey hover:text-ink"
         >
-          닫기 ✕
+          ✕
         </button>
       </div>
 
-      <div className="flex border-b border-ink">
-        {(
-          [
-            ["overview", "사업 개요", "3.2~3.3 배경 · 내용과 구조"],
-            ["policy", "활용정책", "3.4 접근과 이용조건"],
-          ] as const
-        ).map(([key, name, area]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setAxis(key)}
-            className={`border-r border-line px-4 py-2 text-left text-[12.5px] font-bold ${
-              axis === key ? "bg-ink text-white" : "bg-surface text-grey"
-            }`}
-          >
-            {name}
-            <span className="block font-mono text-[8.5px] font-normal tracking-[0.04em]">{area}</span>
-          </button>
-        ))}
+      <div className="flex min-h-0 flex-1">
+        {/* 세로 난간 — 열다섯 칸이 한눈에 선다. 칸 이름 앞 글리프가 읽기 전에 어디가 비었는지
+            알리고, 뒤의 획이 내가 끝낸 칸을 알린다. */}
+        <div className="w-[118px] shrink-0 overflow-y-auto overscroll-contain border-r border-ink/15 py-0.5">
+          <RailGroup
+            title="사업 개요"
+            cells={entry.overviewCells}
+            axis="overview"
+            picked={picked}
+            done={doneOverview}
+            onPick={setPicked}
+          />
+          <RailGroup
+            title="활용정책"
+            cells={entry.policyCells}
+            axis="policy"
+            picked={picked}
+            done={donePolicy}
+            onPick={setPicked}
+          />
+        </div>
+
+        {/* 본문 — 남은 가로를 다 쓰고, 글이 길면 여기서만 굴린다. */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-1.5">
+            <span className="text-[12px] font-bold text-ink">{cell?.label}</span>
+            <span className="font-mono text-[9px] text-grey">{element}</span>
+            <span className="border border-line px-1.5 font-mono text-[9.5px] text-grey">{cell?.state}</span>
+            <button
+              type="button"
+              onClick={() => cell && toggle(cell.key)}
+              aria-pressed={cell ? done.has(cell.key) : false}
+              className="ml-auto flex items-center gap-1.5 border border-line px-2 py-0.5 font-mono text-[10px] text-grey hover:border-ink hover:text-ink"
+            >
+              <Tick on={cell ? done.has(cell.key) : false} />
+              {cell && done.has(cell.key) ? "더 볼 일 없음" : "표시하기"}
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2.5">
+            <div className="text-[13px] leading-[1.75] text-ink">
+              {cell?.value ? <Inline text={cell.value} /> : <span className="text-grey">아직 조사하지 않은 칸이다.</span>}
+            </div>
+            {entry.sources && (
+              <p className="mt-3 border-t border-line pt-2 font-mono text-[10.5px] leading-relaxed text-grey">
+                출처 — <Inline text={entry.sources} />
+              </p>
+            )}
+          </div>
+        </div>
       </div>
-
-      {axis === "overview" ? (
-        <CellPanel
-          cells={entry.overviewCells}
-          elements={OVERVIEW_ELEMENT}
-          done={doneOverview}
-          onToggle={onToggleOverview}
-        />
-      ) : (
-        <CellPanel cells={entry.policyCells} elements={POLICY_ELEMENT} done={donePolicy} onToggle={onTogglePolicy} />
-      )}
-
-      {entry.sources && (
-        <p className="border-t border-line px-4 py-2 font-mono text-[11px] text-grey">
-          출처 — <Inline text={entry.sources} />
-        </p>
-      )}
     </div>
   );
 }

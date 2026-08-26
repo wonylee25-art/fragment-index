@@ -12,7 +12,7 @@ import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 // 맞춰 펴고, 아래쪽 상자에서는 그대로 펴면 끝이 잘리는데 그 아래를 보려고 굴리면 페이지가
 // 밀려 덧창이 함께 움직여서 잘린 끝에 영영 닿지 못하므로 창 안에 들어오도록 끌어올린다.
 
-const OVERLAY_WIDTH_PX = 560;
+const OVERLAY_WIDTH_PX = 720;
 
 export function SeriesBox({
   open,
@@ -67,7 +67,7 @@ export function SeriesBox({
           // overscroll-contain은 덧창 끝까지 굴렸을 때 그 힘이 페이지로 넘어가지 않게 한다:
           // 페이지가 밀리면 상자가 움직이고 덧창도 따라가 읽던 자리를 잃는다.
           style={{ top: offsetTop }}
-          className={`absolute z-30 flex max-h-[min(36rem,calc(100vh-1rem))] w-[560px] max-w-[calc(100vw-2rem)] flex-col overflow-y-auto overscroll-contain bg-background shadow-[6px_6px_0_rgba(26,26,24,0.14)] ${
+          className={`absolute z-30 flex w-[720px] max-w-[calc(100vw-2rem)] flex-col bg-background shadow-[6px_6px_0_rgba(26,26,24,0.14)] ${
             flip ? "right-0" : "left-0"
           }`}
         >
