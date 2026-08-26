@@ -115,35 +115,54 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
 
       {/* 서가 */}
       <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
-        {doc.categories.map((category) => (
-          <div key={category.label}>
-            <Shelf label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}>
-              {category.entries.map((entry) => (
-                <SeriesLabel
-                  key={entry.referenceCode}
-                  entry={entry}
-                  active={picked === entry.referenceCode}
-                  dimmed={!matchesFilter(entry, query)}
-                  onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
-                  doneOverview={doneSet(entry, "overview")}
-                  donePolicy={doneSet(entry, "policy")}
-                />
-              ))}
+        {doc.categories.map((category) => {
+          // 연 상자는 제 선반의 맨 왼쪽으로 끌어내고, 기술지를 그 옆에 편다 — 서류철에서
+          // 하나를 꺼내 앞에 세우고 펼치는 것과 같다. 예전에는 선반 전체 아래에 폈는데,
+          // 상자가 열 개면 두 줄이라 첫 줄을 눌러도 기술지가 화면 밖에서 열려서 아무 일도
+          // 안 일어난 것처럼 보였다.
+          const openHere = pickedPair && pickedPair.category.label === category.label;
+          const rest = openHere
+            ? category.entries.filter((e) => e.referenceCode !== pickedPair.entry.referenceCode)
+            : category.entries;
+
+          const label = (entry: OralHistoryEntry) => (
+            <SeriesLabel
+              key={entry.referenceCode}
+              entry={entry}
+              active={picked === entry.referenceCode}
+              dimmed={!matchesFilter(entry, query)}
+              onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
+              doneOverview={doneSet(entry, "overview")}
+              donePolicy={doneSet(entry, "policy")}
+            />
+          );
+
+          return (
+            <Shelf
+              key={category.label}
+              label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
+            >
+              {openHere && (
+                // w-full이라 이 줄만 따로 서고, 남은 상자들은 그 아래로 흐른다.
+                <div className="flex w-full flex-wrap items-start gap-3">
+                  {label(pickedPair.entry)}
+                  <div className="min-w-[320px] flex-1">
+                    <SeriesSheet
+                      entry={pickedPair.entry}
+                      category={pickedPair.category}
+                      doneOverview={doneSet(pickedPair.entry, "overview")}
+                      donePolicy={doneSet(pickedPair.entry, "policy")}
+                      onToggleOverview={(k) => toggleDone(pickedPair.entry, "overview", k)}
+                      onTogglePolicy={(k) => toggleDone(pickedPair.entry, "policy", k)}
+                      onClose={() => setPicked(null)}
+                    />
+                  </div>
+                </div>
+              )}
+              {rest.map(label)}
             </Shelf>
-            {/* 연 상자의 기술지는 그 선반 바로 아래에서 편다 — 어느 상자를 열었는지 잃지 않게. */}
-            {pickedPair && pickedPair.category.label === category.label && (
-              <SeriesSheet
-                entry={pickedPair.entry}
-                category={pickedPair.category}
-                doneOverview={doneSet(pickedPair.entry, "overview")}
-                donePolicy={doneSet(pickedPair.entry, "policy")}
-                onToggleOverview={(k) => toggleDone(pickedPair.entry, "overview", k)}
-                onTogglePolicy={(k) => toggleDone(pickedPair.entry, "policy", k)}
-                onClose={() => setPicked(null)}
-              />
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* 기록물 대장 — 화면 맨 아래 */}

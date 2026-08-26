@@ -112,7 +112,7 @@ export function SeriesSheet({
   const [axis, setAxis] = useState<"overview" | "policy">("overview");
 
   return (
-    <div className="mt-3 w-full border border-ink bg-background">
+    <div className="w-full border border-ink bg-background">
       <div className="flex items-start justify-between gap-4 border-b border-ink px-4 py-3">
         <div className="min-w-0">
           <p className="font-mono text-[9.5px] font-bold tracking-[0.14em] text-grey">
