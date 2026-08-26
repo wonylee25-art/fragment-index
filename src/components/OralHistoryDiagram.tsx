@@ -4,6 +4,8 @@ import { useState } from "react";
 import { INPUT_CLASSNAME, TEXT_DENSE_CLASSNAME } from "@/lib/design-tokens";
 import { Inline } from "@/lib/inline-markdown";
 import { OralHistoryDoc, OralHistoryEntry } from "@/lib/oral-history-projects";
+import type { CellMark, MarkAxis } from "@/lib/oral-marks";
+import { setCellMark } from "@/lib/oral-mark-actions";
 import { SeriesLabel } from "./SeriesLabel";
 import { SeriesSheet } from "./SeriesSheet";
 import { OralRegister } from "./OralRegister";
@@ -42,23 +44,43 @@ function Shelf({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
+export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks: CellMark[] }) {
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
-  // 내가 켠 칸. 지금은 새로고침하면 사라진다 — 저장은 다음 걸음이다(문서에 없던 새 정보라
-  // DB로 가도 문서와 갈리지 않는다. is_important·highlighted와 같은 갈래다).
-  const [done, setDone] = useState<Record<string, Set<string>>>({});
+  // 내가 켠 칸. 주인은 참조코드가 아니라 기관명+사업명이다 — 참조코드는 문서 순서로
+  // 매겨져서 가운데 기관이 하나 끼면 뒤가 전부 밀리고, 표시가 엉뚱한 사업에 붙는다.
+  const groupKey = (institution: string, projectName: string, axis: MarkAxis) =>
+    `${institution}\u0000${projectName}\u0000${axis}`;
 
-  const doneKey = (ref: string, axis: "o" | "p") => `${ref}:${axis}`;
-  const doneSet = (ref: string, axis: "o" | "p") => done[doneKey(ref, axis)] ?? new Set<string>();
-  const toggleDone = (ref: string, axis: "o" | "p", cellKey: string) =>
-    setDone((prev) => {
-      const key = doneKey(ref, axis);
-      const next = new Set(prev[key] ?? []);
-      if (next.has(cellKey)) next.delete(cellKey);
-      else next.add(cellKey);
-      return { ...prev, [key]: next };
-    });
+  const [done, setDone] = useState<Record<string, Set<string>>>(() => {
+    const seed: Record<string, Set<string>> = {};
+    for (const m of marks) {
+      const key = groupKey(m.institution, m.projectName, m.axis);
+      (seed[key] ??= new Set()).add(m.cellKey);
+    }
+    return seed;
+  });
+
+  const doneSet = (entry: OralHistoryEntry, axis: MarkAxis) =>
+    done[groupKey(entry.institution, entry.projectName, axis)] ?? new Set<string>();
+
+  // 낙관적으로 먼저 바꾸고, 저장에 실패하면 되돌린다 — FlagToggle이 쓰는 방식 그대로다.
+  const toggleDone = (entry: OralHistoryEntry, axis: MarkAxis, cellKey: string) => {
+    const key = groupKey(entry.institution, entry.projectName, axis);
+    const on = !(done[key]?.has(cellKey) ?? false);
+    const apply = (turnOn: boolean) =>
+      setDone((prev) => {
+        const next = new Set(prev[key] ?? []);
+        if (turnOn) next.add(cellKey);
+        else next.delete(cellKey);
+        return { ...prev, [key]: next };
+      });
+    apply(on);
+    void setCellMark(
+      { institution: entry.institution, projectName: entry.projectName, axis, cellKey },
+      on,
+    ).catch(() => apply(!on));
+  };
 
   const matched = doc.categories.flatMap((c) => c.entries).filter((e) => matchesFilter(e, query)).length;
   const pickedPair = doc.categories
@@ -103,8 +125,8 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
                   active={picked === entry.referenceCode}
                   dimmed={!matchesFilter(entry, query)}
                   onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
-                  doneOverview={doneSet(entry.referenceCode, "o")}
-                  donePolicy={doneSet(entry.referenceCode, "p")}
+                  doneOverview={doneSet(entry, "overview")}
+                  donePolicy={doneSet(entry, "policy")}
                 />
               ))}
             </Shelf>
@@ -113,10 +135,10 @@ export function OralHistoryDiagram({ doc }: { doc: OralHistoryDoc }) {
               <SeriesSheet
                 entry={pickedPair.entry}
                 category={pickedPair.category}
-                doneOverview={doneSet(pickedPair.entry.referenceCode, "o")}
-                donePolicy={doneSet(pickedPair.entry.referenceCode, "p")}
-                onToggleOverview={(k) => toggleDone(pickedPair.entry.referenceCode, "o", k)}
-                onTogglePolicy={(k) => toggleDone(pickedPair.entry.referenceCode, "p", k)}
+                doneOverview={doneSet(pickedPair.entry, "overview")}
+                donePolicy={doneSet(pickedPair.entry, "policy")}
+                onToggleOverview={(k) => toggleDone(pickedPair.entry, "overview", k)}
+                onTogglePolicy={(k) => toggleDone(pickedPair.entry, "policy", k)}
                 onClose={() => setPicked(null)}
               />
             )}
