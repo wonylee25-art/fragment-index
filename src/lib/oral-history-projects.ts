@@ -21,10 +21,19 @@ export interface OralHistoryNote {
 export type CellState = "확인" | "일부" | "못찾음" | "안봄";
 
 export interface DescriptionCell {
-  key: string; // 개요는 "언제"…, 정책은 "1"~"9"
+  key: string; // 기술 축은 "군-번호"(예: "주체-4"), 정책 축은 "1"~"9"
   label: string;
+  element: string; // ISAD(G) 요소 번호. "L1"·"L2"는 규칙 밖의 로컬 칸
   state: CellState;
   value: string | null; // 안봄이면 null
+}
+
+// 칸을 묶어 읽는 단위. 군은 ISAD 영역과 꼭 같지 않다 — 읽기 위한 묶음이고,
+// 정본 번호는 칸마다 붙는다(docs/oral_description_schema.md).
+export interface DescriptionGroup {
+  id: string;
+  label: string;
+  cells: DescriptionCell[];
 }
 
 export interface OralHistoryEntry {
@@ -47,8 +56,8 @@ export interface OralHistoryEntry {
   // ISAD(G) 3.1.1 참조코드. 갈래·생산자·계열 세 자리를 고정으로 쓴다 — 계열이 하나뿐인
   // 기관도 .1을 붙이는 것은, 나중에 둘로 갈릴 때 코드가 흔들리면 안 되기 때문이다.
   referenceCode: string;
-  // 두 축의 칸. 개요 6칸(ISAD 3.2~3.3), 정책 9칸(3.4).
-  overviewCells: DescriptionCell[];
+  // 기술 축 21칸을 네 군으로 나눠 담는다. 정책 축 9칸은 따로 선다.
+  groups: DescriptionGroup[];
   policyCells: DescriptionCell[];
 }
 
@@ -99,25 +108,87 @@ const CORE_FIELD_KEYS = new Set(["언제", "어디서", "누구를", "무엇을"
 // 조사가 안 된 것으로 잘못 찍히므로, 합친 키를 따로 받아 두 칸에 같은 값을 넣는다.
 const MERGED_WHO_WHAT_KEY = "누구를 / 무엇을";
 
-// 사업 개요 여섯 칸. 문서의 필드 이름 그대로다.
-const OVERVIEW_KEYS = ["언제", "어디서", "누구를", "무엇을", "왜", "어떻게"] as const;
+// 기술 축의 칸 정의. docs/oral_description_schema.md가 정본이고 이쪽은 그 옮김이다.
+//
+// legacy는 아직 옛 육하원칙으로 적힌 항목에서 값을 끌어올 필드 이름이다. 문서를 새 꼴로
+// 옮기는 동안 두 꼴이 섞이므로, 새 필드가 있으면 그것을 쓰고 없으면 옛 필드로 채운다 —
+// 그러지 않으면 옮기지 않은 항목이 전부 빈칸으로 찍혀 화면이 죽는다.
+interface CellDef {
+  label: string;
+  element: string;
+  legacy?: string;
+}
+
+interface GroupDef {
+  id: string;
+  label: string;
+  cells: CellDef[];
+}
+
+const GROUP_DEFS: GroupDef[] = [
+  {
+    id: "사업",
+    label: "사업",
+    cells: [
+      { label: "사업 기간", element: "3.1.3", legacy: "언제" },
+      { label: "규모와 매체", element: "3.1.5" },
+    ],
+  },
+  {
+    id: "주체",
+    label: "주체",
+    cells: [
+      { label: "생산자", element: "3.2.1", legacy: "어디서" },
+      { label: "행정연혁", element: "3.2.2" },
+      { label: "기록물 이력", element: "3.2.3" },
+      { label: "사업의 지향", element: "L1", legacy: "왜" },
+      { label: "권리 귀속", element: "3.4.2" },
+    ],
+  },
+  {
+    id: "내용",
+    label: "내용과 결과",
+    cells: [
+      { label: "범위와 내용", element: "3.3.1", legacy: "무엇을" },
+      { label: "구술자", element: "3.3.1", legacy: "누구를" },
+      { label: "수집 절차", element: "3.3.4", legacy: "어떻게" },
+      { label: "결과물", element: "3.5.4" },
+      { label: "추가수집 예상", element: "3.3.3" },
+    ],
+  },
+  {
+    id: "활용",
+    label: "활용",
+    cells: [
+      { label: "공개", element: "3.5.2" },
+      { label: "배포", element: "3.5.2" },
+      { label: "전시·행사", element: "3.5.3" },
+      { label: "교육", element: "3.5.3" },
+      { label: "파생 제작물", element: "3.5.3" },
+      { label: "후속 연구", element: "3.5.3" },
+      { label: "정책·행정 근거", element: "3.6.1" },
+      { label: "역량·방법론 확산", element: "L2" },
+      { label: "그 외", element: "3.6.1" },
+    ],
+  },
+];
 
 // 활용정책 아홉 칸. 문서에서 "- **구술 활용 정책**:" 아래 "(N) 라벨: 값" 꼴로 적힌다.
 // 순서와 이름이 52건 전부 같은 것을 확인하고 고정값으로 둔다.
-const POLICY_LABELS = [
-  "동의서",
-  "저작권",
-  "공개등급",
-  "열람절차",
-  "2차활용 승인",
-  "인용표기",
-  "사망 시 처리",
-  "철회·삭제",
-  "권리자 연락 중개",
-] as const;
+const POLICY_CELLS: CellDef[] = [
+  { label: "동의서", element: "3.2.4" },
+  { label: "저작권", element: "3.4.2" },
+  { label: "공개등급", element: "3.4.1" },
+  { label: "열람절차", element: "3.4.1" },
+  { label: "2차활용 승인", element: "3.4.2" },
+  { label: "인용표기", element: "3.6.1" },
+  { label: "사망 시 처리", element: "3.4.1" },
+  { label: "철회·삭제", element: "3.3.2" },
+  { label: "권리자 연락 중개", element: "3.4.2" },
+];
 
 const POLICY_NOTE_LABEL = "구술 활용 정책";
-const POLICY_SUB_RE = /^\((\d)\)\s*([^:]{1,16}?)\s*:\s*(.*)$/;
+const SUB_ITEM_RE = /^\((\d)\)\s*([^:]{1,16}?)\s*:\s*(.*)$/;
 
 // 값 하나를 넷 중 하나로 판정한다.
 //   "확인 못함"으로 시작   → 봤는데 못 찾았다(못찾음)
@@ -125,7 +196,7 @@ const POLICY_SUB_RE = /^\((\d)\)\s*([^:]{1,16}?)\s*:\s*(.*)$/;
 //   그 밖                  → 확인
 // 문장 안에 섞인 것을 "일부"로 보는 근거는 문서의 실제 서술이다 — 예컨대
 // "별도 명칭의 등급 체계는 확인 못함. …이분 구조만 확인됨"처럼, 못 찾은 것과 찾은 것이
-// 한 칸에 함께 적혀 있다(현재 25칸).
+// 한 칸에 함께 적혀 있다.
 const NOT_FOUND_MARKS = ["확인 못함", "확인 안 됨", "확인하지 못함"];
 
 function judgeCell(value: string | null): CellState {
@@ -138,34 +209,25 @@ function judgeCell(value: string | null): CellState {
   return v.startsWith(hit) ? "못찾음" : "일부";
 }
 
+// "(N) 이름: 값" 꼴 하위 항목을 번호로 색인한다. 활용정책과 새 기술 군이 같은 꼴을 쓴다.
+function indexSubItems(subItems: string[]): Map<string, string> {
+  const found = new Map<string, string>();
+  for (const raw of subItems) {
+    const m = SUB_ITEM_RE.exec(raw.trim());
+    if (m) found.set(m[1], m[3].trim());
+  }
+  return found;
+}
+
 // 활용정책 블록이 통째로 없는 사업이 37건이다. 그 경우 아홉 칸 전부 "안봄"이 되어야지
 // "못찾음"이 되면 안 된다 — 조사하지 않은 것을 조사해도 없는 것으로 적으면 안 되므로.
 function parsePolicyCells(notes: OralHistoryNote[]): DescriptionCell[] {
   const note = notes.find((n) => n.label === POLICY_NOTE_LABEL);
-  const found = new Map<string, { label: string; value: string }>();
-  if (note) {
-    for (const raw of note.subItems) {
-      const m = POLICY_SUB_RE.exec(raw.trim());
-      if (m) found.set(m[1], { label: m[2].trim(), value: m[3].trim() });
-    }
-  }
-  return POLICY_LABELS.map((label, i) => {
+  const found = note ? indexSubItems(note.subItems) : new Map<string, string>();
+  return POLICY_CELLS.map((def, i) => {
     const key = String(i + 1);
-    const hit = found.get(key);
-    return {
-      key,
-      label: hit?.label || label,
-      state: judgeCell(hit ? hit.value : null),
-      value: hit ? hit.value : null,
-    };
-  });
-}
-
-function buildOverviewCells(get: (key: string) => string | null): DescriptionCell[] {
-  const merged = get(MERGED_WHO_WHAT_KEY);
-  return OVERVIEW_KEYS.map((key) => {
-    const raw = get(key) ?? ((key === "누구를" || key === "무엇을") ? merged : null);
-    return { key, label: key, state: judgeCell(raw), value: raw };
+    const value = found.get(key) ?? null;
+    return { key, label: def.label, element: def.element, state: judgeCell(value), value };
   });
 }
 
@@ -201,6 +263,40 @@ function extractRepresentativeYear(when: string | null): { year: number | null; 
 
   const year = firstBoldYear(primary) ?? firstBoldYear(cleaned) ?? firstYearToken(primary) ?? firstYearToken(cleaned);
   return { year, yearApprox: yearApprox || year === null };
+}
+
+
+// 기술 축 네 군을 짓는다. 새 꼴(군 필드 + "(N) 이름: 값" 하위 항목)이 있으면 그것을 쓰고,
+// 없으면 옛 육하원칙 필드에서 끌어온다. 새 칸에 대응하는 옛 필드가 없는 자리는 "안봄"이
+// 되는데, 그것이 이 규격이 드러내려는 바다 — 칸이 없으면 안 본 것을 적을 데조차 없다.
+function buildGroups(
+  getSubItems: (key: string) => string[] | null,
+  getValue: (key: string) => string | null,
+): DescriptionGroup[] {
+  const merged = getValue(MERGED_WHO_WHAT_KEY);
+  return GROUP_DEFS.map((group) => {
+    const sub = getSubItems(group.label);
+    const found = sub ? indexSubItems(sub) : null;
+    return {
+      id: group.id,
+      label: group.label,
+      cells: group.cells.map((def, i) => {
+        const fresh = found?.get(String(i + 1)) ?? null;
+        const legacy = def.legacy
+          ? getValue(def.legacy) ??
+            (def.legacy === "누구를" || def.legacy === "무엇을" ? merged : null)
+          : null;
+        const value = fresh ?? legacy;
+        return {
+          key: `${group.id}-${i + 1}`,
+          label: def.label,
+          element: def.element,
+          state: judgeCell(value),
+          value,
+        };
+      }),
+    };
+  });
 }
 
 function splitTopSections(md: string): { title: string; body: string[] }[] {
@@ -320,7 +416,8 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
     const joined = field.subItems.join(" · ").trim();
     return joined || null;
   };
-  const overviewCells = buildOverviewCells(getValue);
+  const getSubItems = (key: string): string[] | null => get(key)?.subItems ?? null;
+  const groups = buildGroups(getSubItems, getValue);
   const policyCells = parsePolicyCells(notes);
 
   return {
@@ -343,7 +440,7 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
     // 참조코드는 갈래를 알아야 지을 수 있다 — 항목 파싱 단계에서는 자리만 비워 두고
     // 카테고리를 훑는 쪽(parseCategoryEntries)에서 채운다.
     referenceCode: "",
-    overviewCells,
+    groups,
     policyCells,
   };
 }

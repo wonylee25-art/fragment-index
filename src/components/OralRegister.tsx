@@ -13,7 +13,9 @@ import { CELL_GLYPH, CELL_TEXT_CLASSNAME, TOGGLE_BUTTON_CLASSNAME, TOGGLE_ON_CLA
 //
 // 카드는 닫힌 상자지만 대장은 열린 줄이다 — 좌우 테두리가 없고 아랫줄과 선을 나눠 쓴다.
 
-type Axis = "overview" | "policy";
+// 대장이 한 번에 세울 수 있는 것은 군 하나다. 기술 축이 21칸이 되면서 한 표에 다 눕히면
+// 열이 서른이라 아무것도 안 읽힌다 — 군을 갈아 끼우고, 한 번에 그 군의 칸만 세운다.
+const POLICY_GROUP_ID = "정책";
 
 export function OralRegister({
   categories,
@@ -24,29 +26,34 @@ export function OralRegister({
   matches: (entry: OralHistoryEntry) => boolean;
   onPick: (categoryLabel: string, entry: OralHistoryEntry) => void;
 }) {
-  const [axis, setAxis] = useState<Axis>("overview");
   const rows = categories.flatMap((c) => c.entries.map((e) => ({ category: c, entry: e })));
-  const heads = axis === "overview" ? rows[0]?.entry.overviewCells : rows[0]?.entry.policyCells;
-  const marksWidth = axis === "overview" ? "240px" : "330px";
+  const sample = rows[0]?.entry;
+  const tabs = [
+    ...(sample?.groups ?? []).map((g) => ({ id: g.id, label: g.label })),
+    { id: POLICY_GROUP_ID, label: "활용정책" },
+  ];
+  const [groupId, setGroupId] = useState<string>(tabs[0]?.id ?? "사업");
+
+  const cellsOf = (entry: OralHistoryEntry) =>
+    groupId === POLICY_GROUP_ID
+      ? entry.policyCells
+      : entry.groups.find((g) => g.id === groupId)?.cells ?? [];
+  const heads = sample ? cellsOf(sample) : [];
+  const marksWidth = `${Math.max(160, heads.length * 46)}px`;
 
   return (
     <section className="mt-10">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h2 className="font-mono text-[11px] tracking-[0.14em] text-grey">기록물 대장</h2>
         <div className="ml-2 flex items-center gap-1 font-mono text-[11px]">
-          {(
-            [
-              ["overview", "사업 개요 6칸"],
-              ["policy", "활용정책 9칸"],
-            ] as const
-          ).map(([key, name]) => (
+          {tabs.map((tab) => (
             <button
-              key={key}
+              key={tab.id}
               type="button"
-              onClick={() => setAxis(key)}
-              className={`${TOGGLE_BUTTON_CLASSNAME} ${axis === key ? TOGGLE_ON_CLASSNAME : TOGGLE_OFF_CLASSNAME}`}
+              onClick={() => setGroupId(tab.id)}
+              className={`${TOGGLE_BUTTON_CLASSNAME} ${groupId === tab.id ? TOGGLE_ON_CLASSNAME : TOGGLE_OFF_CLASSNAME}`}
             >
-              {name}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -67,7 +74,7 @@ export function OralRegister({
             생산자 · 제목
           </p>
           <div className="grid" style={{ gridAutoFlow: "column", gridAutoColumns: "1fr" }}>
-            {heads?.map((c) => (
+            {heads.map((c) => (
               <span
                 key={c.key}
                 className="flex items-center justify-center break-keep border-r border-ink/10 px-0.5 text-center font-mono text-[8.5px] leading-tight text-grey last:border-r-0"
@@ -79,7 +86,7 @@ export function OralRegister({
         </div>
 
         {rows.map(({ category, entry }) => {
-          const cells = axis === "overview" ? entry.overviewCells : entry.policyCells;
+          const cells = cellsOf(entry);
           return (
             <button
               key={entry.referenceCode}

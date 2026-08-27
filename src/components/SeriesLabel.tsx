@@ -1,6 +1,6 @@
 "use client";
 
-import { CellState, DescriptionCell, OralHistoryEntry } from "@/lib/oral-history-projects";
+import { CellState, DescriptionCell, DescriptionGroup, OralHistoryEntry } from "@/lib/oral-history-projects";
 import {
   ARCHIVE_ITEM_HUE,
   archiveTintStyle,
@@ -41,40 +41,36 @@ function cellsScore(cells: DescriptionCell[]): string {
   return `${got % 1 === 0 ? got : got.toFixed(1)}/${cells.length}`;
 }
 
-// 두 칸 벌의 줄 수가 다르다 — 개요 여섯, 정책 아홉. 그대로 두면 왼쪽 칸이 42px 일찍
-// 끝나 라벨 안쪽 밑선이 어긋난다. 긴 쪽에 키를 맞추고 짧은 쪽은 그 안에서 고르게 편다 —
-// 빈 줄을 채워 넣지 않는 것은, 없는 칸이 있는 것처럼 보이면 안 되기 때문이다.
 // 상자 키. 내용이 정하게 두면 기술지 덧창과 어긋나므로 명시값으로 못 박고 둘이 나눠 쓴다.
 export const SERIES_BOX_HEIGHT_PX = 363;
 
-const CELL_ROW_PX = 14;
-const CELL_LIST_HEIGHT_PX = 9 * CELL_ROW_PX;
+// 라벨이 지는 칸 목록. 칸이 서른이 되면서 이름을 다 세울 수 없게 됐다 — 라벨 안쪽이 30줄이면
+// 상자가 아니라 표가 된다. 그래서 이름 대신 **군**을 세운다.
+//
+// 다만 점수만 남기면 "어느 칸이 비었나"가 사라지므로, 군마다 칸 글리프를 한 줄로 눕혀
+// 함께 싣는다. 훑는 눈에는 군 다섯 줄이지만, 그 줄 안에 칸 하나하나의 상태가 그대로 있다.
+// 이름은 어차피 상자를 열어야 읽는다(SeriesSheet의 난간).
+const GROUP_ROW_PX = 17;
 
-// 칸 한 벌. 왼쪽 글리프(문서) · 이름 · 오른쪽 획(나) 세 자리 격자다. 꺼진 획도 자리를
-// 지키는 것은, 자리가 생겼다 없어지면 옆 글자가 좌우로 밀리기 때문이다.
-function CellList({ title, cells, done }: { title: string; cells: DescriptionCell[]; done: Set<string> }) {
+function GroupRow({ group, done }: { group: DescriptionGroup; done: Set<string> }) {
+  const allChecked = group.cells.every((c) => done.has(c.key));
   return (
-    <div className="min-w-0">
-      <p className="font-mono text-[7.5px] tracking-[0.05em] text-grey">
-        {title} <b className="text-ink">{cellsScore(cells)}</b>
-      </p>
-      <ul
-        className="mt-0.5 flex flex-col justify-between"
-        style={{ height: CELL_LIST_HEIGHT_PX }}
-      >
-        {cells.map((cell) => (
-          <li
-            key={cell.key}
-            title={`${cell.label} — ${cell.state}`}
-            className="grid grid-cols-[8px_1fr_12px] items-center gap-x-[3px] font-mono text-[8px] leading-[14px]"
-          >
-            <span className={`text-center ${CELL_TEXT_CLASSNAME[cell.state]}`}>{CELL_GLYPH[cell.state]}</span>
-            <span className={`truncate ${CELL_TEXT_CLASSNAME[cell.state]}`}>{cell.label}</span>
-            <Tick on={done.has(cell.key)} />
-          </li>
+    <li
+      title={`${group.label} — ${cellsScore(group.cells)}`}
+      className="grid grid-cols-[46px_1fr_24px_12px] items-center gap-x-[3px] font-mono text-[8px] leading-[13px]"
+      style={{ height: GROUP_ROW_PX }}
+    >
+      <span className="truncate tracking-[0.04em] text-ink">{group.label}</span>
+      <span aria-hidden className="flex gap-px overflow-hidden">
+        {group.cells.map((c) => (
+          <span key={c.key} className={`text-[7px] leading-none ${CELL_TEXT_CLASSNAME[c.state]}`}>
+            {CELL_GLYPH[c.state]}
+          </span>
         ))}
-      </ul>
-    </div>
+      </span>
+      <span className="text-right tabular-nums text-grey">{cellsScore(group.cells)}</span>
+      <Tick on={allChecked} />
+    </li>
   );
 }
 
@@ -85,20 +81,22 @@ export function SeriesLabel({
   active,
   dimmed,
   onClick,
-  doneOverview,
+  doneDescription,
   donePolicy,
 }: {
   entry: OralHistoryEntry;
   active: boolean;
   dimmed: boolean;
   onClick: () => void;
-  doneOverview: Set<string>;
+  doneDescription: Set<string>;
   donePolicy: Set<string>;
 }) {
   // 채워진 칸이 많을수록 종이가 진해진다. 색상은 구술 자주 하나로 고정 — 이 화면은 통째로
   // 한 유형이라 색으로 갈래를 가를 이유가 없다.
-  const filled = [...entry.overviewCells, ...entry.policyCells].filter((c) => c.state === "확인").length;
-  const strength = Math.min(3, Math.floor(filled / 4));
+  const cells = [...entry.groups.flatMap((g) => g.cells), ...entry.policyCells];
+  const filled = cells.filter((c) => c.state === "확인").length;
+  // 칸이 15에서 30으로 늘었으므로 종이가 진해지는 문턱도 갑절로 둔다.
+  const strength = Math.min(3, Math.floor(filled / 8));
 
   return (
     <button
@@ -153,9 +151,16 @@ export function SeriesLabel({
           </span>
         </span>
 
-        <span className="mx-2 grid grid-cols-2 gap-x-[7px] border-t border-ink py-1.5">
-          <CellList title="사업 개요" cells={entry.overviewCells} done={doneOverview} />
-          <CellList title="활용정책" cells={entry.policyCells} done={donePolicy} />
+        <span className="mx-2 block border-t border-ink py-1.5">
+          <ul className="flex flex-col justify-between" style={{ height: 5 * GROUP_ROW_PX }}>
+            {entry.groups.map((g) => (
+              <GroupRow key={g.id} group={g} done={doneDescription} />
+            ))}
+            <GroupRow
+              group={{ id: "정책", label: "활용정책", cells: entry.policyCells }}
+              done={donePolicy}
+            />
+          </ul>
         </span>
 
         <span className="block border-t border-ink bg-surface px-2 py-1 font-mono text-[7.5px] tracking-[0.03em] text-grey">

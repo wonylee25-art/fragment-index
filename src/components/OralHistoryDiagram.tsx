@@ -29,8 +29,12 @@ import { OralRegister } from "./OralRegister";
 function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   const q = query.trim();
   if (!q) return true;
-  return [entry.institution, entry.projectName, entry.referenceCode, ...entry.overviewCells.map((c) => c.value ?? "")]
-    .some((s) => s.includes(q));
+  return [
+    entry.institution,
+    entry.projectName,
+    entry.referenceCode,
+    ...entry.groups.flatMap((g) => g.cells.map((c) => c.value ?? "")),
+  ].some((s) => s.includes(q));
 }
 
 export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks: CellMark[] }) {
@@ -79,11 +83,11 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
       <section className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] tracking-[0.05em] text-grey">
           <span>
-            기술계층 <b className="text-ink">계열</b>(시리즈) · 참조코드 <b className="text-ink">KR-OHP-*</b>
+            기술계층 <b className="text-ink">계열</b>(시리즈) · 참조코드 <b className="text-ink">KR-OHP-*</b> · 기술 21칸 + 정책 9칸
           </span>
           <span className="h-3 w-px bg-line" />
           <span>
-            왼쪽 ● 확인 ◐ 일부 ╱ 봤으나 못 찾음 · 아직 안 봄 · 오른쪽 ✓ 내가 켠 것
+            문서 ● 확인 ◐ 일부 ╱ 봤으나 못 찾음 · 아직 안 봄 · 오른쪽 ✓ 내가 검토한 칸
           </span>
           <span className="h-3 w-px bg-line" />
           <span>
@@ -110,7 +114,7 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
               active={picked === entry.referenceCode}
               dimmed={!matchesFilter(entry, query)}
               onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
-              doneOverview={doneSet(entry, "overview")}
+              doneDescription={doneSet(entry, "overview")}
               donePolicy={doneSet(entry, "policy")}
             />
           );
@@ -130,10 +134,10 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
                   <SeriesSheet
                     entry={openEntry}
                     category={category}
-                    doneOverview={doneSet(openEntry, "overview")}
+                    doneDescription={doneSet(openEntry, "overview")}
                     donePolicy={doneSet(openEntry, "policy")}
-                    onToggleOverview={(k) => toggleDone(openEntry, "overview", k)}
-                    onTogglePolicy={(k) => toggleDone(openEntry, "policy", k)}
+                    onToggleDescription={(k: string) => toggleDone(openEntry, "overview", k)}
+                    onTogglePolicy={(k: string) => toggleDone(openEntry, "policy", k)}
                     onClose={() => setPicked(null)}
                   />
                 )
