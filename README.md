@@ -199,6 +199,7 @@ cp .env.local.example .env.local
 
 - `NATIONAL_ARCHIVES_API_KEY` — 국가기록원 나라기록물정보 서비스(data.go.kr) 인증키
 - `NATIONAL_MUSEUM_API_KEY` — 국립중앙박물관 전국 박물관 유물정보 서비스(data.go.kr) 인증키
+- `G2B_API_KEY` — 조달청 나라장터 입찰공고정보 서비스(data.go.kr, 15129394) 인증키. `npm run search:bids`가 구술채록 **용역 공고**를 훑는 데 씁니다 — data.go.kr 일반 인증키는 계정당 하나지만 서비스마다 활용신청 승인이 따로 필요해서, 승인 전에는 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR`가 옵니다
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase 프로젝트 접속 정보
 - `SUPABASE_SERVICE_ROLE_KEY` — `npm run sync` 등 서버 스크립트에서 쓰는 서비스 롤 키(별도 발급 필요, `.env.local`에만 보관)
 

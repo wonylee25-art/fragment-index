@@ -12,7 +12,8 @@
     "fetch:riss": "node scripts/fetch-riss-papers.mjs",
     "dump:cut": "node --env-file=.env.local scripts/dump-cut-papers.mjs",
     "tunnel": "lt --port 3000 --subdomain fragment-index",
-    "import:th": "node --env-file=.env.local scripts/import-th-timeline.mjs"
+    "import:th": "node --env-file=.env.local scripts/import-th-timeline.mjs",
+    "search:bids": "node --env-file=.env.local scripts/search-g2b-bids.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",
