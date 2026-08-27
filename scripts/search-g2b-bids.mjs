@@ -11,9 +11,23 @@
 // 빈칸인지 가려서 직접 옮겨 적는다(match-museum-relics.mjs와 같은 원칙).
 //
 // 먼저 볼 것: 활용신청 승인을 기다리는 동안에는 조달청 발주계획·입찰공고를 그대로 옮겨 싣는
-// 민간 사이트에서 제목 검색이 그대로 먹는다(씬디스 seenthis.kr/bidplan?sfl=wr_subject&stx=구술채록).
-// 2026-08-27에 그 방법으로 21건을 한 번에 건졌다 — 다만 미러는 최근 1~2년치만 담고 있어,
-// 그 이전까지 훑으려면 이 스크립트가 필요하다.
+// 민간 사이트에서 제목 검색이 그대로 먹는다(씬디스 seenthis.kr/bidplan?sfl=wr_subject&stx=구술채록,
+// 입찰공고는 seenthis.kr/bid — **두 게시판이 따로다. 중앙조달 건은 발주계획 쪽에 안 실리므로 둘 다 봐야 한다**).
+// 2026-08-27에 그 방법으로 21건을 건졌고, 같은 날 2차로 낱말을 넓혀 300여 건을 훑었다 — 다만 미러는
+// **2024년 12월이 바닥이라**(실측), 그 이전까지 훑으려면 이 스크립트가 필요하다.
+//
+// **2020~2024년은 다른 창구로 이미 뚫었다.** PRISM(정책연구관리시스템)이 연도 제한 없이 열려 있고,
+// 지자체 정책연구용역이 여기 쌓인다 — 나라장터와 비추는 기관이 다르다(광주광역시·인천광역시 등은
+// 나라장터에 없고 PRISM에만 있다). API는 POST https://api.prism.go.kr/prism-be-prtl/search/totalSearch.do,
+// body {"query":"구술","collection":"task_inform","startCount":0,"listCount":300}.
+// 자세한 건 docs/oral_history_projects.md 8-9의 3차 조사 절. 이 스크립트가 아직 필요한 자리는
+// **나라장터에만 있는 2024년 이전 사업 용역**(예: 국가기록원이 성공회대에 준 2014·2016·2018년 발주)이다.
+//
+// **낱말 하나가 사업 하나를 가린다.** 기본 낱말이 다섯인 이유다 — "구술채록"만 걸면
+// 국방부 군사편찬연구소의 「해외파병장병 **증언청취**」, 국가기록원의 「**구술기록물 등록**사업」,
+// 통일부의 「탈북민 경험(**생애사**) 구술채록」, 국가유산청의 「전승자 **구술자서전 발간**」,
+// 민주화운동기념사업회의 「구술 **사료 수집** 사업」이 전부 안 걸린다(docs/oral_history_projects.md
+// 8-9의 2차 조사 절).
 //
 // 키: data.go.kr 일반 인증키(Decoding). "조달청_나라장터 입찰공고정보서비스"(15129394)에
 // 활용신청이 승인돼 있어야 한다 — 승인이 없으면 SERVICE_KEY_IS_NOT_REGISTERED_ERROR가 온다.
@@ -41,7 +55,7 @@ const args = process.argv.slice(2);
 const monthsArg = args.find((a) => a.startsWith("--months="));
 const months = monthsArg ? Number(monthsArg.slice("--months=".length)) : 12;
 const words = args.filter((a) => !a.startsWith("--"));
-const KEYWORDS = words.length ? words : ["구술", "채록", "생애사", "증언"];
+const KEYWORDS = words.length ? words : ["구술", "채록", "생애사", "증언", "기록화"];
 
 // API가 한 번에 받는 조회 기간이 제한적이라(공고게시일시 기준) 한 달씩 끊어 훑는다.
 function monthRanges(count) {
