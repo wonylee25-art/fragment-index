@@ -98,6 +98,14 @@ export function SeriesLabel({
   // 칸이 15에서 30으로 늘었으므로 종이가 진해지는 문턱도 갑절로 둔다.
   const strength = Math.min(3, Math.floor(filled / 8));
 
+  // 3.1.5 규모와 매체는 문장이라 라벨 한 줄에 다 안 들어간다. 첫 마디(마침표 앞)만 세우고
+  // 나머지는 덧창이 진다. 안 본 칸이면 "규모 미기재"로 남긴다 — 없다는 말이 아니라 안 봤다는 말이다.
+  const extentCell = entry.groups[0]?.cells[1];
+  const extent =
+    extentCell && extentCell.state !== "안봄" && extentCell.value
+      ? extentCell.value.replace(/\*\*/g, "").split(/\.\s|\. $/)[0].trim()
+      : null;
+
   return (
     <button
       type="button"
@@ -143,11 +151,11 @@ export function SeriesLabel({
           <span className="mt-0.5 block h-[30px] overflow-hidden text-[12px] leading-[15px] text-ink">
             {entry.projectName || "(사업명 미상)"}
           </span>
-          {/* 3.1.3 일자 · 3.1.5 규모 — 규모는 문서에 아직 필드가 없어 늘 미기재다 */}
+          {/* 3.1.3 일자 · 3.1.5 규모 — 규모는 한 줄이라 첫 마디만 세우고 나머지는 덧창이 진다 */}
           <span className="mt-[5px] block border-t border-line pt-[5px] font-mono text-[8px] leading-[1.55] text-ink">
             {entry.year === null ? "일자 미상" : `${entry.year}${entry.yearApprox ? "년경" : "년"}~`}
             <br />
-            <span className="text-grey">규모 미기재</span>
+            <span className={`block truncate ${extent ? "" : "text-grey"}`}>{extent ?? "규모 미기재"}</span>
           </span>
         </span>
 

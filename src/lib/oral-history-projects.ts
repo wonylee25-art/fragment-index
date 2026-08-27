@@ -254,11 +254,11 @@ function firstBoldYear(text: string): number | null {
 // 대구시사편찬위원회처럼 배경 설명 중간에 진짜 연도만 굵게 표시한 경우) ③"실제 사업은" 이후에
 // 진짜 실행 시점이 나오는 경우(경기도여성가족재단) 그 구간을 우선 ④그래도 없으면 첫 4자리 연도.
 //
-// "최소 N년부터"는 그 이전이 있을 수 있다는 표기라(규격서 「연도 표기」 규약) 근사로 찍는다 —
-// "N년 시작"과 달리 시작 연도를 확인한 것이 아니기 때문이다.
+// "최소 N년부터"·"N년경"·"최초 시작 연도는 확인 못함"은 그 이전이 있을 수 있다는 표기라
+// (규격서 「연도 표기」 규약) 근사로 찍는다 — "N년 시작"과 달리 시작 연도를 확인한 것이 아니다.
 function extractRepresentativeYear(when: string | null): { year: number | null; yearApprox: boolean } {
   if (!when) return { year: null, yearApprox: true };
-  const yearApprox = /불명|불확실|추정|최소/.test(when);
+  const yearApprox = /불명|불확실|추정|최소|확인 못함|년경/.test(when);
   const cleaned = when.replace(CITATION_DATE_RE, "");
 
   const actualIdx = cleaned.indexOf("실제 사업은");
