@@ -249,13 +249,16 @@ function firstBoldYear(text: string): number | null {
   return null;
 }
 
-// "언제" 서술은 자유문이라 완벽한 정답은 없다 — 다이어그램에 쓸 근사 연도 하나를 뽑아내는
-// 휴리스틱: ①조사 시점 표기 제거 ②저자가 **굵게** 강조한 연도가 있으면 그걸 우선(예: 대구시사
-// 편찬위원회처럼 배경 설명 중간에 진짜 연도만 굵게 표시한 경우) ③"실제 사업은" 이후에 진짜 실행
-// 시점이 나오는 경우(경기도여성가족재단) 그 구간을 우선 ④그래도 없으면 첫 4자리 연도.
+// 「사업 기간」(3.1.3) 서술은 자유문이라 완벽한 정답은 없다 — 다이어그램에 쓸 근사 연도 하나를
+// 뽑아내는 휴리스틱: ①조사 시점 표기 제거 ②저자가 **굵게** 강조한 연도가 있으면 그걸 우선(예:
+// 대구시사편찬위원회처럼 배경 설명 중간에 진짜 연도만 굵게 표시한 경우) ③"실제 사업은" 이후에
+// 진짜 실행 시점이 나오는 경우(경기도여성가족재단) 그 구간을 우선 ④그래도 없으면 첫 4자리 연도.
+//
+// "최소 N년부터"는 그 이전이 있을 수 있다는 표기라(규격서 「연도 표기」 규약) 근사로 찍는다 —
+// "N년 시작"과 달리 시작 연도를 확인한 것이 아니기 때문이다.
 function extractRepresentativeYear(when: string | null): { year: number | null; yearApprox: boolean } {
   if (!when) return { year: null, yearApprox: true };
-  const yearApprox = /불명|불확실|추정/.test(when);
+  const yearApprox = /불명|불확실|추정|최소/.test(when);
   const cleaned = when.replace(CITATION_DATE_RE, "");
 
   const actualIdx = cleaned.indexOf("실제 사업은");
@@ -404,7 +407,6 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
     .map((f) => ({ label: f.key, value: f.value, subItems: f.subItems }));
 
   const whenField = get("언제");
-  const { year, yearApprox } = extractRepresentativeYear(whenField?.value ?? null);
 
   // 값이 필드 줄에 없고 아래 하위 항목으로만 적힌 자리가 있다(대구 중구의 "누구를 / 무엇을"이
   // 그렇다 — 열전과 가게생애사를 두 줄로 나눠 적었다). 인라인 값만 보면 내용이 있는데도
@@ -419,6 +421,10 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
   const getSubItems = (key: string): string[] | null => get(key)?.subItems ?? null;
   const groups = buildGroups(getSubItems, getValue);
   const policyCells = parsePolicyCells(notes);
+
+  // 대표 연도는 「사업 기간」 칸에서 뽑는다. 이 칸은 새 꼴이면 「사업」 (1)이고 아직 안 옮긴
+  // 항목이면 옛 「언제」라, buildGroups가 이미 고른 값을 그대로 쓰면 두 꼴을 다 받는다.
+  const { year, yearApprox } = extractRepresentativeYear(groups[0].cells[0].value);
 
   return {
     institution,
