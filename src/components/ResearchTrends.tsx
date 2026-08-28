@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
-import { PaperData } from "@/lib/types";
+import { PaperData, PaperType } from "@/lib/types";
 import { buildCanonicalMap, canonicalKeywords } from "@/lib/keyword-aliases";
 import { buildDuplicateFolding } from "@/lib/paper-duplicates";
 import {
@@ -50,6 +50,11 @@ const SORT_LABELS: Record<SortMode, string> = {
   read: "읽은순",
   important: "중요순",
 };
+
+// 유형으로 좁히는 자리. 정렬(SortMode)과 달리 걸러 내는 것이라 한 번에 하나만 걸고,
+// 다시 누르면 풀린다(null = 전체). 수록글은 여기 세우지 않는다 — 제 책 아래에 접혀 있는
+// 조각이고, 편수를 따로 세지 않기로 한 것(논문 목록 머리글 참고)과 같은 이유다.
+const TYPE_FILTERS: readonly PaperType[] = ["학술논문", "학위논문", "단행본", "보고서"];
 
 function sortPapers(papers: PaperData[], mode: SortMode): PaperData[] {
   const sorted = [...papers];
@@ -161,6 +166,8 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   // 쳐낸 논문만 보는 자리. 훑다가 잘못 누른 것을 여기서 되돌린다.
   const [hiddenOnly, setHiddenOnly] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("latest");
+  // 유형 필터 — null이면 전체.
+  const [typeFilter, setTypeFilter] = useState<PaperType | null>(null);
   // 검색어. 한 글자 칠 때마다 700편을 훑고 100편을 다시 그리면 입력이 밀려서, 화면 갱신은
   // 한 박자 늦춘다(useDeferredValue) — 칸에 찍히는 글자는 바로 보이고 목록만 뒤따라온다.
   const [query, setQuery] = useState("");
@@ -222,6 +229,16 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
     [visiblePool, liveChapters],
   );
 
+  // 유형 칩에 붙는 편수. 지금 보고 있는 바닥(쳐냄이면 쳐낸 것)에서 센다 — 눌렀을 때
+  // 몇 편이 남는지와 어긋나지 않게 한다.
+  const typeCounts = useMemo(() => {
+    const counts = new Map<PaperType, number>();
+    for (const p of hiddenOnly ? hiddenPapers : visiblePool) {
+      counts.set(p.paperType, (counts.get(p.paperType) ?? 0) + 1);
+    }
+    return counts;
+  }, [hiddenOnly, hiddenPapers, visiblePool]);
+
   // 낱말로 갈라 모두 들어간 것만 남긴다 — 「김귀옥 한국전쟁」처럼 두 단서를 함께 던지는 것이
   // 검색으로 논문을 찾는 보통의 방식이다. 낱말 하나하나는 붙여서 맞추므로(searchHaystack),
   // 「한국 전쟁」으로 쳐도 「한국전쟁」은 걸리지 않는다 — 그럴 때는 붙여서 치면 된다.
@@ -234,16 +251,27 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   //
   // 고른 주제어(activeKeyword)만은 여기서 빼고 센다. 그것까지 걸어 두면 클라우드가 고른
   // 낱말과 그 연관어로 오그라들어, 다른 주제어로 갈아타는 길이 사라진다.
-  const narrowed = importantOnly || hiddenOnly || terms.length > 0;
+  const narrowed = importantOnly || hiddenOnly || typeFilter !== null || terms.length > 0;
   const keywordPool = useMemo(() => {
     if (!narrowed) return visiblePool;
     const pool = hiddenOnly ? hiddenPapers : [...visiblePool, ...liveChapters];
     return pool.filter((p) => {
       if (importantOnly && !p.isImportant) return false;
+      if (typeFilter && p.paperType !== typeFilter) return false;
       const hay = haystacks.get(p.id) ?? "";
       return terms.every((t) => hay.includes(t));
     });
-  }, [narrowed, visiblePool, hiddenPapers, liveChapters, hiddenOnly, importantOnly, terms, haystacks]);
+  }, [
+    narrowed,
+    visiblePool,
+    hiddenPapers,
+    liveChapters,
+    hiddenOnly,
+    importantOnly,
+    typeFilter,
+    terms,
+    haystacks,
+  ]);
 
   const frequency = useMemo(() => buildFrequency(keywordPool, canonical), [keywordPool, canonical]);
   const cooccurrence = useMemo(() => buildCooccurrence(keywordPool, canonical), [keywordPool, canonical]);
@@ -277,6 +305,9 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
     const matched = pool.filter((p) => {
       if (activeKeyword && !canonicalKeywords(p.keywords, canonical).includes(activeKeyword)) return false;
       if (importantOnly && !p.isImportant) return false;
+      // 유형을 걸면 수록글은 저절로 빠진다(제 유형이 "수록글"이라서) — 책 아래에 접힌
+      // 자리에는 그대로 남는다.
+      if (typeFilter && p.paperType !== typeFilter) return false;
       const hay = haystacks.get(p.id) ?? "";
       return terms.every((t) => hay.includes(t));
     });
@@ -295,6 +326,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
     hiddenOnly,
     activeKeyword,
     importantOnly,
+    typeFilter,
     canonical,
     bookById,
     terms,
@@ -314,7 +346,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   // 좁히는 조건이나 정렬이 바뀌면 첫 묶음으로 되돌린다. 효과(useEffect)로 되돌리면 100편을
   // 한 번 그린 뒤 다시 그리게 되므로, 렌더 중에 이전 조건과 비교해 바로 맞춘다.
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const scopeKey = `${activeKeyword}|${importantOnly}|${hiddenOnly}|${sortMode}|${terms.join(" ")}`;
+  const scopeKey = `${activeKeyword}|${importantOnly}|${hiddenOnly}|${typeFilter}|${sortMode}|${terms.join(" ")}`;
   const [prevScopeKey, setPrevScopeKey] = useState(scopeKey);
   if (prevScopeKey !== scopeKey) {
     setPrevScopeKey(scopeKey);
@@ -326,6 +358,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const scopeLabel = [
     deferredQuery.trim() ? `검색 "${deferredQuery.trim()}"` : null,
     activeKeyword ? `"${activeKeyword}"` : null,
+    typeFilter,
     importantOnly ? "★ 중요" : null,
     hiddenOnly ? "쳐냄" : null,
   ]
@@ -371,6 +404,19 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                 onToggle={() => setHiddenOnly((v) => !v)}
               />
             )}
+            <span className="mx-1 h-3 w-px bg-line" />
+            {/* 유형 — 정렬 칩과 같은 모양이되, 다시 누르면 풀리는 필터다(전체로 돌아간다) */}
+            {TYPE_FILTERS.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setTypeFilter((prev) => (prev === type ? null : type))}
+                aria-pressed={typeFilter === type}
+                className={`${TOGGLE_BUTTON_CLASSNAME} ${typeFilter === type ? TOGGLE_ON_CLASSNAME : TOGGLE_OFF_CLASSNAME}`}
+              >
+                {type} ({typeCounts.get(type) ?? 0})
+              </button>
+            ))}
             <span className="mx-1 h-3 w-px bg-line" />
             {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
               <button
@@ -594,6 +640,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                           ? [paper.institution, paper.researchPeriod].filter(Boolean).join(" · ")
                           : [paper.journalName ?? paper.institution, paper.volumeIssue].filter(Boolean).join(" ")}
                       {paper.degreeLevel ? ` · ${paper.degreeLevel}` : ""}
+                      {paper.paperType === "보고서" && paper.orderingAgency ? ` · 발주: ${paper.orderingAgency}` : ""}
                       {paper.paperType === "보고서" && paper.researchTeam ? ` · 연구진: ${paper.researchTeam}` : ""}
                     </p>
 
