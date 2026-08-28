@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { INPUT_CLASSNAME, TEXT_DENSE_CLASSNAME } from "@/lib/design-tokens";
 import { Inline } from "@/lib/inline-markdown";
-import { OralHistoryDoc, OralHistoryEntry } from "@/lib/oral-history-projects";
+import { OralHistoryCategory, OralHistoryDoc, OralHistoryEntry } from "@/lib/oral-history-projects";
 import type { CellMark, MarkAxis } from "@/lib/oral-marks";
 import { setCellMark } from "@/lib/oral-mark-actions";
 import { ShelfWithSheet } from "./SeriesBox";
 import { SeriesLabel } from "./SeriesLabel";
 import { SeriesSheet } from "./SeriesSheet";
 import { OralRegister } from "./OralRegister";
+import { OralPerformerTable } from "./OralPerformerTable";
 
 // 구술 사업 목록. 예전에는 사료 카드와 같은 크기·같은 테두리의 상자를 격자로 늘어놓았는데,
 // 층위가 달라서 어긋났다 — 사료는 낱장 하나(건)이고 사업은 한 벌(계열)이다. 그래서 카드가
@@ -43,12 +44,16 @@ function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   ].some((s) => s.includes(q));
 }
 
-type View = "shelf" | "register";
+type View = "shelf" | "register" | "performer";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "shelf", label: "기록물 박스" },
   { id: "register", label: "기록물 대장" },
+  { id: "performer", label: "수행기관" },
 ];
+
+// 수행기관 카테고리의 머리표. 문서가 "A"로 다는 자리다.
+const PERFORMER_LABEL = "A";
 
 export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks: CellMark[] }) {
   const [query, setQuery] = useState("");
@@ -89,7 +94,25 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
     ).catch(() => apply(!on));
   };
 
-  const matched = doc.categories.flatMap((c) => c.entries).filter((e) => matchesFilter(e, query)).length;
+  // 주제 카테고리와 수행기관 카테고리를 가른다 — 서가·대장은 앞엣것만 이고, 수행기관은
+  // 제 탭에서 표로 선다. 한 계열이 두 탭에 걸치면 세는 수가 탭마다 달라진다.
+  const performer = doc.categories.find((c) => c.label === PERFORMER_LABEL) ?? null;
+  const subjectCategories = doc.categories.filter((c) => c !== performer);
+  const subjectEntries = subjectCategories.flatMap((c) => c.entries);
+  const matched = subjectEntries.filter((e) => matchesFilter(e, query)).length;
+  const performerMatched = (performer?.entries ?? []).filter((e) => matchesFilter(e, query)).length;
+
+  const sheetFor = (entry: OralHistoryEntry, category: OralHistoryCategory) => (
+    <SeriesSheet
+      entry={entry}
+      category={category}
+      doneDescription={doneSet(entry, "overview")}
+      donePolicy={doneSet(entry, "policy")}
+      onToggleDescription={(k: string) => toggleDone(entry, "overview", k)}
+      onTogglePolicy={(k: string) => toggleDone(entry, "policy", k)}
+      onClose={() => setPicked(null)}
+    />
+  );
 
   return (
     <>
@@ -126,7 +149,21 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
             </span>
             <span className="h-3 w-px bg-line" />
             <span>
-              카테고리 {doc.categories.length}개 · 계열 {query.trim() ? `${matched}/${doc.totalEntries}` : doc.totalEntries}건
+              {view === "performer" ? (
+                <>
+                  수행기관{" "}
+                  {query.trim()
+                    ? `${performerMatched}/${performer?.entries.length ?? 0}`
+                    : (performer?.entries.length ?? 0)}
+                  건 · 주제 카테고리 {subjectCategories.length}개 {subjectEntries.length}건은 다른 탭
+                </>
+              ) : (
+                <>
+                  카테고리 {subjectCategories.length}개 · 계열{" "}
+                  {query.trim() ? `${matched}/${subjectEntries.length}` : subjectEntries.length}건
+                  {performer && ` · 수행기관 ${performer.entries.length}건은 다른 탭`}
+                </>
+              )}
             </span>
           </div>
           <input
@@ -141,7 +178,7 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
         {/* 서가 */}
         {view === "shelf" && (
           <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
-            {doc.categories.map((category) => {
+            {subjectCategories.map((category) => {
               const openEntry = category.entries.find((e) => e.referenceCode === picked) ?? null;
               const label = (entry: OralHistoryEntry) => (
                 <SeriesLabel
@@ -165,19 +202,7 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
                     ? [openEntry, ...category.entries.filter((e) => e !== openEntry)]
                     : category.entries
                   ).map(label)}
-                  sheet={
-                    openEntry && (
-                      <SeriesSheet
-                        entry={openEntry}
-                        category={category}
-                        doneDescription={doneSet(openEntry, "overview")}
-                        donePolicy={doneSet(openEntry, "policy")}
-                        onToggleDescription={(k: string) => toggleDone(openEntry, "overview", k)}
-                        onTogglePolicy={(k: string) => toggleDone(openEntry, "policy", k)}
-                        onClose={() => setPicked(null)}
-                      />
-                    )
-                  }
+                  sheet={openEntry && sheetFor(openEntry, category)}
                 />
               );
             })}
@@ -189,7 +214,7 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
         {view === "register" && (
           <>
             <OralRegister
-              categories={doc.categories}
+              categories={subjectCategories}
               matches={(e) => matchesFilter(e, query)}
               heading={false}
               // 대장에서 고른 계열은 서가에서 펼쳐 보여 준다 — 기술지가 사는 곳은 서가다.
@@ -248,6 +273,19 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
               </details>
             )}
           </>
+        )}
+
+        {/* 수행기관 — 축이 달라 서가에 얹지 않고 표로 눕힌다(OralPerformerTable) */}
+        {view === "performer" && performer && (
+          <OralPerformerTable
+            category={performer}
+            matches={(e) => matchesFilter(e, query)}
+            picked={picked}
+            onPick={(entry) =>
+              setPicked(picked === entry.referenceCode ? null : entry.referenceCode)
+            }
+            renderSheet={(entry) => sheetFor(entry, performer)}
+          />
         )}
       </main>
     </>
