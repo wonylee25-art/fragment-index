@@ -53,7 +53,7 @@ export interface OralHistoryEntry {
   how: string | null;
   notes: OralHistoryNote[];
   sources: string | null;
-  // ISAD(G) 3.1.1 참조코드. 갈래·생산자·계열 세 자리를 고정으로 쓴다 — 계열이 하나뿐인
+  // ISAD(G) 3.1.1 참조코드. 카테고리·생산자·계열 세 자리를 고정으로 쓴다 — 계열이 하나뿐인
   // 기관도 .1을 붙이는 것은, 나중에 둘로 갈릴 때 코드가 흔들리면 안 되기 때문이다.
   referenceCode: string;
   // 기술 축 21칸을 네 군으로 나눠 담는다. 정책 축 9칸은 따로 선다.
@@ -443,7 +443,7 @@ function parseEntryBlock(block: string): OralHistoryEntry | null {
     how: get("어떻게")?.value || null,
     notes,
     sources: get("출처")?.value || null,
-    // 참조코드는 갈래를 알아야 지을 수 있다 — 항목 파싱 단계에서는 자리만 비워 두고
+    // 참조코드는 카테고리를 알아야 지을 수 있다 — 항목 파싱 단계에서는 자리만 비워 두고
     // 카테고리를 훑는 쪽(parseCategoryEntries)에서 채운다.
     referenceCode: "",
     groups,
@@ -458,7 +458,7 @@ function parseCategoryEntries(body: string[], categoryLabel: string): OralHistor
     .map((p) => parseEntryBlock("### " + p.trim()))
     .filter((e): e is OralHistoryEntry => e !== null);
 
-  // KR-OHP-{갈래}.{생산자}.{계열}. 생산자 번호는 갈래 안에서 처음 나온 순서고, 계열 번호는
+  // KR-OHP-{카테고리}.{생산자}.{계열}. 생산자 번호는 카테고리 안에서 처음 나온 순서고, 계열 번호는
   // 같은 생산자가 다시 나올 때만 올라간다(문서 정제 전이라 지금은 전부 .1이다).
   const producerNo = new Map<string, number>();
   const seriesNo = new Map<string, number>();

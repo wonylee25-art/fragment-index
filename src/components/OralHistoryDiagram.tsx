@@ -16,7 +16,7 @@ import { OralRegister } from "./OralRegister";
 // 아니라 서가에 얹힌 상자로 세운다.
 //
 // 격자가 아니라 선반인 것도 뜻이 있다. 격자는 칸이 균등한 배열이지만 선반은 얹혀 있음이라,
-// 그것만으로 이미 "카드를 늘어놓은 판"이 아니게 된다. 갈래마다 선반 하나를 준다.
+// 그것만으로 이미 "카드를 늘어놓은 판"이 아니게 된다. 카테고리마다 선반 하나를 준다.
 //
 // 상자를 누르면 그 상자가 선반의 첫 자리로 끌려 나오고, 기술지가 그 오른쪽에 펴진다
 // (ShelfWithSheet). 누른 상자에 매달아 두면 자리가 상자마다 달라져, 어느 것을 눌렀느냐에
@@ -91,7 +91,7 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
           </span>
           <span className="h-3 w-px bg-line" />
           <span>
-            갈래 {doc.categories.length}개 · 계열 {query.trim() ? `${matched}/${doc.totalEntries}` : doc.totalEntries}건
+            카테고리 {doc.categories.length}개 · 계열 {query.trim() ? `${matched}/${doc.totalEntries}` : doc.totalEntries}건
           </span>
         </div>
         <input

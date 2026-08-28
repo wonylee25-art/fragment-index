@@ -20,7 +20,7 @@
 
 | 국가 | 중심 기관 | 분류 방식의 성격 | 확인 수준 |
 |---|---|---|---|
-| 미국 | 의회도서관 American Folklife Center | VHP는 주제 6갈래×전쟁·시대 7갈래의 실제 분류 체계 운영(4개국 중 가장 정교함). 단, 재향군인이라는 단일 주제로 스코프 한정 | ●●● |
+| 미국 | 의회도서관 American Folklife Center | VHP는 주제 6개×전쟁·시대 7개 카테고리의 실제 분류 체계 운영(4개국 중 가장 정교함). 단, 재향군인이라는 단일 주제로 스코프 한정 | ●●● |
 | 영국 | 대영도서관 National Life Stories / Imperial War Museum | 두 기관 모두 공식 분류 체계 없음 — 직능별·사건별 프로젝트를 그때그때 기획한 목록 | ●●● |
 | 호주 | 국립도서관 / Australian War Memorial | NLA는 5개 대분류+배상형 특별 프로젝트, AWM은 주제가 아닌 자료·레코드 유형으로 구성 | ●●○ |
 | 일본 | 정책연구대학원대학(GRIPS) C.O.E. 프로젝트 | 주제별 분류 자체가 없음 — 인터뷰 대상자 1인당 1권, 개인전기로만 분류 | ●●○ |
@@ -37,7 +37,7 @@
 - **확인 수준**: ●●● (Veterans History Project와 Occupational Folklife Project 모두 브라우저로 원문 직접 열람. VHP의 "Serving: Our Voices"는 WebFetch로는 접근 차단(HTTP 403)됐던 페이지라, 브라우저 직접 열람으로 우회함 — `oral_history_projects.md`가 군사편찬연구소 항목에서 이미 쓴 것과 같은 방법. 스미스소니언 항목만 검색 요약 수준(●○○))
 - **중심 기관**: 의회도서관 산하 American Folklife Center(AFC, 1976년 설립 — 2026년 기준 50주년)
 - **분류 방식 — VHP는 실제 분류 체계, OFP는 무분류 목록으로 서로 대조적**:
-  - **Veterans History Project**(2000~)는 2003년부터 "Serving: Our Voices"라는 두 축의 분류 체계를 실제로 운영 — **주제 6갈래**(Creative Expressions of Service·Diverse Experiences in Service·Impact of Service·Occupations and Specialties in Service·Service Branches·Eras of Service) **× 전쟁·시대 7갈래**(WWI/WWII/한국전쟁/베트남전/냉전/걸프전/이라크·아프간전)로 교차 정리되며, 그 아래 수십 개 세부 프레젠테이션이 걸림. 예: Diverse Experiences 아래 Navajo Code Talkers·Serving in Silence(LGBTQ+ 참전자)·The Borinqueneers(푸에르토리코 연대)·Jewish Veterans of WWII 등, Impact of Service 아래 PTSD·Disabled Veterans·GI Bill 등
+  - **Veterans History Project**(2000~)는 2003년부터 "Serving: Our Voices"라는 두 축의 분류 체계를 실제로 운영 — **주제 6개 카테고리**(Creative Expressions of Service·Diverse Experiences in Service·Impact of Service·Occupations and Specialties in Service·Service Branches·Eras of Service) **× 전쟁·시대 7개 카테고리**(WWI/WWII/한국전쟁/베트남전/냉전/걸프전/이라크·아프간전)로 교차 정리되며, 그 아래 수십 개 세부 프레젠테이션이 걸림. 예: Diverse Experiences 아래 Navajo Code Talkers·Serving in Silence(LGBTQ+ 참전자)·The Borinqueneers(푸에르토리코 연대)·Jewish Veterans of WWII 등, Impact of Service 아래 PTSD·Disabled Veterans·GI Bill 등
   - **Occupational Folklife Project**(2010~, 1,800건 이상)는 반대로 **분류 체계가 없음을 직접 확인** — 컬렉션 소개 페이지에 African American Nurses(간호사)·Agricultural Aviation(농약살포 조종사)·Baton Rouge Small Businesses(소상공인)·Beyond the Breakwater(알래스카 어부)·Boeing Aircraft Factory Workers(보잉 공장노동자)·Cement Workers 등 수십 개 프로젝트를 그냥 알파벳순으로 나열. 대부분 "Archie Green Fellowship"(2010~, AFC 아카이브에 상대적으로 덜 채록된 직종을 우선 지원)으로 개별 연구자·연구팀이 각자 기획한 결과물이라, 상위 분류를 설계할 주체 자체가 없음 — 영국 NLS·미국 자체 OFP가 같은 "무분류 목록형" 패턴
   - 지역 기반 민속조사 — Lowell(매사추세츠, 산업화·이민공동체), Brooklyn(뉴욕, 다민족 도시생활), 콜로라도 등 주(州) 단위 컬렉션
 - **참고**: 같은 AFC 산하에서도 VHP(분류 있음)와 OFP(분류 없음)가 이렇게 다른 건, "기관이 크고 오래됐다고 분류가 갖춰지는 게 아니라 담당 큐레이터가 그렇게 설계했는지"에 달렸다는 걸 보여줌. VHP도 애초에 "재향군인"이라는 단일 주제로 스코프가 한정된 기관이라 과학기술사·법조·디자인공예 같은 영역은 처음부터 다룰 대상이 아님. 스미스소니언 협회도 별도 구술사 프로그램(1973~, 약 1,000시간)이 있지만 기관 자체 역사(직원·연구자·최근엔 전산화 역사) 중심이라 성격이 다름
@@ -146,5 +146,5 @@
 2. **조사 대상 국가 추가 확장** — 이번엔 미·영·호주·일본·대만·독일·남아공·캐나다·뉴질랜드 9개국을 다룸. 아일랜드(1913~1921년 독립운동 증언을 다룬 Bureau of Military History — 국내 문서의 독립운동 관련 항목과 비교할 만함, 또한 세계 최초 수준의 체계적 민속 채록 기관인 Irish Folklore Commission)가 다음 후보
 3. ~~**빈 영역 후보 실제 검증**~~ **셋은 찾았다(2026-08-27)** — 과학기술사·법조·디자인공예가 국내에 정말 없는지 확인했더니 **셋 다 있었다.** 국립대구과학관 「원로과학기술인 구술채록」(2026, 2억 6,500만 원), 헌법재판소 「주요인사 구술채록」(2026), 국립디자인박물관 구술채록이 그것이다. **기관 소개 페이지를 훑는 방식으로는 안 보였고 조달 발주계획에서 나왔다** — 카테고리가 없었던 것이 아니라 조사 방법이 닿지 않았던 것이다(`oral_history_projects.md` 8-9 참고). 남은 후보는 **의료사·의료윤리**와 **체제전환·통일**이고, 종교는 8-5에서 이미 우연히 발견됐다
 4. **`oral_history_projects.md`와의 역참조** — 이 문서의 결론(빈 영역 후보, 그리고 대만·남아공에서 나온 "유족·침해유형별 세분화" 아이디어)을 그 문서의 "다음으로 고려할 것" 섹션에도 반영할지 결정
-5. **분류 모델 두 갈래를 참고 사례로 정리** — ①미국 VHP의 주제×시대 이중축(단일 주제 기관에 한정된 방식), ②독일 Oral-History.Digital의 인프라 통합형(다수 기관을 무리하게 하나로 분류하지 않고 검색으로만 묶는 방식) — 국내 문서가 언젠가 구조를 바꿔야 할 때 검토할 두 가지 서로 다른 해법으로 남겨둠
-6. **"지도"·"법적 증거" 두 갈래를 별도로 추적** — 캐나다 NCTR의 Interactive Map은 실제 지리 정보를 시각화한 사례로, 국내 페이지의 "지도" 명칭 논의(이 문서를 만들게 된 원래 대화 주제)에 참고할 만함 — 그 논의 자체는 라벨을 `구술 사업`으로 바꾸며 정리됐고, 나중에 실제 지리 시각화를 붙일 때 다시 볼 사례. 뉴질랜드 와이탕이 재판소의 "구술=법적 증거" 모델은 카테고리 문제와는 별개로 흥미로운 사례라 별도 메모로 남겨둘 가치가 있음
+5. **분류 모델 두 유형을 참고 사례로 정리** — ①미국 VHP의 주제×시대 이중축(단일 주제 기관에 한정된 방식), ②독일 Oral-History.Digital의 인프라 통합형(다수 기관을 무리하게 하나로 분류하지 않고 검색으로만 묶는 방식) — 국내 문서가 언젠가 구조를 바꿔야 할 때 검토할 두 가지 서로 다른 해법으로 남겨둠
+6. **"지도"·"법적 증거" 두 가지를 별도로 추적** — 캐나다 NCTR의 Interactive Map은 실제 지리 정보를 시각화한 사례로, 국내 페이지의 "지도" 명칭 논의(이 문서를 만들게 된 원래 대화 주제)에 참고할 만함 — 그 논의 자체는 라벨을 `구술 사업`으로 바꾸며 정리됐고, 나중에 실제 지리 시각화를 붙일 때 다시 볼 사례. 뉴질랜드 와이탕이 재판소의 "구술=법적 증거" 모델은 카테고리 문제와는 별개로 흥미로운 사례라 별도 메모로 남겨둘 가치가 있음

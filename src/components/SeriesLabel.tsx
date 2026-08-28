@@ -92,7 +92,7 @@ export function SeriesLabel({
   donePolicy: Set<string>;
 }) {
   // 채워진 칸이 많을수록 종이가 진해진다. 색상은 구술 자주 하나로 고정 — 이 화면은 통째로
-  // 한 유형이라 색으로 갈래를 가를 이유가 없다.
+  // 한 유형이라 색으로 카테고리를 가를 이유가 없다.
   const cells = [...entry.groups.flatMap((g) => g.cells), ...entry.policyCells];
   const filled = cells.filter((c) => c.state === "확인").length;
   // 칸이 15에서 30으로 늘었으므로 종이가 진해지는 문턱도 갑절로 둔다.
