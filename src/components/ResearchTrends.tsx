@@ -4,6 +4,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { PaperData, PaperType } from "@/lib/types";
 import { buildCanonicalMap, canonicalKeywords } from "@/lib/keyword-aliases";
 import { buildDuplicateFolding } from "@/lib/paper-duplicates";
+import { trimReportSummary } from "@/lib/report-summary";
 import {
   ADD_BUTTON_CLASSNAME,
   DOT_CONFIRMED,
@@ -661,8 +662,15 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       </div>
                     )}
 
-                    {paper.paperType === "보고서" && paper.researchSummary && (
-                      <p className="mt-1.5 text-xs leading-5 text-grey">{paper.researchSummary}</p>
+                    {/* 보고서 요약은 PRISM이 준 「과업 개요」인 경우가 절반이 넘어, 원문에는
+                        용역명·기간·용역사가 앞머리에 다시 적혀 있다. 이 행이 이미 제 칸으로
+                        들고 있는 것들이라 걷어 내고, 층이 진 목록은 층 그대로 세운다
+                        (src/lib/report-summary.ts). DB의 원문은 그대로 두므로 검색은
+                        걷어 낸 줄까지 훑는다. */}
+                    {paper.paperType === "보고서" && trimReportSummary(paper.researchSummary) && (
+                      <p className="mt-1.5 whitespace-pre-line text-xs leading-5 text-grey">
+                        {trimReportSummary(paper.researchSummary)}
+                      </p>
                     )}
 
                     {/* 장을 매다는 것은 단행본에만 열어 둔다. 학술논문·학위논문은 그 자체가 한 편이라
