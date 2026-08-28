@@ -27,8 +27,10 @@ import { OralRegister } from "./OralRegister";
 // 서가만 카테고리가 여럿이라 대장까지 내려가는 데 화면을 한참 굴려야 했다. 그래서 탭으로
 // 가른다. 하나가 숨는 값은 치르되, 탭이 켜져 있으니 어느 보기인지는 눈에 남는다.
 //
-// 검색은 탭 위에 둔다 — 두 보기가 같은 걸러내기를 나눠 쓴다. 대장에서 한 줄을 누르면 그
-// 계열이 켜진 채 서가로 건너간다.
+// 탭 줄은 편집 화면(AdminTabs)과 같은 꼴이다 — 머리글 바로 밑에 화면 너비로 깔린 띠에
+// 밑줄 탭만 얹는다. 같은 자리에 같은 것이 있으면 화면마다 눈을 다시 맞출 일이 없다.
+// 검색은 띠 안이 아니라 아래 머리줄에 남는다 — 편집 띠에도 탭 말고는 아무것도 없다.
+// 대장에서 한 줄을 누르면 그 계열이 켜진 채 서가로 건너간다.
 
 function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   const q = query.trim();
@@ -90,155 +92,159 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
   const matched = doc.categories.flatMap((c) => c.entries).filter((e) => matchesFilter(e, query)).length;
 
   return (
-    <div>
-      {/* 보기 탭 — 서가와 대장을 갈아 끼운다. 검색은 둘이 나눠 쓰므로 탭 줄에 함께 둔다. */}
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3 border-b border-line">
-        <nav className="flex gap-1">
-          {VIEWS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setView(tab.id)}
-              className={`-mb-px border-b-2 px-3 py-2 font-mono text-xs font-bold transition-colors ${
-                view === tab.id ? "border-ink text-ink" : "border-transparent text-grey hover:text-ink"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="기관·사업명·참조코드 검색"
-          className={`mb-1.5 w-56 ${INPUT_CLASSNAME}`}
-        />
+    <>
+      {/* 보기 탭 — 편집 화면의 탭 띠와 같은 꼴. 머리글 바로 밑에 화면 너비로 깔린다. */}
+      <div className="border-b border-line bg-surface">
+        <div className="page-shell">
+          <nav className="flex gap-1">
+            {VIEWS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setView(tab.id)}
+                className={`-mb-px border-b-2 px-3 py-2 font-mono text-xs font-bold transition-colors ${
+                  view === tab.id ? "border-ink text-ink" : "border-transparent text-grey hover:text-ink"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
-      {/* 서가 머리 — 상자가 못 지는 것만 적는다. 규칙 이름은 라벨마다 지므로 여기 없다. */}
-      <section className="mb-3 flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] tracking-[0.05em] text-grey">
-          <span>
-            기술계층 <b className="text-ink">계열</b>(시리즈) · 참조코드 <b className="text-ink">KR-OHP-*</b> · 기술 21칸 + 정책 9칸
-          </span>
-          <span className="h-3 w-px bg-line" />
-          <span>
-            문서 ● 확인 ◐ 일부 ╱ 봤으나 못 찾음 · 아직 안 봄 · 오른쪽 ✓ 내가 검토한 칸
-          </span>
-          <span className="h-3 w-px bg-line" />
-          <span>
-            카테고리 {doc.categories.length}개 · 계열 {query.trim() ? `${matched}/${doc.totalEntries}` : doc.totalEntries}건
-          </span>
-        </div>
-      </section>
-
-      {/* 서가 */}
-      {view === "shelf" && (
-        <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
-          {doc.categories.map((category) => {
-            const openEntry = category.entries.find((e) => e.referenceCode === picked) ?? null;
-            const label = (entry: OralHistoryEntry) => (
-              <SeriesLabel
-                key={entry.referenceCode}
-                entry={entry}
-                active={picked === entry.referenceCode}
-                dimmed={!matchesFilter(entry, query)}
-                onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
-                doneDescription={doneSet(entry, "overview")}
-                donePolicy={doneSet(entry, "policy")}
-              />
-            );
-            return (
-              <ShelfWithSheet
-                key={category.label}
-                label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
-                open={openEntry !== null}
-                onClose={() => setPicked(null)}
-                // 누른 상자를 첫 자리로 끌어내고 나머지는 기술지 뒤로 흐른다.
-                boxes={(openEntry
-                  ? [openEntry, ...category.entries.filter((e) => e !== openEntry)]
-                  : category.entries
-                ).map(label)}
-                sheet={
-                  openEntry && (
-                    <SeriesSheet
-                      entry={openEntry}
-                      category={category}
-                      doneDescription={doneSet(openEntry, "overview")}
-                      donePolicy={doneSet(openEntry, "policy")}
-                      onToggleDescription={(k: string) => toggleDone(openEntry, "overview", k)}
-                      onTogglePolicy={(k: string) => toggleDone(openEntry, "policy", k)}
-                      onClose={() => setPicked(null)}
-                    />
-                  )
-                }
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* 기록물 대장 */}
-      {view === "register" && (
-        <OralRegister
-          categories={doc.categories}
-          matches={(e) => matchesFilter(e, query)}
-          heading={false}
-          // 대장에서 고른 계열은 서가에서 펼쳐 보여 준다 — 기술지가 사는 곳은 서가다.
-          onPick={(_, entry) => {
-            setPicked(entry.referenceCode);
-            setView("shelf");
-          }}
-        />
-      )}
-
-      {/* 확인 필요 목록 */}
-      {doc.unresolvedSubsections.length > 0 && (
-        <details className="mt-8 rounded-sm border border-line p-3">
-          <summary className="cursor-pointer font-mono text-xs text-grey">
-            {doc.unresolvedTitle} — 존재는 확인했지만 5W1H를 못 채운 기관 목록 펼치기
-          </summary>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {doc.unresolvedSubsections.map((sub) => (
-              <div key={sub.id}>
-                <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">
-                  {sub.id}. {sub.title}
-                </h4>
-                <ul className="space-y-1">
-                  {sub.items.map((item, i) => (
-                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
-                      {item.isBullet && <span className="mr-1 text-line">·</span>}
-                      <Inline text={item.text} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+      <main className="page-shell py-6">
+        {/* 서가 머리 — 상자가 못 지는 것만 적는다. 규칙 이름은 라벨마다 지므로 여기 없다. */}
+        <section className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] tracking-[0.05em] text-grey">
+            <span>
+              기술계층 <b className="text-ink">계열</b>(시리즈) · 참조코드 <b className="text-ink">KR-OHP-*</b> · 기술 21칸 + 정책 9칸
+            </span>
+            <span className="h-3 w-px bg-line" />
+            <span>
+              문서 ● 확인 ◐ 일부 ╱ 봤으나 못 찾음 · 아직 안 봄 · 오른쪽 ✓ 내가 검토한 칸
+            </span>
+            <span className="h-3 w-px bg-line" />
+            <span>
+              카테고리 {doc.categories.length}개 · 계열 {query.trim() ? `${matched}/${doc.totalEntries}` : doc.totalEntries}건
+            </span>
           </div>
-        </details>
-      )}
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="기관·사업명·참조코드 검색"
+            className={`w-56 ${INPUT_CLASSNAME}`}
+          />
+        </section>
 
-      {/* 다음으로 고려할 것 */}
-      {doc.planGroups.length > 0 && (
-        <details className="mt-3 rounded-sm border border-line p-3">
-          <summary className="cursor-pointer font-mono text-xs text-grey">{doc.planTitle} 펼치기</summary>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {doc.planGroups.map((g) => (
-              <div key={g.title}>
-                <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">{g.title}</h4>
-                <ol className="list-decimal space-y-1 pl-4">
-                  {g.items.map((item, i) => (
-                    <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
-                      <Inline text={item} />
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
+        {/* 서가 */}
+        {view === "shelf" && (
+          <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
+            {doc.categories.map((category) => {
+              const openEntry = category.entries.find((e) => e.referenceCode === picked) ?? null;
+              const label = (entry: OralHistoryEntry) => (
+                <SeriesLabel
+                  key={entry.referenceCode}
+                  entry={entry}
+                  active={picked === entry.referenceCode}
+                  dimmed={!matchesFilter(entry, query)}
+                  onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
+                  doneDescription={doneSet(entry, "overview")}
+                  donePolicy={doneSet(entry, "policy")}
+                />
+              );
+              return (
+                <ShelfWithSheet
+                  key={category.label}
+                  label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
+                  open={openEntry !== null}
+                  onClose={() => setPicked(null)}
+                  // 누른 상자를 첫 자리로 끌어내고 나머지는 기술지 뒤로 흐른다.
+                  boxes={(openEntry
+                    ? [openEntry, ...category.entries.filter((e) => e !== openEntry)]
+                    : category.entries
+                  ).map(label)}
+                  sheet={
+                    openEntry && (
+                      <SeriesSheet
+                        entry={openEntry}
+                        category={category}
+                        doneDescription={doneSet(openEntry, "overview")}
+                        donePolicy={doneSet(openEntry, "policy")}
+                        onToggleDescription={(k: string) => toggleDone(openEntry, "overview", k)}
+                        onTogglePolicy={(k: string) => toggleDone(openEntry, "policy", k)}
+                        onClose={() => setPicked(null)}
+                      />
+                    )
+                  }
+                />
+              );
+            })}
           </div>
-        </details>
-      )}
-    </div>
+        )}
+
+        {/* 기록물 대장 */}
+        {view === "register" && (
+          <OralRegister
+            categories={doc.categories}
+            matches={(e) => matchesFilter(e, query)}
+            heading={false}
+            // 대장에서 고른 계열은 서가에서 펼쳐 보여 준다 — 기술지가 사는 곳은 서가다.
+            onPick={(_, entry) => {
+              setPicked(entry.referenceCode);
+              setView("shelf");
+            }}
+          />
+        )}
+
+        {/* 확인 필요 목록 */}
+        {doc.unresolvedSubsections.length > 0 && (
+          <details className="mt-8 rounded-sm border border-line p-3">
+            <summary className="cursor-pointer font-mono text-xs text-grey">
+              {doc.unresolvedTitle} — 존재는 확인했지만 5W1H를 못 채운 기관 목록 펼치기
+            </summary>
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {doc.unresolvedSubsections.map((sub) => (
+                <div key={sub.id}>
+                  <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">
+                    {sub.id}. {sub.title}
+                  </h4>
+                  <ul className="space-y-1">
+                    {sub.items.map((item, i) => (
+                      <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
+                        {item.isBullet && <span className="mr-1 text-line">·</span>}
+                        <Inline text={item.text} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {/* 다음으로 고려할 것 */}
+        {doc.planGroups.length > 0 && (
+          <details className="mt-3 rounded-sm border border-line p-3">
+            <summary className="cursor-pointer font-mono text-xs text-grey">{doc.planTitle} 펼치기</summary>
+            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {doc.planGroups.map((g) => (
+                <div key={g.title}>
+                  <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">{g.title}</h4>
+                  <ol className="list-decimal space-y-1 pl-4">
+                    {g.items.map((item, i) => (
+                      <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
+                        <Inline text={item} />
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+      </main>
+    </>
   );
 }
