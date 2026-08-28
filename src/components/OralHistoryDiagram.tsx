@@ -184,65 +184,70 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
           </div>
         )}
 
-        {/* 기록물 대장 */}
+        {/* 기록물 대장 — 아직 계열로 못 선 것들(불충분·다음 후보)도 여기에 딸린다. 서가는
+            세워 둔 상자만 이는 자리라, 못 세운 것을 대는 자리는 대장 쪽이다. */}
         {view === "register" && (
-          <OralRegister
-            categories={doc.categories}
-            matches={(e) => matchesFilter(e, query)}
-            heading={false}
-            // 대장에서 고른 계열은 서가에서 펼쳐 보여 준다 — 기술지가 사는 곳은 서가다.
-            onPick={(_, entry) => {
-              setPicked(entry.referenceCode);
-              setView("shelf");
-            }}
-          />
-        )}
+          <>
+            <OralRegister
+              categories={doc.categories}
+              matches={(e) => matchesFilter(e, query)}
+              heading={false}
+              // 대장에서 고른 계열은 서가에서 펼쳐 보여 준다 — 기술지가 사는 곳은 서가다.
+              onPick={(_, entry) => {
+                setPicked(entry.referenceCode);
+                setView("shelf");
+              }}
+            />
 
-        {/* 확인 필요 목록 */}
-        {doc.unresolvedSubsections.length > 0 && (
-          <details className="mt-8 rounded-sm border border-line p-3">
-            <summary className="cursor-pointer font-mono text-xs text-grey">
-              {doc.unresolvedTitle} — 존재는 확인했지만 5W1H를 못 채운 기관 목록 펼치기
-            </summary>
-            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {doc.unresolvedSubsections.map((sub) => (
-                <div key={sub.id}>
-                  <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">
-                    {sub.id}. {sub.title}
-                  </h4>
-                  <ul className="space-y-1">
-                    {sub.items.map((item, i) => (
-                      <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
-                        {item.isBullet && <span className="mr-1 text-line">·</span>}
-                        <Inline text={item.text} />
-                      </li>
-                    ))}
-                  </ul>
+            {/* 확인 필요 목록 */}
+            {doc.unresolvedSubsections.length > 0 && (
+              <details className="mt-8 rounded-sm border border-line p-3">
+                <summary className="cursor-pointer font-mono text-xs text-grey">
+                  {doc.unresolvedTitle} — 존재는 확인했지만 5W1H를 못 채운 기관 목록 펼치기
+                </summary>
+                <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {doc.unresolvedSubsections.map((sub) => (
+                    <div key={sub.id}>
+                      <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">
+                        {sub.id}. {sub.title}
+                      </h4>
+                      <ul className="space-y-1">
+                        {sub.items.map((item, i) => (
+                          <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
+                            {item.isBullet && <span className="mr-1 text-line">·</span>}
+                            <Inline text={item.text} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </details>
-        )}
+              </details>
+            )}
 
-        {/* 다음으로 고려할 것 */}
-        {doc.planGroups.length > 0 && (
-          <details className="mt-3 rounded-sm border border-line p-3">
-            <summary className="cursor-pointer font-mono text-xs text-grey">{doc.planTitle} 펼치기</summary>
-            <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {doc.planGroups.map((g) => (
-                <div key={g.title}>
-                  <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">{g.title}</h4>
-                  <ol className="list-decimal space-y-1 pl-4">
-                    {g.items.map((item, i) => (
-                      <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
-                        <Inline text={item} />
-                      </li>
-                    ))}
-                  </ol>
+            {/* 다음으로 고려할 것 */}
+            {doc.planGroups.length > 0 && (
+              <details className="mt-3 rounded-sm border border-line p-3">
+                <summary className="cursor-pointer font-mono text-xs text-grey">
+                  {doc.planTitle} 펼치기
+                </summary>
+                <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {doc.planGroups.map((g) => (
+                    <div key={g.title}>
+                      <h4 className="mb-1 font-mono text-[11px] font-bold text-grey">{g.title}</h4>
+                      <ol className="list-decimal space-y-1 pl-4">
+                        {g.items.map((item, i) => (
+                          <li key={i} className={`${TEXT_DENSE_CLASSNAME} leading-5 text-ink`}>
+                            <Inline text={item} />
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </details>
+              </details>
+            )}
+          </>
         )}
       </main>
     </>
