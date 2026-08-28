@@ -225,9 +225,8 @@ npm install
 cp .env.local.example .env.local
 ```
 
-- `NATIONAL_ARCHIVES_API_KEY` — 국가기록원 나라기록물정보 서비스(data.go.kr) 인증키
-- `NATIONAL_MUSEUM_API_KEY` — 국립중앙박물관 전국 박물관 유물정보 서비스(data.go.kr) 인증키
-- `G2B_API_KEY` — 조달청 나라장터 입찰공고정보 서비스(data.go.kr, 15129394) 인증키. `npm run search:bids`가 구술채록 **용역 공고**를 훑는 데 씁니다 — data.go.kr 일반 인증키는 계정당 하나지만 서비스마다 활용신청 승인이 따로 필요해서, 승인 전에는 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR`가 옵니다
+- `DATA_GO_KR_API_KEY` — data.go.kr 일반 인증키(Decoding) **하나**. 계정마다 하나뿐이라 서비스별로 나눌 수 없고, 서비스마다 갈리는 것은 키가 아니라 **활용신청 승인**입니다 — 승인 전에는 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR`가 옵니다. 재발급하면 이 한 줄만 고칩니다. 쓰는 서비스는 국가기록원 나라기록물정보, 국립중앙박물관 전국 박물관 유물정보(15159017), 성평등가족부 여성사전시관 구술자료(15078220), 조달청 나라장터 입찰공고(15129394)·낙찰정보(15129397), 행정안전부 정책연구 과제정보 PRISM(15080254)입니다
+  - 옛 이름(`NATIONAL_ARCHIVES_API_KEY`·`G2B_API_KEY` 등)도 여전히 읽습니다([scripts/lib/data-go-kr.mjs](scripts/lib/data-go-kr.mjs)·[src/lib/data-go-kr.ts](src/lib/data-go-kr.ts)) — 이미 값이 들어 있는 `.env.local`을 깨지 않기 위해서고, 새 줄이 있으면 그쪽이 이깁니다
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase 프로젝트 접속 정보
 - `SUPABASE_SERVICE_ROLE_KEY` — `npm run sync` 등 서버 스크립트에서 쓰는 서비스 롤 키(별도 발급 필요, `.env.local`에만 보관)
 
@@ -260,6 +259,8 @@ npm run dev
 - [scripts/import-seoul-photo-collections.mjs](scripts/import-seoul-photo-collections.mjs) — 서울기록원 사진아카이브 컬렉션 CSV를 `archive_items`에 반영
 - [scripts/match-museum-relics.mjs](scripts/match-museum-relics.mjs) — 국립중앙박물관 유물 매칭 후보를 콘솔에 출력(자동 반영하지 않고 사람이 확인)
 - [scripts/backfill-volume-issue.mjs](scripts/backfill-volume-issue.mjs) — RISS 논문의 권호 정보 보강(요청 간 10초 대기)
+- [scripts/fetch-prism-research.mjs](scripts/fetch-prism-research.mjs) (`npm run fetch:prism`) — PRISM(정책연구관리시스템) 정책연구 과제에서 과제명에 `구술`·`채록`·`생애사`가 걸린 것을 뽑아 계약정보(수행기관·수행연구원·계약금액·계약방식)와 보고서 파일 URL까지 붙입니다. **이 API에는 낱말 검색이 없어**(목록이 받는 조건은 기관코드와 연구기간뿐) 기간으로 전량을 훑고 제목을 이쪽에서 거릅니다 — 개발계정 하루 1,000건 제한에 걸리기 쉬워 목록은 `data/raw/prism-research-list.json`에 캐시하고 재실행 때 재사용합니다(`--refresh`로 다시 받음). 결과는 `data/raw/prism-research.json`
+- [scripts/import-prism-papers.mjs](scripts/import-prism-papers.mjs) (`npm run import:prism`) — 위 결과를 `papers`에 **「보고서」**로 넣습니다(id는 `prism-<과제ID>`라 RISS 수집분·수기 입력분과 겹치지 않고, 다시 돌리면 같은 행을 갱신합니다). 과제명만 같고 채록이 아닌 것(항공영어구술능력증명·구술심리제도)은 여기서 걷어냅니다. **발주처·계약금액·계약방식은 `papers`에 자리가 없어 담기지 않습니다** — `institution`은 인용 형식이 "수행기관 연구보고서"라 부르는 자리라 수행기관이 차지합니다. 그 셋은 `data/raw/prism-research.json`과 [docs/oral_history_performers.md](docs/oral_history_performers.md)에 남습니다
 
 ## 저장소 구조
 
@@ -286,6 +287,8 @@ public/         정적 파일. `_demo-*.html`은 화면을 정하며 브라우�
 | [docs/progress.md](docs/progress.md) | 실제로 만든 화면·코드와 그 이유를 정리한 진행 기록 (초기 구현 시점 기준 — 현재 화면 구조는 이 README가 기준) |
 | [docs/archives.md](docs/archives.md) | 외부 아카이브별 접근 방식·자동화 가능 여부 조사 기록 (연동 실패한 곳까지 전부) |
 | [docs/oral_history_projects.md](docs/oral_history_projects.md) | 국내 구술채록 사업을 ISAD 30칸으로 정리 — `/oral-history-projects` 화면의 데이터 원본 |
+| [docs/oral_history_performers.md](docs/oral_history_performers.md) | PRISM에서 뽑은 구술 용역 **수행기관** 110건 — 발주처·계약금액·수행연구원과 최종보고서 링크. 화면에는 안 쓴다 |
+| [docs/oral_history_bids.md](docs/oral_history_bids.md) | 나라장터에서 뽑은 구술 용역 **입찰·발주** 103건 — 공고번호·추정가격과 나라장터 공고 링크. **낙찰자는 없다**. 화면에는 안 쓴다 |
 | [docs/international_oral_history_projects.md](docs/international_oral_history_projects.md) | 해외 주요 국가기관의 구술 사업 분류 축 비교 — 국내 목록의 빈 영역을 찾기 위한 대조군 |
 | [docs/nrf_oral_history_research_projects.md](docs/nrf_oral_history_research_projects.md) | 한국연구재단(KRM) 구술 관련 연구과제 438건 전수조사 — 상설 사업의 "원형" 가설 검증 |
 

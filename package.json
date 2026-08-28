@@ -13,7 +13,10 @@
     "dump:cut": "node --env-file=.env.local scripts/dump-cut-papers.mjs",
     "tunnel": "lt --port 3000 --subdomain fragment-index",
     "import:th": "node --env-file=.env.local scripts/import-th-timeline.mjs",
-    "search:bids": "node --env-file=.env.local scripts/search-g2b-bids.mjs"
+    "search:bids": "node --env-file=.env.local scripts/search-g2b-bids.mjs",
+    "fetch:awards": "node --env-file=.env.local scripts/fetch-g2b-awards.mjs",
+    "fetch:prism": "node --env-file=.env.local scripts/fetch-prism-research.mjs",
+    "import:prism": "node --env-file=.env.local scripts/import-prism-papers.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.7",

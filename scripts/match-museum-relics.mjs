@@ -10,12 +10,13 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { XMLParser } from "fast-xml-parser";
+import { dataGoKrKey } from "./lib/data-go-kr.mjs";
 
 const execFileAsync = promisify(execFile);
 const BASE_URL = "https://apis.data.go.kr/1371027/openapi";
-const key = process.env.NATIONAL_MUSEUM_API_KEY;
+const key = dataGoKrKey("NATIONAL_MUSEUM_API_KEY");
 if (!key) {
-  console.error("NATIONAL_MUSEUM_API_KEY가 없습니다. .env.local을 확인하거나 --env-file로 로드하세요.");
+  console.error("DATA_GO_KR_API_KEY가 없습니다. .env.local을 확인하거나 --env-file로 로드하세요.");
   process.exit(1);
 }
 

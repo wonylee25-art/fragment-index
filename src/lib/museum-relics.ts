@@ -2,10 +2,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { XMLParser } from "fast-xml-parser";
 import { asArray } from "./xml";
+import { dataGoKrKey } from "./data-go-kr";
 
 // 문화체육관광부 국립중앙박물관_전국 박물관 유물정보_GW (data.go.kr, 서비스 ID 15159017) 클라이언트.
 // 400여 개 협력 박물관·약 280만 건의 소장품 메타데이터. 서버 전용 —
-// NATIONAL_MUSEUM_API_KEY는 .env.local에만 두고 클라이언트로 내려가지 않는다.
+// 인증키(DATA_GO_KR_API_KEY)는 .env.local에만 두고 클라이언트로 내려가지 않는다.
 // 6-5 정책: 메타데이터+이미지 링크만 쓰고 원문(실물)을 재호스팅하지 않는다.
 //
 // Node의 fetch/https(undici)로 이 게이트웨이를 호출하면 매번 "웹 보안 정책 위반"
@@ -42,8 +43,8 @@ function flattenDataEntry(entry: { item?: unknown }): Record<string, string> {
 }
 
 async function callApi(path: string, params: Record<string, string | number>): Promise<string> {
-  const key = process.env.NATIONAL_MUSEUM_API_KEY;
-  if (!key) throw new Error("NATIONAL_MUSEUM_API_KEY가 설정되지 않았습니다 (.env.local 확인)");
+  const key = dataGoKrKey("NATIONAL_MUSEUM_API_KEY");
+  if (!key) throw new Error("DATA_GO_KR_API_KEY가 설정되지 않았습니다 (.env.local 확인)");
 
   const query = new URLSearchParams({ serviceKey: key, ...Object.fromEntries(
     Object.entries(params).map(([k, v]) => [k, String(v)]),

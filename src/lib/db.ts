@@ -612,6 +612,7 @@ interface DbPaper {
   publisher_location: string | null;
   translator: string | null;
   volume_issue: string | null;
+  ordering_agency: string | null;
   research_period: string | null;
   research_team: string | null;
   research_summary: string | null;
@@ -674,7 +675,7 @@ export async function getPapers(): Promise<PaperData[]> {
     const { data: page, error } = await supabase
       .from("papers")
       .select(
-        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, is_important, is_read, hidden_at, publisher_location, translator, volume_issue, research_period, research_team, research_summary, parent_id, editor, pages, created_at",
+        "id, paper_type, title, author, year, institution, journal_name, degree_level, keywords, riss_url, is_important, is_read, hidden_at, publisher_location, translator, volume_issue, ordering_agency, research_period, research_team, research_summary, parent_id, editor, pages, created_at",
       )
       .order("year", { ascending: false })
       .order("id", { ascending: true }) // 동일 연도 내 순서를 고정 — 없으면 새로고침(메모/중요/읽음 저장 등)마다 목록이 흔들림
@@ -721,6 +722,7 @@ export async function getPapers(): Promise<PaperData[]> {
     parentId: p.parent_id,
     pages: p.pages ?? undefined,
     volumeIssue: p.volume_issue ?? undefined,
+    orderingAgency: p.ordering_agency ?? undefined,
     researchPeriod: p.research_period ?? undefined,
     researchTeam: p.research_team ?? undefined,
     researchSummary: p.research_summary ?? undefined,

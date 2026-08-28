@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   publisherLocation: "",
   translator: "",
   editor: "",
+  orderingAgency: "",
   researchPeriod: "",
   researchTeam: "",
   researchSummary: "",
@@ -39,6 +40,7 @@ function formFromPaper(paper: PaperData): typeof EMPTY_FORM {
     publisherLocation: paper.publisherLocation ?? "",
     translator: paper.translator ?? "",
     editor: paper.editor ?? "",
+    orderingAgency: paper.orderingAgency ?? "",
     researchPeriod: paper.researchPeriod ?? "",
     researchTeam: paper.researchTeam ?? "",
     researchSummary: paper.researchSummary ?? "",
@@ -85,6 +87,7 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
         publisherLocation: form.publisherLocation,
         translator: form.translator,
         editor: form.editor,
+        orderingAgency: form.orderingAgency,
         researchPeriod: form.researchPeriod,
         researchTeam: form.researchTeam,
         researchSummary: form.researchSummary,
@@ -237,6 +240,15 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
 
       {form.paperType === "보고서" && (
         <>
+          {/* 발주처와 수행기관은 다른 주체다 — 기관명 칸(institution)이 부르는 것은 수행기관이고
+              (인용 형식이 "수행기관 연구보고서"라 그 자리를 쓴다), 연구를 맡긴 쪽이 여기 선다. */}
+          <input
+            type="text"
+            value={form.orderingAgency}
+            onChange={(e) => update("orderingAgency", e.target.value)}
+            placeholder="발주처 (연구를 맡긴 기관)"
+            className={INPUT_CLASSNAME}
+          />
           <input
             type="text"
             value={form.researchTeam}

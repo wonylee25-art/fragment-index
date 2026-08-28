@@ -1,7 +1,8 @@
 import { XMLParser } from "fast-xml-parser";
+import { dataGoKrKey } from "./data-go-kr";
 
 // 국가기록원 "나라기록물정보 서비스" (data.go.kr, 서비스 ID 15158780) 클라이언트.
-// 서버 전용 — NATIONAL_ARCHIVES_API_KEY는 .env.local에만 두고 클라이언트로 내려가지 않는다.
+// 서버 전용 — 인증키(DATA_GO_KR_API_KEY)는 .env.local에만 두고 클라이언트로 내려가지 않는다.
 // 6-5 정책: 이 API는 기록물 메타데이터+링크만 주므로, 원문을 저장하지 않고 그대로만 쓴다.
 
 const BASE_URL = "https://apis.data.go.kr/1741050/openapi/searcharc";
@@ -19,8 +20,8 @@ export interface ArchiveRecord {
 const parser = new XMLParser();
 
 export async function searchArchiveRecords(query: string, display = 5): Promise<ArchiveRecord[]> {
-  const key = process.env.NATIONAL_ARCHIVES_API_KEY;
-  if (!key) throw new Error("NATIONAL_ARCHIVES_API_KEY가 설정되지 않았습니다 (.env.local 확인)");
+  const key = dataGoKrKey("NATIONAL_ARCHIVES_API_KEY");
+  if (!key) throw new Error("DATA_GO_KR_API_KEY가 설정되지 않았습니다 (.env.local 확인)");
 
   const url = `${BASE_URL}?serviceKey=${key}&query=${encodeURIComponent(query)}&pageNo=1&display=${display}`;
   const res = await fetch(url);

@@ -1,9 +1,10 @@
 import { XMLParser } from "fast-xml-parser";
 import { asArray } from "./xml";
 import boardLinks from "./womens-oral-links.json";
+import { dataGoKrKey } from "./data-go-kr";
 
 // 성평등가족부_여성사전시관 구술자료 정보 서비스 (data.go.kr, 서비스 ID 15078220) 클라이언트.
-// 서버 전용 — WOMENS_HISTORY_ORAL_API_KEY는 .env.local에만 두고 클라이언트로 내려가지 않는다.
+// 서버 전용 — 인증키(DATA_GO_KR_API_KEY)는 .env.local에만 두고 클라이언트로 내려가지 않는다.
 //
 // **API 문서의 필드 설명이 실제 응답 내용과 다르다** (2026-08-06 실제 호출로 확인, docs/archives.md 참고):
 // - dctnDataNm("구술자료명"이라 표기) → 실제로는 시리즈/카테고리명 (예: "여성과 교육", "여성과 노동")
@@ -88,8 +89,8 @@ let cachedItems: WomensOralArchiveItem[] | null = null;
 async function loadAllItems(): Promise<WomensOralArchiveItem[]> {
   if (cachedItems) return cachedItems;
 
-  const key = process.env.WOMENS_HISTORY_ORAL_API_KEY;
-  if (!key) throw new Error("WOMENS_HISTORY_ORAL_API_KEY가 설정되지 않았습니다 (.env.local 확인)");
+  const key = dataGoKrKey("WOMENS_HISTORY_ORAL_API_KEY");
+  if (!key) throw new Error("DATA_GO_KR_API_KEY가 설정되지 않았습니다 (.env.local 확인)");
 
   // totalCount가 2026-08-06 기준 64건이라 한 페이지(numOfRows=100)로 전체를 받는다.
   // 이후 실제로 100건을 넘어서면 pageNo를 늘려 순회하도록 고쳐야 한다.

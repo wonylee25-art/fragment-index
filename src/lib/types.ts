@@ -137,6 +137,9 @@ export interface PaperData {
   publisherLocation?: string; // 출판지 (예: 서울)
   translator?: string; // 역서일 때 역자
   editor?: string; // 엮은이 — 논문집처럼 저자와 편자가 다를 때만. 수록글 인용의 "OOO 편"이 여기서 온다.
+  // 보고서일 때만 — 연구를 맡긴 행정기관. institution(수행기관)과 다른 주체다:
+  // 인용 형식이 "수행기관 연구보고서"라 institution을 부르므로, 발주처는 제 칸을 진다.
+  orderingAgency?: string;
   researchPeriod?: string; // 보고서일 때만 — 연구기간, 예: "2023.03~2023.12"
   researchTeam?: string; // 보고서일 때만 — 연구진 (연구책임자 제외 공동연구원), 쉼표로 구분
   researchSummary?: string; // 보고서일 때만 — 연구 요약(초록에 해당)

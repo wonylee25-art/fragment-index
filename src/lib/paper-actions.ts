@@ -17,6 +17,7 @@ export interface AddPaperInput {
   publisherLocation: string;
   translator: string;
   editor: string;
+  orderingAgency: string;
   researchPeriod: string;
   researchTeam: string;
   researchSummary: string;
@@ -53,6 +54,7 @@ function toPaperRow(input: AddPaperInput) {
     publisher_location: isBook ? input.publisherLocation.trim() || null : null,
     translator: isBook ? input.translator.trim() || null : null,
     editor: isBook ? input.editor.trim() || null : null,
+    ordering_agency: isReport ? input.orderingAgency.trim() || null : null,
     research_period: isReport ? input.researchPeriod.trim() || null : null,
     research_team: isReport ? input.researchTeam.trim() || null : null,
     research_summary: isReport ? input.researchSummary.trim() || null : null,
