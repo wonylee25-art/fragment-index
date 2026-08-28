@@ -8,8 +8,8 @@ import { CELL_GLYPH, CELL_TEXT_CLASSNAME, TOGGLE_BUTTON_CLASSNAME, TOGGLE_ON_CLA
 // 세로로 서지 않는다. "누가 열람절차를 확인했나"처럼 한 요소를 여러 계열에 걸쳐 훑으려면
 // 눕힌 표가 따로 있어야 한다.
 //
-// 서가와 단추로 갈아 끼우지 않고 화면 맨 아래에 쌓는 것은, 갈아 끼우면 둘 중 하나가 늘
-// 숨어서 "지금 어느 보기인가"를 기억해야 하기 때문이다.
+// 서가와는 탭으로 갈라 세운다. 한때는 화면 맨 아래에 쌓아 두었는데, 서가만 해도 카테고리가
+// 여럿이라 대장에 닿으려면 화면을 한참 굴려야 했다. 어느 보기인지는 탭이 켜져 있어 알 수 있다.
 //
 // 카드는 닫힌 상자지만 대장은 열린 줄이다 — 좌우 테두리가 없고 아랫줄과 선을 나눠 쓴다.
 
@@ -21,10 +21,13 @@ export function OralRegister({
   categories,
   matches,
   onPick,
+  heading = true,
 }: {
   categories: OralHistoryCategory[];
   matches: (entry: OralHistoryEntry) => boolean;
   onPick: (categoryLabel: string, entry: OralHistoryEntry) => void;
+  // 탭 안에서는 탭이 이미 이름을 대므로 제목을 두 번 쓰지 않는다.
+  heading?: boolean;
 }) {
   const rows = categories.flatMap((c) => c.entries.map((e) => ({ category: c, entry: e })));
   const sample = rows[0]?.entry;
@@ -42,10 +45,12 @@ export function OralRegister({
   const marksWidth = `${Math.max(160, heads.length * 46)}px`;
 
   return (
-    <section className="mt-10">
+    <section className={heading ? "mt-10" : ""}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 className="font-mono text-[11px] tracking-[0.14em] text-grey">기록물 대장</h2>
-        <div className="ml-2 flex items-center gap-1 font-mono text-[11px]">
+        {heading && (
+          <h2 className="font-mono text-[11px] tracking-[0.14em] text-grey">기록물 대장</h2>
+        )}
+        <div className="flex items-center gap-1 font-mono text-[11px]">
           {tabs.map((tab) => (
             <button
               key={tab.id}

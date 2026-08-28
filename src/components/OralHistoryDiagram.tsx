@@ -22,9 +22,13 @@ import { OralRegister } from "./OralRegister";
 // (ShelfWithSheet). 누른 상자에 매달아 두면 자리가 상자마다 달라져, 어느 것을 눌렀느냐에
 // 따라 글이 나타나는 데를 눈이 매번 다시 찾아야 했다.
 //
-// 화면은 두 층이다 — 위의 서가는 하나를 고르는 자리(라벨 한 장이 그 사업의 전부를 말한다),
-// 아래의 대장은 여럿을 견주는 자리(한 칸이 52건에 걸쳐 한 열로 선다). 단추로 갈아 끼우지
-// 않고 세로로 쌓는 것은, 갈아 끼우면 둘 중 하나가 늘 숨기 때문이다.
+// 보기는 둘이다 — 서가는 하나를 고르는 자리(라벨 한 장이 그 사업의 전부를 말한다), 대장은
+// 여럿을 견주는 자리(한 칸이 계열 전부에 걸쳐 한 열로 선다). 한때는 둘을 세로로 쌓았지만
+// 서가만 카테고리가 여럿이라 대장까지 내려가는 데 화면을 한참 굴려야 했다. 그래서 탭으로
+// 가른다. 하나가 숨는 값은 치르되, 탭이 켜져 있으니 어느 보기인지는 눈에 남는다.
+//
+// 검색은 탭 위에 둔다 — 두 보기가 같은 걸러내기를 나눠 쓴다. 대장에서 한 줄을 누르면 그
+// 계열이 켜진 채 서가로 건너간다.
 
 function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   const q = query.trim();
@@ -37,8 +41,16 @@ function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   ].some((s) => s.includes(q));
 }
 
+type View = "shelf" | "register";
+
+const VIEWS: { id: View; label: string }[] = [
+  { id: "shelf", label: "기록물 박스" },
+  { id: "register", label: "기록물 대장" },
+];
+
 export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks: CellMark[] }) {
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<View>("shelf");
   const [picked, setPicked] = useState<string | null>(null);
   // 내가 켠 칸. 주인은 참조코드가 아니라 기관명+사업명이다 — 참조코드는 문서 순서로
   // 매겨져서 가운데 기관이 하나 끼면 뒤가 전부 밀리고, 표시가 엉뚱한 사업에 붙는다.
@@ -79,8 +91,33 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
 
   return (
     <div>
+      {/* 보기 탭 — 서가와 대장을 갈아 끼운다. 검색은 둘이 나눠 쓰므로 탭 줄에 함께 둔다. */}
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3 border-b border-line">
+        <nav className="flex gap-1">
+          {VIEWS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setView(tab.id)}
+              className={`-mb-px border-b-2 px-3 py-2 font-mono text-xs font-bold transition-colors ${
+                view === tab.id ? "border-ink text-ink" : "border-transparent text-grey hover:text-ink"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="기관·사업명·참조코드 검색"
+          className={`mb-1.5 w-56 ${INPUT_CLASSNAME}`}
+        />
+      </div>
+
       {/* 서가 머리 — 상자가 못 지는 것만 적는다. 규칙 이름은 라벨마다 지므로 여기 없다. */}
-      <section className="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <section className="mb-3 flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] tracking-[0.05em] text-grey">
           <span>
             기술계층 <b className="text-ink">계열</b>(시리즈) · 참조코드 <b className="text-ink">KR-OHP-*</b> · 기술 21칸 + 정책 9칸
@@ -94,66 +131,67 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
             카테고리 {doc.categories.length}개 · 계열 {query.trim() ? `${matched}/${doc.totalEntries}` : doc.totalEntries}건
           </span>
         </div>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="기관·사업명·참조코드 검색"
-          className={`w-56 ${INPUT_CLASSNAME}`}
-        />
       </section>
 
       {/* 서가 */}
-      <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
-        {doc.categories.map((category) => {
-          const openEntry = category.entries.find((e) => e.referenceCode === picked) ?? null;
-          const label = (entry: OralHistoryEntry) => (
-            <SeriesLabel
-              key={entry.referenceCode}
-              entry={entry}
-              active={picked === entry.referenceCode}
-              dimmed={!matchesFilter(entry, query)}
-              onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
-              doneDescription={doneSet(entry, "overview")}
-              donePolicy={doneSet(entry, "policy")}
-            />
-          );
-          return (
-            <ShelfWithSheet
-              key={category.label}
-              label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
-              open={openEntry !== null}
-              onClose={() => setPicked(null)}
-              // 누른 상자를 첫 자리로 끌어내고 나머지는 기술지 뒤로 흐른다.
-              boxes={(openEntry
-                ? [openEntry, ...category.entries.filter((e) => e !== openEntry)]
-                : category.entries
-              ).map(label)}
-              sheet={
-                openEntry && (
-                  <SeriesSheet
-                    entry={openEntry}
-                    category={category}
-                    doneDescription={doneSet(openEntry, "overview")}
-                    donePolicy={doneSet(openEntry, "policy")}
-                    onToggleDescription={(k: string) => toggleDone(openEntry, "overview", k)}
-                    onTogglePolicy={(k: string) => toggleDone(openEntry, "policy", k)}
-                    onClose={() => setPicked(null)}
-                  />
-                )
-              }
-            />
-          );
-        })}
-      </div>
+      {view === "shelf" && (
+        <div className="border border-line bg-[#eceae6] px-3.5 pb-3.5">
+          {doc.categories.map((category) => {
+            const openEntry = category.entries.find((e) => e.referenceCode === picked) ?? null;
+            const label = (entry: OralHistoryEntry) => (
+              <SeriesLabel
+                key={entry.referenceCode}
+                entry={entry}
+                active={picked === entry.referenceCode}
+                dimmed={!matchesFilter(entry, query)}
+                onClick={() => setPicked(picked === entry.referenceCode ? null : entry.referenceCode)}
+                doneDescription={doneSet(entry, "overview")}
+                donePolicy={doneSet(entry, "policy")}
+              />
+            );
+            return (
+              <ShelfWithSheet
+                key={category.label}
+                label={`KR-OHP-${category.label}.** — ${category.title} · ${category.entries.length}건`}
+                open={openEntry !== null}
+                onClose={() => setPicked(null)}
+                // 누른 상자를 첫 자리로 끌어내고 나머지는 기술지 뒤로 흐른다.
+                boxes={(openEntry
+                  ? [openEntry, ...category.entries.filter((e) => e !== openEntry)]
+                  : category.entries
+                ).map(label)}
+                sheet={
+                  openEntry && (
+                    <SeriesSheet
+                      entry={openEntry}
+                      category={category}
+                      doneDescription={doneSet(openEntry, "overview")}
+                      donePolicy={doneSet(openEntry, "policy")}
+                      onToggleDescription={(k: string) => toggleDone(openEntry, "overview", k)}
+                      onTogglePolicy={(k: string) => toggleDone(openEntry, "policy", k)}
+                      onClose={() => setPicked(null)}
+                    />
+                  )
+                }
+              />
+            );
+          })}
+        </div>
+      )}
 
-      {/* 기록물 대장 — 화면 맨 아래 */}
-      <OralRegister
-        categories={doc.categories}
-        matches={(e) => matchesFilter(e, query)}
-        onPick={(_, entry) => setPicked(entry.referenceCode)}
-      />
-
+      {/* 기록물 대장 */}
+      {view === "register" && (
+        <OralRegister
+          categories={doc.categories}
+          matches={(e) => matchesFilter(e, query)}
+          heading={false}
+          // 대장에서 고른 계열은 서가에서 펼쳐 보여 준다 — 기술지가 사는 곳은 서가다.
+          onPick={(_, entry) => {
+            setPicked(entry.referenceCode);
+            setView("shelf");
+          }}
+        />
+      )}
 
       {/* 확인 필요 목록 */}
       {doc.unresolvedSubsections.length > 0 && (
