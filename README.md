@@ -285,6 +285,7 @@ public/         정적 파일. `_demo-*.html`은 화면을 정하며 브라우�
 |---|---|
 | [docs/manual.md](docs/manual.md) | 화면 사용설명서 — 처음 여는 사람이 읽는 안내서(중학생 수준으로 서술) |
 | [docs/progress.md](docs/progress.md) | 실제로 만든 화면·코드와 그 이유를 정리한 진행 기록 (초기 구현 시점 기준 — 현재 화면 구조는 이 README가 기준) |
+| [docs/api_data_screens.md](docs/api_data_screens.md) | 바깥에서 받아 온 값이 어느 화면의 어느 자리에 서는지 — 원본·필드 대응표와 아직 화면에 없는 것 |
 | [docs/archives.md](docs/archives.md) | 외부 아카이브별 접근 방식·자동화 가능 여부 조사 기록 (연동 실패한 곳까지 전부) |
 | [docs/oral_history_projects.md](docs/oral_history_projects.md) | 국내 구술채록 사업을 ISAD 30칸으로 정리 — `/oral-history-projects` 화면의 데이터 원본 |
 | [docs/oral_history_performers.md](docs/oral_history_performers.md) | PRISM에서 뽑은 구술 용역 **수행기관** 110건 — 발주처·계약금액·수행연구원과 최종보고서 링크. 화면에는 안 쓴다 |
