@@ -31,7 +31,7 @@ import { OralPerformerTable } from "./OralPerformerTable";
 // 탭 줄은 편집 화면(AdminTabs)과 같은 꼴이다 — 머리글 바로 밑에 화면 너비로 깔린 띠에
 // 밑줄 탭만 얹는다. 같은 자리에 같은 것이 있으면 화면마다 눈을 다시 맞출 일이 없다.
 // 검색은 띠 안이 아니라 아래 머리줄에 남는다 — 편집 띠에도 탭 말고는 아무것도 없다.
-// 대장에서 한 줄을 누르면 그 계열이 켜진 채 서가로 건너간다.
+// 기술지는 어느 보기에서든 누른 자리에서 편다 — 보기가 바뀌면 무엇을 눌렀는지 잃는다.
 
 function matchesFilter(entry: OralHistoryEntry, query: string): boolean {
   const q = query.trim();
@@ -217,11 +217,12 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
               categories={subjectCategories}
               matches={(e) => matchesFilter(e, query)}
               heading={false}
-              // 대장에서 고른 계열은 서가에서 펼쳐 보여 준다 — 기술지가 사는 곳은 서가다.
-              onPick={(_, entry) => {
-                setPicked(entry.referenceCode);
-                setView("shelf");
-              }}
+              // 고른 계열은 그 줄 자리에서 편다. 서가로 건너뛰면 눈이 누른 자리를 잃는다.
+              picked={picked}
+              onPick={(entry) =>
+                setPicked(picked === entry.referenceCode ? null : entry.referenceCode)
+              }
+              renderSheet={(entry, category) => sheetFor(entry, category)}
             />
 
             {/* 확인 필요 목록 */}
