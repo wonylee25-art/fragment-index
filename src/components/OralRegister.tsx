@@ -85,9 +85,16 @@ export function OralRegister({
         </p>
       </div>
 
-      <div className="overflow-x-auto border-y border-ink bg-background">
+      {/* 머리줄이 표를 따라 내려온다 — 백 줄을 훑는 동안 저 ●이 어느 칸인지 잊지 않도록.
+          붙는 데는 화면이라야 한다: 판이 제 스크롤 통을 지면 머리줄은 화면이 아니라 그 통에만
+          붙어, 페이지를 굴리면 판째로 위로 올라가 버린다. 그래서 넓은 화면에서는 통을 풀어
+          (md:overflow-visible) 페이지가 곧 스크롤이 되게 하고, 머리줄은 화면 꼭대기에 선다.
+          좁은 화면에서만 가로 통을 진다 — 스물세 칸이 640px 밑으로는 안 들어가므로. 가로만
+          굴리는 통에서도 세로가 hidden으로 승격돼 sticky가 죽으니(clip을 적어도 마찬가지)
+          그 폭에서는 판 안쪽 스크롤로 받는다. */}
+      <div className="max-h-[calc(100vh-7rem)] overflow-auto border-y border-ink bg-background md:max-h-none md:overflow-x-visible md:overflow-y-visible">
         <div
-          className="grid min-w-[640px] items-stretch border-b border-ink bg-surface"
+          className="sticky top-0 z-20 grid min-w-[640px] items-stretch border-b border-ink bg-surface"
           style={{ gridTemplateColumns: `112px minmax(200px,1fr) ${marksWidth}` }}
         >
           <p className="flex items-center border-r border-ink/15 px-2 font-mono text-[9.5px] tracking-[0.08em] text-grey">
