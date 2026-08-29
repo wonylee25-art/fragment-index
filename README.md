@@ -89,8 +89,8 @@
 
 ## 데이터 구조
 
-- 실데이터는 **Supabase**(Postgres). **원본은 Supabase 하나뿐** — 구글 시트 CSV 동기화는 2026-08-19에 걷어냄
-- 입구는 편집 화면(`/admin/*`) — 구술·인물·사건·사료 연결이 여기서 바로 쓰임
+- 실데이터는 **Supabase**(Postgres) — **원본은 하나뿐**, 화면에서 고친 값을 덮어쓸 상위 원본이 없음
+- 입구도 하나 — 편집 화면(`/admin/*`)에서 구술·인물·사건·사료 연결이 Supabase에 바로 쓰임
 - 외부 오픈데이터/API — 국가기록원 · 국립중앙박물관 · 국사편찬위원회 · 서울기록원 · 여성사전시관 · RISS · PRISM · 나라장터
 - 어느 값이 어느 화면 어느 자리에 서는지는 [docs/api_data_screens.md](docs/api_data_screens.md), 접근 방식과 자동화 가능 여부는 [docs/archives.md](docs/archives.md)
 - 예외 — `/oral-history-projects`만 DB가 아니라 마크다운 문서를 매 요청 파싱([oral-history-projects.ts](src/lib/oral-history-projects.ts))
