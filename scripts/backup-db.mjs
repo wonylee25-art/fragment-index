@@ -19,6 +19,7 @@
 import { writeFileSync, readFileSync, readdirSync, mkdirSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { rotateBackups } from "./lib/rotate-backups.mjs";
+import { mirrorBackups } from "./lib/mirror-backups.mjs";
 
 const OUT_DIR = "data/backup";
 const PAGE = 1000; // PostgREST가 응답 하나를 이 행 수에서 자른다
@@ -150,6 +151,18 @@ async function main() {
 
   for (const { archive, count } of rotateBackups(OUT_DIR)) {
     console.log(`  ${OUT_DIR}/${archive} — 7일 지난 ${count}장을 묶었습니다`);
+  }
+
+  // 저장소 밖에 한 벌 더. BACKUP_MIRROR_DIR이 없으면 조용히 지나간다 — 이 폴더는 맥마다 다르고,
+  // 다른 데서 받아 돌리는 사람에게 없는 경로를 강요할 이유가 없다.
+  const mirror = mirrorBackups(OUT_DIR, process.env.BACKUP_MIRROR_DIR);
+  if (mirror) {
+    const { copied, pruned, total } = mirror;
+    console.log(
+      copied.length || pruned.length
+        ? `  ${process.env.BACKUP_MIRROR_DIR} — ${copied.length}장 건너보냄${pruned.length ? `, 묶인 ${pruned.length}장 거둠` : ""}`
+        : `  ${process.env.BACKUP_MIRROR_DIR} — 이미 같습니다 (${total}장)`,
+    );
   }
 }
 

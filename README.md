@@ -97,6 +97,7 @@
 - 그 화면에서 DB로 가는 것은 노란 획 하나뿐(`oral_series_cell_marks`) — 문서에서 파생되는 값은 DB에 안 둠(두 곳에 두면 갈림)
 - 스키마 변경은 [supabase/migrations/](supabase/migrations)에 SQL로 쌓음
 - 백업은 `npm run backup`뿐 — 무료 플랜에 자동 백업 없음. 복원은 파일을 보고 사람이 판단해 넣음(자동 복원 스크립트 없음)
+- 스냅샷은 `data/backup/`과 **저장소 밖 사본 폴더**(`BACKUP_MIRROR_DIR`) 두 곳 — `data/`는 `.gitignore`라 저장소에 안 올라감
 - 원본 자료는 재호스팅하지 않고 항상 원본 링크로 연결
 
 ## 기술 스택
@@ -129,6 +130,7 @@ cp .env.local.example .env.local
   - 옛 이름(`NATIONAL_ARCHIVES_API_KEY`·`G2B_API_KEY` 등)도 여전히 읽음 — 새 줄이 있으면 그쪽이 이김
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase 접속 정보
 - `SUPABASE_SERVICE_ROLE_KEY` — 서버 스크립트용 서비스 롤 키(별도 발급, `.env.local`에만 보관)
+- `BACKUP_MIRROR_DIR` — 백업 사본을 둘 저장소 밖 폴더(절대경로). 비우면 사본을 안 만듦
 
 ### 3. 개발 서버 실행
 
@@ -155,6 +157,7 @@ npm run dev
 자동화(launchd, 저장소 바깥의 `~/Library/LaunchAgents/`):
 
 - `com.fragment-index.backup` — 매일 14:00에 `npm run backup`. 로그는 `data/backup/backup.log`. 끄려면 `launchctl bootout gui/$UID/com.fragment-index.backup`
+- 스냅샷·달 묶음은 `BACKUP_MIRROR_DIR`로 한 벌 더 건너감([mirror-backups.mjs](scripts/lib/mirror-backups.mjs)) — 사본에서 지우는 것은 그 달 묶음이 건너간 뒤뿐
 - `com.fragment-index.research-sync` — 매주 월요일 08:00에 `backup` → `fetch:riss` → `sync`([weekly-research-sync.sh](scripts/weekly-research-sync.sh))
 - 7일 지난 스냅샷은 달마다 하나의 `YYYY-MM.tar.gz`로 묶음([rotate-backups.mjs](scripts/lib/rotate-backups.mjs)) — 지우지는 않음
 
