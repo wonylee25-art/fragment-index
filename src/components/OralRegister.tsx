@@ -13,7 +13,7 @@ import { CELL_GLYPH, CELL_TEXT_CLASSNAME, TOGGLE_BUTTON_CLASSNAME, TOGGLE_ON_CLA
 //
 // 카드는 닫힌 상자지만 대장은 열린 줄이다 — 좌우 테두리가 없고 아랫줄과 선을 나눠 쓴다.
 
-// 대장이 한 번에 세울 수 있는 것은 군 하나다. 기술 축이 21칸이 되면서 한 표에 다 눕히면
+// 대장이 한 번에 세울 수 있는 것은 군 하나다. 기술 축이 23칸이 되면서 한 표에 다 눕히면
 // 열이 서른이라 아무것도 안 읽힌다 — 군을 갈아 끼우고, 한 번에 그 군의 칸만 세운다.
 const POLICY_GROUP_ID = "정책";
 

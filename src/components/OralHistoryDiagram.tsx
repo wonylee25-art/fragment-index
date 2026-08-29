@@ -141,7 +141,7 @@ export function OralHistoryDiagram({ doc, marks }: { doc: OralHistoryDoc; marks:
         <section className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[10px] tracking-[0.05em] text-grey">
             <span>
-              기술계층 <b className="text-ink">계열</b>(시리즈) · 참조코드 <b className="text-ink">KR-OHP-*</b> · 기술 21칸 + 정책 9칸
+              기술계층 <b className="text-ink">계열</b>(시리즈) · 참조코드 <b className="text-ink">KR-OHP-*</b> · 기술 23칸 + 정책 9칸
             </span>
             <span className="h-3 w-px bg-line" />
             <span>

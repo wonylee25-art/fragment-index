@@ -64,7 +64,7 @@ file → item을 국가기록원 기술 규칙의 우리말로 옮긴 **기록�
 
 문서가 채웠나(`확인`)와 내가 읽었나(`검토`)는 다른 층이라, 말도 갈라 둡니다.
 
-**칸은 두 축 서른입니다** — 기술 축 21칸(군 넷: 사업·주체·내용과 결과·활용)과 활용정책 축 9칸.
+**칸은 두 축 서른둘입니다** — 기술 축 23칸(군 넷: 사업·주체·내용과 결과·활용)과 활용정책 축 9칸.
 칸 하나하나가 ISAD(G) 요소 번호를 지고, 규칙에 자리가 없는 둘(`L1` 사업의 지향, `L2` 역량·방법론
 확산)만 로컬 칸으로 세웁니다. 정본은 [기술 칸 규격](docs/oral_description_schema.md)이고,
 실제 서술에 대 본 결과는 [파일럿](docs/oral_description_pilot.md)에 있습니다.
@@ -118,7 +118,7 @@ file → item을 국가기록원 기술 규칙의 우리말로 옮긴 **기록�
   넷을 갈랐고, 52건이 **56건**이 됐습니다. 기준과 항목별 판정 근거는
   [docs/oral_history_projects.md](docs/oral_history_projects.md)의 「기술 단위 — 사업마다 한 계열」에
   있습니다.
-- ~~56건 전면 재배치~~ **끝났습니다(2026-08-27)** — 옛 육하원칙 6칸을 ISAD 30칸으로 옮겼습니다.
+- ~~56건 전면 재배치~~ **끝났습니다(2026-08-27)** — 옛 육하원칙 6칸을 ISAD 30칸으로 옮겼습니다(2026-08-29에 「사업 규모」·「계약방식」이 더해져 32칸).
   상자 라벨의 규모도 이제 「규모와 매체」 칸을 세웁니다(안 본 칸만 "규모 미기재"로 남습니다).
 - **fonds 층은 미룹니다** — 한 기관에 계열이 둘이면 그 둘을 묶는 층이 생기는데, 어디까지가 한 덩어리냐가
   기관마다 다릅니다. 활용정책 9칸이 대개 기관 단위라 계열을 나누면 값이 두 번 적히는 문제와 같이 풀립니다.
@@ -287,7 +287,7 @@ public/         정적 파일. `_demo-*.html`은 화면을 정하며 브라우�
 | [docs/progress.md](docs/progress.md) | 실제로 만든 화면·코드와 그 이유를 정리한 진행 기록 (초기 구현 시점 기준 — 현재 화면 구조는 이 README가 기준) |
 | [docs/api_data_screens.md](docs/api_data_screens.md) | 바깥에서 받아 온 값이 어느 화면의 어느 자리에 서는지 — 원본·필드 대응표와 아직 화면에 없는 것 |
 | [docs/archives.md](docs/archives.md) | 외부 아카이브별 접근 방식·자동화 가능 여부 조사 기록 (연동 실패한 곳까지 전부) |
-| [docs/oral_history_projects.md](docs/oral_history_projects.md) | 국내 구술채록 사업을 ISAD 30칸으로 정리 — `/oral-history-projects` 화면의 데이터 원본 |
+| [docs/oral_history_projects.md](docs/oral_history_projects.md) | 국내 구술채록 사업을 ISAD 32칸으로 정리 — `/oral-history-projects` 화면의 데이터 원본 |
 | [docs/oral_history_performers.md](docs/oral_history_performers.md) | PRISM에서 뽑은 구술 용역 **수행기관** 110건 — 발주처·계약금액·수행연구원과 최종보고서 링크. 화면에는 안 쓴다 |
 | [docs/oral_history_bids.md](docs/oral_history_bids.md) | 나라장터에서 뽑은 구술 용역 **입찰·발주** 103건 — 공고번호·추정가격과 나라장터 공고 링크. **낙찰자는 없다**. 화면에는 안 쓴다 |
 | [docs/international_oral_history_projects.md](docs/international_oral_history_projects.md) | 해외 주요 국가기관의 구술 사업 분류 축 비교 — 국내 목록의 빈 영역을 찾기 위한 대조군 |

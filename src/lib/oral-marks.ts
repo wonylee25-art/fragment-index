@@ -28,7 +28,7 @@ const LEGACY_DESCRIPTION_KEYS: Record<string, string> = {
   어떻게: "내용-3",
 };
 
-// 화면이 한 번에 다 읽는다 — 52건 x 30칸이고 켠 것만 담기므로 많아야 몇백 행이다.
+// 화면이 한 번에 다 읽는다 — 117건 x 32칸이고 켠 것만 담기므로 많아야 몇백 행이다.
 export async function loadCellMarks(): Promise<CellMark[]> {
   const { data, error } = await supabase
     .from("oral_series_cell_marks")

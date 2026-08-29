@@ -56,7 +56,7 @@ export interface OralHistoryEntry {
   // ISAD(G) 3.1.1 참조코드. 카테고리·생산자·계열 세 자리를 고정으로 쓴다 — 계열이 하나뿐인
   // 기관도 .1을 붙이는 것은, 나중에 둘로 갈릴 때 코드가 흔들리면 안 되기 때문이다.
   referenceCode: string;
-  // 기술 축 21칸을 네 군으로 나눠 담는다. 정책 축 9칸은 따로 선다.
+  // 기술 축 23칸을 네 군으로 나눠 담는다. 정책 축 9칸은 따로 선다.
   groups: DescriptionGroup[];
   policyCells: DescriptionCell[];
 }
@@ -132,6 +132,11 @@ const GROUP_DEFS: GroupDef[] = [
     cells: [
       { label: "사업 기간", element: "3.1.3", legacy: "언제" },
       { label: "규모와 매체", element: "3.1.5" },
+      // 돈과 조달 방식은 ISAD에 받을 요소가 없어 로컬 칸으로 세운다. 3.1.5에 얹어 두었더니
+      // 한 칸이 인원·시간·매체·예산 넷을 이고 있었고, 인원을 확인 못한 항목에서는 예산이
+      // 규모의 대리 지표로 섞여 들어가 무엇이 확인된 것인지 흐려졌다.
+      { label: "사업 규모", element: "L3" },
+      { label: "계약방식", element: "L4" },
     ],
   },
   {
@@ -536,8 +541,34 @@ function parsePlanSection(body: string[]): OralHistoryPlanGroup[] {
   return groups;
 }
 
+// 참조식 링크를 인라인으로 되돌린다.
+//
+// 같은 URL이 문서 안에서 수십 번 되풀이되고 있었다 — 국립중앙도서관 2019년 보고서 하나가
+// 퍼센트 인코딩된 308자짜리로 **39번**, 대통령기록관 지침이 195자짜리로 여섯 번. 되풀이만
+// 15,500자, 문서의 6%다. 칸 하나가 링크 넷을 물면 산문은 200자인데 줄은 1,000자가 된다.
+//
+// 그래서 문서 끝의 「링크 정의」 절에 `[키]: URL` 한 줄로 모으고, 본문에서는 `[글][키]`로
+// 부른다. 되돌리는 자리를 파싱 시점에 둔 것은 **화면을 손대지 않기 위해서다** —
+// inline-markdown.tsx는 `[글](url)`만 알면 되고, 참조식을 아는 것은 이 파일뿐이다.
+const LINK_DEF_RE = /^\[([^\]]+)\]:\s*(\S+)\s*$/gm;
+
+function resolveLinkRefs(md: string): string {
+  const defs = new Map<string, string>();
+  for (const m of md.matchAll(LINK_DEF_RE)) defs.set(m[1], m[2]);
+  if (defs.size === 0) return md;
+
+  // 정의 줄 자체는 본문에서 걷는다 — 화면에 "[키]: https://…"가 그대로 설 자리가 아니다.
+  const body = md.replace(LINK_DEF_RE, "");
+  // 정의가 없는 키는 손대지 않고 둔다. 오타 하나가 링크를 통째로 지우는 것보다,
+  // 화면에 `[글][키]`가 그대로 서서 눈에 띄는 편이 낫다.
+  return body.replace(/\[([^\]]+)\]\[([^\]]+)\]/g, (whole, text, key) => {
+    const url = defs.get(key);
+    return url ? `[${text}](${url})` : whole;
+  });
+}
+
 export async function getOralHistoryProjectsDoc(): Promise<OralHistoryDoc> {
-  const md = await readFile(MD_PATH, "utf-8");
+  const md = resolveLinkRefs(await readFile(MD_PATH, "utf-8"));
   const { title, paragraphs } = parseIntro(md);
   const sections = splitTopSections(md);
 
