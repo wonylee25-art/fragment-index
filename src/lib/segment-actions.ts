@@ -112,7 +112,7 @@ export async function addSegment(input: AddSegmentInput): Promise<string> {
     if (noteError) throw noteError;
   }
 
-  // 사건을 고르지 않았으면 연결선을 만들지 않는다 — 사료 연결 아래 보류함에 쌓여서,
+  // 사건을 고르지 않았으면 연결선을 만들지 않는다 — 「사료」 아래 보류함에 쌓여서,
   // 나중에 같은 방식으로 사건에 붙일 수 있다.
   if (input.eventId) {
     await linkTargetToEvent(input.eventId, "segment", id, null);
@@ -127,7 +127,7 @@ export async function addSegment(input: AddSegmentInput): Promise<string> {
 // 화면에서 넣은 발췌를 다시 고친다. 쪽수를 잘못 봤거나 화자를 뒤바꿔 넣은 것은 저장한
 // 다음에야 눈에 띄는 종류의 실수라, 지우고 다시 넣게 두면 사건 연결까지 다시 하게 된다.
 //
-// 사건 연결은 여기서 건드리지 않는다 — 붙이고 떼는 일은 구술 연결 화면이 맡고 있고,
+// 사건 연결은 여기서 건드리지 않는다 — 붙이고 떼는 일은 편집 「구술」이 맡고 있고,
 // 이 폼에서 한 번 더 다루면 어느 쪽이 최종인지 알 수 없어진다.
 export interface UpdateSegmentInput extends Omit<AddSegmentInput, "eventId"> {
   id: string;

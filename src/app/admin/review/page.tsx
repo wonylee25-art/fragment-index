@@ -12,9 +12,9 @@ import {
 } from "@/lib/db";
 import { ARCHIVE_ITEM_ICON } from "@/lib/design-tokens";
 
-// 사료 연결. 사료를 찾아 담는 일(수집)과 담긴 것을 붙이는 일(검토)이 같은 작업의 앞뒤라 한 화면에 둔다.
+// 편집 「사료」 탭. 사료를 찾아 담는 일(수집)과 담긴 것을 붙이는 일(검토)이 같은 작업의 앞뒤라 한 화면에 둔다.
 // 위: 외부 소스 검색 → 사건 고르고 [연결하고 저장]. 아래 보류함: 담긴 사료를 사건에 붙었느냐로
-// 갈라 보여준다. 구술은 [구술 연결] 탭이 따로 맡는다 — 여기서는 사료만 다룬다.
+// 갈라 보여준다. 구술은 [구술] 탭이 따로 맡는다 — 여기서는 사료만 다룬다.
 // 화면 안의 네 갈래. 한 화면에 검색과 세 함을 다 세워두니 아래 함까지 내려가는 데만
 // 스크롤이 한참이었다 — 하는 일이 다른 자리들이라 갈라 세운다.
 //   search 밖에서 찾아 담는 자리
@@ -89,13 +89,13 @@ export default async function ReviewPage({
 
   return (
     <main className="page-shell flex flex-col gap-8 py-8">
-      {/* 네 갈래를 고르는 줄. 크기로는 위의 [사건 관리|사료 연결|구술 연결]보다 한 단 아래여야
+      {/* 네 갈래를 고르는 줄. 크기로는 위의 [사건|사료|구술]보다 한 단 아래여야
           한다 — 그 안에 든 갈래이므로. 대신 모양으로 갈린다: 그쪽은 밑줄, 이쪽은 칠한 칩이다.
           예전에는 이 줄 아래에 같은 말("보류함")을 20px 제목으로 한 번 더 적었는데, 그러면
           고르는 손잡이가 제 이름표보다 작아 위아래가 뒤집혀 보였다. 이제 제목은 따로 두지
           않는다 — 칠해진 칩이 곧 지금 보고 있는 함의 이름이다.
           검색어는 탭을 옮겨도 따라간다 — 같은 말로 걸린 것을 함마다 짚어 보는 일이 잦다. */}
-      <nav aria-label="사료 연결 갈래" className="flex flex-wrap items-center gap-1.5 border-b border-line pb-2">
+      <nav aria-label="사료 갈래" className="flex flex-wrap items-center gap-1.5 border-b border-line pb-2">
         {TABS.map((t) => {
           const on = t.id === active;
           return (

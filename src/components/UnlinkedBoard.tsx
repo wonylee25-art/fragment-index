@@ -16,7 +16,7 @@ import { BOX_TEXT, boxOf, MaterialBox } from "@/lib/material-box";
 // 보류함. 저장해 둔 사료가 쌓이는 곳. 사건에 붙었느냐로 두 무리를 갈라 나란히 세운다 —
 // 붙는 순간 목록에서 사라지면 잘못 붙였을 때 끊을 대상이 화면에 없어지므로, 붙은 것은
 // 지워지지 않고 아래 무리로 옮겨 갈 뿐이다.
-// 구술은 여기서 다루지 않는다 — [구술 연결] 탭이 같은 일을 구술만 놓고 한다.
+// 구술은 여기서 다루지 않는다 — [구술] 탭이 같은 일을 구술만 놓고 한다.
 // 사건은 항목마다 따로 붙인다(EventAttach) — 화면 하나에 사건 하나를 골라두고 모든 항목에
 // 같이 먹이던 방식은, 열 건을 각각 다른 사건에 붙이려면 왼쪽을 열 번 다시 골라야 했다.
 //
@@ -25,8 +25,8 @@ import { BOX_TEXT, boxOf, MaterialBox } from "@/lib/material-box";
 // 내리는 것은 화면에서 내리는 일이지 지우는 일이 아니다 — DB의 행도 연결선도 그대로 두고,
 // 아래 비활성함에서 되돌린다. 정말로 지우는 일은 그 함 안에서만 할 수 있다.
 //
-// 고르고 넘기고 내리는 조작은 구술 연결과 한 벌을 함께 쓴다(LinkPickSection) — 여기서는
-// 사료 카드의 생김새만 그린다. 세우는 모양은 이 화면만 격자다(구술 연결은 목록 그대로) —
+// 고르고 넘기고 내리는 조작은 「구술」과 한 벌을 함께 쓴다(LinkPickSection) — 여기서는
+// 사료 카드의 생김새만 그린다. 세우는 모양은 이 화면만 격자다(「구술」은 목록 그대로) —
 // 사료는 읽어 보고 붙일지 정하는 자료라, 훑기와 읽기를 카드와 덧창으로 갈라 두었다.
 
 export interface UnlinkedEntry {
@@ -215,7 +215,7 @@ function MaterialCard({
                       href="/admin/timeline"
                       className="mt-2 block font-mono text-[11px] font-semibold text-ink underline decoration-dotted underline-offset-4"
                     >
-                      사건 관리에서 사건 만들기 →
+                      「사건」에서 사건 만들기 →
                     </Link>
                   </>
                 }

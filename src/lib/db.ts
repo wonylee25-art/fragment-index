@@ -522,7 +522,7 @@ export async function getSavedIds(): Promise<{ eventIds: Set<string>; archiveIte
   };
 }
 
-// 사료 연결 "사료 검색"의 빈 상태(검색어 입력 전)에 보여줄 제안 키워드 — DB(사건·구술)에
+// 편집 「사료」 "사료 검색"의 빈 상태(검색어 입력 전)에 보여줄 제안 키워드 — DB(사건·구술)에
 // 실제로 붙어 있는 키워드 태그 중 등장 빈도가 높은 순.
 export async function getSuggestedKeywords(limit = 24): Promise<string[]> {
   const [events, segments] = await Promise.all([getChronicleEvents(), getOralSegments()]);
@@ -767,8 +767,8 @@ export async function getSourceOptions(): Promise<SourceOption[]> {
   }));
 }
 
-// 관리 "구술 연결" 화면 — 구술 하나하나가 어느 사건에 붙어 있는지, 아직 안 붙었는지.
-// 사료 연결의 보류함이 "안 붙은 것"만 보여주는 것과 달리, 여기서는 붙은 것도 함께 보여
+// 편집 「구술」 — 구술 하나하나가 어느 사건에 붙어 있는지, 아직 안 붙었는지.
+// 「사료」의 보류함이 "안 붙은 것"만 보여주는 것과 달리, 여기서는 붙은 것도 함께 보여
 // 어느 사건에 이미 매여 있는지 알고 고칠 수 있게 한다.
 export interface SegmentLinkRow {
   id: string;

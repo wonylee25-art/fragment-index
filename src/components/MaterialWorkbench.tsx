@@ -7,7 +7,7 @@ import { EventAttach } from "./EventAttach";
 import { CardShell, FieldLabel, footButtonClass, HeadRow } from "./RecordCard";
 import { RECORD_CELL_CLASSNAME as CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 
-// 사료 연결의 작업대. 검색으로 걸린 자료를 저장하면서 사건에 붙인다.
+// 편집 「사료」의 작업대. 검색으로 걸린 자료를 저장하면서 사건에 붙인다.
 // 사건은 자료마다 따로 고른다 — 화면 왼쪽에 목록 하나를 펼쳐두고 고른 사건이 모든 카드에
 // 똑같이 먹던 방식은, 검색 결과 열 건을 각각 다른 사건에 붙일 수가 없었다.
 // 사건을 고르면 그 자리에서 저장+연결까지 끝난다. 붙일 사건을 아직 못 정했으면 [보류]로

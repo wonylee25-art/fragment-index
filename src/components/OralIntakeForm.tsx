@@ -20,7 +20,7 @@ import {
 //
 // 맨 위가 사건 연결이다. 사료든 구술이든 자료끼리 바로 잇지 않고 늘 사건을 가운데 두는데,
 // 그 사건을 맨 아래 긴 목록에서 찾게 하면 다 적고 나서야 "어디에 붙이지" 하고 헤매게 된다.
-// 여기서는 이름으로 좁혀 고르고, 고르지 않으면 [보류]로 저장해 사료 연결의 보류함으로 보낸다.
+// 여기서는 이름으로 좁혀 고르고, 고르지 않으면 [보류]로 저장해 「사료」의 보류함으로 보낸다.
 //
 // 신상은 이름과 소속까지만 받는다(person-actions.ts에 이유를 적어 두었다).
 
@@ -282,7 +282,7 @@ export function OralIntakeForm({
       setSavedNote(
         intent === "link" && selectedEvent
           ? `${selectedEvent.year} ${selectedEvent.eventName}에 연결됨`
-          : "보류함에 저장됨 — 사료 연결 화면에서 사건에 붙일 수 있습니다",
+          : "보류함에 저장됨 — 편집 「사료」에서 사건에 붙일 수 있습니다",
       );
       // 같은 면담에서 발췌를 여러 개 뜨는 게 보통이라 사건·출처·화자는 남긴다.
       setUtterances([{ speakerId: narratorList[0]?.id ?? ROLE_ONLY.구술자, text: "" }]);
@@ -307,7 +307,7 @@ export function OralIntakeForm({
       {/* ① 어느 사건 이야기인가 — 맨 위에 둔다. 고칠 때는 사건을 다루지 않는다 */}
       {editing ? (
         <p className="font-mono text-[11px] text-grey">
-          구술 고치기 — 사건 연결은 여기서 바꾸지 않습니다. 관리 → 구술 연결에서 붙이고 뗍니다.
+          구술 고치기 — 사건 연결은 여기서 바꾸지 않습니다. 편집 → 「구술」에서 붙이고 뗍니다.
         </p>
       ) : (
         <EventField events={events} selectedId={eventId} onSelect={setEventId} />
@@ -590,7 +590,7 @@ function EventField({
       )}
 
       <p className="mt-1 text-[11px] text-grey">
-        고르지 않고 [보류]로 저장하면 사료 연결 화면의 보류함에 쌓입니다.
+        고르지 않고 [보류]로 저장하면 편집 「사료」의 보류함에 쌓입니다.
       </p>
     </section>
   );

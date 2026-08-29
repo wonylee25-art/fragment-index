@@ -13,7 +13,7 @@ import { LinkedEventRef } from "@/lib/types";
 import { Pager } from "./Pager";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 
-// 사료 연결과 구술 연결이 함께 쓰는 한 무리. 두 화면은 다루는 것이 다를 뿐 하는 일이
+// 편집 「사료」와 「구술」이 함께 쓰는 한 무리. 두 화면은 다루는 것이 다를 뿐 하는 일이
 // 같다 — 붙었느냐로 갈라 세우고, 골라서 한꺼번에 붙이거나 끊거나 내린다. 조작을 두 벌
 // 만들어 두면 한쪽만 고쳐지고 두 화면이 조금씩 어긋난다.
 //
@@ -87,7 +87,7 @@ export function PickSection<T extends PickEntry>({
   onDeactivate: (ids: string[]) => Promise<number>;
   // 연표에 올리고 내리는 일. 사건에 붙이는 일과 나란히 서는 별개의 조작이다 — 붙일 사건이
   // 아직 없어도 자료 자신이 연표에 설 수 있어야 한다.
-  // 없으면 그 버튼이 서지 않는다 — 구술 연결이 그렇다(연표에 서는 것은 본문이 있는 사료뿐).
+  // 없으면 그 버튼이 서지 않는다 — 「구술」이 그렇다(연표에 서는 것은 본문이 있는 사료뿐).
   onAdopt?: (ids: string[]) => Promise<number>;
   onDrop?: (ids: string[]) => Promise<number>;
   // 함 사이를 옮기는 일. 보류함에서는 「미연결로」가, 미연결함에서는 「보류로」가 선다 —

@@ -5,7 +5,7 @@ import { ArchiveItemType } from "@/lib/types";
 import { formatEdtfToKorean } from "@/lib/edtf";
 import { ARCHIVE_ITEM_HUE, archiveTintStyle, RECORD_CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 
-// 사료가 서는 카드 한 벌. 사료 연결 화면의 위(검색 결과)와 아래(보류함)가 함께 쓴다 —
+// 사료가 서는 카드 한 벌. 편집 「사료」의 위(검색 결과)와 아래(보류함)가 함께 쓴다 —
 // 같은 자료가 한 화면에서 위아래로 다르게 생겼으면, 담기 전과 담은 뒤가 다른 자료처럼 보인다.
 //
 // 카드는 서식(form)이다 — 선이 칸을 나누고, 칸마다 무엇이 적히는지 이름표가 붙는다.
@@ -119,7 +119,7 @@ const OVERLAY_WIDTH_PX = 432;
 // 바닥칸 손잡이 한 벌. 세 화면(검색 결과·DB 사료·세 함)의 카드가 똑같이 이 줄을 단다 —
 // 같은 자료가 화면마다 다른 손잡이를 달고 있으면, 무엇을 할 수 있는지 매번 다시 읽어야 한다.
 //
-//   사료 연결 / 미연결 / 보류                    원문보기
+//   사건 연결 / 미연결 / 보류                    원문보기
 //
 // 세 손잡이는 누르는 자리이면서 동시에 지금 어디에 있는지를 알린다 — 칠해진 것이 이 사료가
 // 지금 선 함이다. 그래서 "미연결 001/103" 같은 상태 줄을 따로 두지 않는다.
@@ -160,7 +160,7 @@ export function CardShell({
   foot: (control: { open: boolean; toggle: () => void; openLink: () => void }) => ReactNode;
   sourceUrl?: string;
   // 덧창에 담기는 것. 읽는 일과 붙이는 일이 한 자리에서 끝나야 해서 둘 다 여기 들어가되,
-  // 무엇을 하러 열었는지에 따라 먼저 서는 것이 다르다(mode) — [사료 연결]로 열면 사건
+  // 무엇을 하러 열었는지에 따라 먼저 서는 것이 다르다(mode) — [사건 연결]로 열면 사건
   // 고르기가 위에 펼쳐진 채 서고, 표제·발췌를 눌러 열면 본문이 먼저 선다.
   overlay: (mode: OverlayMode) => ReactNode;
   children: ReactNode;
@@ -182,7 +182,7 @@ export function CardShell({
     setMode("read");
     setOpen((v) => !(v && mode === "read"));
   };
-  // 붙이러 열기 — 바닥칸 [사료 연결].
+  // 붙이러 열기 — 바닥칸 [사건 연결].
   const openLink = () => {
     setOpen((v) => !(v && mode === "link"));
     setMode("link");
@@ -233,7 +233,7 @@ export function CardShell({
         {head}
 
         {/* 표제와 발췌를 누르면 덧창이 열린다 — 읽으려고 누르는 자리가 곧 여는 자리다.
-            바닥칸의 [사료 연결]도 같은 덧창을 연다(거기서 사건을 고르므로). */}
+            바닥칸의 [사건 연결]도 같은 덧창을 연다(거기서 사건을 고르므로). */}
         <button
           type="button"
           onClick={toggle}

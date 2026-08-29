@@ -7,11 +7,11 @@ import { adoptMaterialsToTimeline } from "@/lib/timeline-placement-actions";
 import { ArchiveItemType } from "@/lib/types";
 import { ThTimelineEntry } from "@/lib/th-timeline";
 
-// 사료 연결 "사료 검색"의 저장 버튼. 외부 검색 결과를 DB에 확정 반영한다.
+// 편집 「사료」의 "사료 검색" 저장 버튼. 외부 검색 결과를 DB에 확정 반영한다.
 // - th.xml 사건 → timeline_events (사건 자체)
 // - 국가기록원/박물관/여성사 자료 → archive_items. 이때 어느 사건에 붙일지도 함께 정한다:
 //   [연결하고 저장] 이면 links까지 confirmed로 만들고, [보류] 면 연결 없이 자료만 넣어
-//   사료 연결 아래 "연결선 없는 자료"에 쌓인다.
+//   「사료」 아래 "연결선 없는 자료"에 쌓인다.
 
 // 소스마다 응답 모양이 달라, 저장 직전에 이 공통 모양으로 맞춰서 넘긴다.
 export interface MaterialDraft {
