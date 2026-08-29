@@ -5,6 +5,7 @@ import { PaperData, PaperType } from "@/lib/types";
 import { buildCanonicalMap, canonicalKeywords } from "@/lib/keyword-aliases";
 import { buildDuplicateFolding } from "@/lib/paper-duplicates";
 import { trimReportSummary } from "@/lib/report-summary";
+import { reportBrief } from "@/lib/report-brief";
 import {
   ADD_BUTTON_CLASSNAME,
   DOT_CONFIRMED,
@@ -662,16 +663,33 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                       </div>
                     )}
 
-                    {/* 보고서 요약은 PRISM이 준 「과업 개요」인 경우가 절반이 넘어, 원문에는
-                        용역명·기간·용역사가 앞머리에 다시 적혀 있다. 이 행이 이미 제 칸으로
-                        들고 있는 것들이라 걷어 내고, 층이 진 목록은 층 그대로 세운다
-                        (src/lib/report-summary.ts). DB의 원문은 그대로 두므로 검색은
-                        걷어 낸 줄까지 훑는다. */}
-                    {paper.paperType === "보고서" && trimReportSummary(paper.researchSummary) && (
-                      <p className="mt-1.5 whitespace-pre-line text-xs leading-5 text-grey">
-                        {trimReportSummary(paper.researchSummary)}
-                      </p>
-                    )}
+                    {/* 보고서 요약. PRISM이 준 원문은 절반이 초록이 아니라 발주 문서의
+                        「과업 개요」라 과제마다 꼴이 다르다. 그래서 48건은 손으로 읽어
+                        대상·내용 두 줄로 줄여 두었다(src/lib/report-brief.ts). 줄여 둔 것이
+                        없는 보고서만 예전대로 머리를 걷어 원문을 세운다
+                        (src/lib/report-summary.ts). DB의 원문은 어느 쪽이든 그대로라
+                        검색은 화면에 없는 낱말까지 훑는다. */}
+                    {paper.paperType === "보고서" && (() => {
+                      const brief = reportBrief(paper.id);
+                      if (brief === null) return null; // 요약 칸이 제목을 되풀이할 뿐인 것
+                      if (brief) {
+                        return (
+                          <div className="mt-1.5 space-y-0.5 text-xs leading-5 text-grey">
+                            {brief.target && (
+                              <p>
+                                <span className="font-mono text-[11px] text-ink">대상</span> {brief.target}
+                              </p>
+                            )}
+                            <p>
+                              <span className="font-mono text-[11px] text-ink">내용</span> {brief.work}
+                            </p>
+                          </div>
+                        );
+                      }
+                      const trimmed = trimReportSummary(paper.researchSummary);
+                      if (!trimmed) return null;
+                      return <p className="mt-1.5 whitespace-pre-line text-xs leading-5 text-grey">{trimmed}</p>;
+                    })()}
 
                     {/* 장을 매다는 것은 단행본에만 열어 둔다. 학술논문·학위논문은 그 자체가 한 편이라
                         쪼갤 자리가 없고, 쳐낸 책은 되돌리는 것이 먼저다. */}
