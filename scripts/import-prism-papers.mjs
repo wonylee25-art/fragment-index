@@ -77,12 +77,41 @@ function summaryOf(row) {
   return plainText(row.outline) ?? abstract;
 }
 
+// PRISM의 주제어 칸은 저자가 고른 낱말이 아니라 발주 문서에서 긁어온 것이라, 절반은 과제명이
+// 통째로 한 줄 들어 있다(「국방과학기술 발전을 이끈 주역들 구술채록 학술연구용역」). 과제명은
+// 제목 칸에 이미 있고, 화면의 주제어 구름에서는 한 편짜리 조각으로 뜰 뿐이라 걷어낸다.
+//
+// 무엇을 과제명으로 보는가 — 제목과 한쪽이 다른 쪽을 품고(띄어쓰기·괄호·마침표를 지우고 견준다),
+// 여덟 자 이상이고, 일을 부르는 말(용역·사업·연구·조사·수집·채록·구축·보고서)을 품은 것.
+// 제목에 들어 있다는 것만으로는 걷지 않는다 — 「연기보도연맹」·「닥밭골벽화마을」처럼 제목에도
+// 나오는 진짜 주제어가 함께 걷히기 때문이다. 길이 문턱이 그 둘(6자·7자)을 남긴다.
+const TASK_WORD = /용역|사업|연구|조사|수집|채록|구축|보고서/;
+const squeeze = (text) => String(text ?? "").replace(/[\s[\]()（）·.,:;“”"'?？-]/g, "");
+
+function isProjectName(keyword, title) {
+  const k = squeeze(keyword);
+  const t = squeeze(title);
+  if (k.length < 8 || !t) return false;
+  if (!TASK_WORD.test(keyword)) return false;
+  return t.includes(k) || k.includes(t);
+}
+
+// 위 규칙에 걸리지 않는 과제명. 제목을 그대로 옮긴 것이 아니라 줄여 적거나(「및」을 빼고
+// 붙여 쓴 것), 발주처 이름을 앞에 붙인 것들이라 글자로는 제목과 이어지지 않는다.
+const PROJECT_NAMES = new Set([
+  "시민군 기동타격대 구술증언 채록",
+  "새만금지역 구술조사 소장품수집",
+  "한국전쟁시기 집단희생사건 집중조사",
+  "광주동구여성기록화우리동네큰언니",
+]);
+
 function keywordsOf(row) {
   if (!row.keyword) return [];
   return String(row.keyword)
     .split(/[,;·\n]/)
     .map((word) => word.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((word) => !PROJECT_NAMES.has(word) && !isProjectName(word, row.title));
 }
 
 function toRow(row) {
