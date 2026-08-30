@@ -1084,11 +1084,85 @@ function resolveAlias(keyword: string): string {
   }
 }
 
+// 여기까지가 사람이 손으로 적어 둔 표다. 아래는 그 표로도 줄지 않는 꼬리를 규칙으로 접는
+// 자리 — 학술논문 1,192편에 대표어가 2,300개까지 남았고 그중 1,900개가 한 편에만 붙어 있어,
+// 유형을 「학술논문」으로 좁히면(문턱이 1로 내려간다) 구름이 읽히지 않는다. 한 줄씩 적어
+// 내리는 것으로는 따라잡을 수 없는 수라 규칙을 세운다.
+//
+// 규칙은 하나다 — **대표어 안에 다른 대표어가 통째로 들어 있으면 그 아래로 접는다.**
+// 「문화산업」·「대중문화」는 「문화」로, 「민족정체성」·「진로정체성」은 「정체성」으로 간다.
+// 들어 있는 이름이 여럿이면 가장 긴 것을 고른다(「내러티브-생애사 인터뷰 분석」은 「생애사」가
+// 아니라 「생애사 인터뷰」로).
+//
+// 한글은 낱말을 붙여 쓰므로 글자만 겹치는 것이 섞여 든다. 세 가지로 막는다.
+//   1. 들어 있는 자리가 앞이나 뒤여야 한다. 가운데에 박힌 것은 세 글자 이상이고 양쪽에
+//      두 글자 넘게 남을 때만 받는다 — 「남성노동자」가 「성노동」으로 가는 것을 막는다.
+//   2. 남는 쪽이 한 글자면 받지 않는다 — 「생애사진」이 「생애사」로, 「철공소」가 「공소」로
+//      가는 것을 막는다. 다만 앞에 붙은 경우의 「-성·-학·-화·-적」 같은 꼬리는 받는다
+//      (「역사성」→「역사」).
+//   3. 별칭 표가 대표로 세운 이름은 접지 않는다. 손으로 고른 판단이 규칙에 밀리면 안 된다
+//      — 「구술 아카이브」가 「아카이브」로 내려가 버리는 일이 그것이다.
+//
+// 장애가 붙은 것과 특수교육 계열은 통째로 비켜 간다(「장애는 그대로」).
+const PARTICLE = new Set(["성", "학", "화", "적", "인", "자", "론", "사", "감", "관", "기", "계"]);
+const NEVER_ABSORB = /장애|특수/;
+const ALIAS_TARGETS = new Set(Object.values(KEYWORD_ALIASES));
+
+// 품는 자리가 어디냐에 따라 받아들이는 조건이 다르다. at은 들어 있는 자리, len은 그 길이다.
+function absorbedAt(whole: string, at: number, len: number): boolean {
+  const rest = whole.length - len;
+  if (at === 0) return rest >= 2 || PARTICLE.has(whole.slice(len));
+  if (at + len === whole.length) return rest >= 2;
+  return at >= 2 && len >= 3 && whole.length - at - len >= 2;
+}
+
+// 접을 상대는 자기보다 반드시 짧으므로 고리가 생기지 않는다 — 사슬 끝까지 따라가면 된다.
+//
+// 이름마다 다른 이름을 전부 훑으면 2,700개² 가 되어 화면이 1.7초 멎는다. 대신 이름 하나에서
+// 잘라낼 수 있는 토막(두 글자 이상)만 뽑아 표에서 찾는다 — 이름이 짧아 토막은 백 개 남짓이다.
+function absorbInto(names: string[], weight: Map<string, number>): Map<string, string> {
+  const squeezed = new Map(names.map((name) => [name, spacingKey(name)]));
+  const byKey = new Map<string, string>();
+  for (const name of names) byKey.set(squeezed.get(name)!, name);
+
+  const parent = new Map<string, string>();
+  for (const name of names) {
+    if (ALIAS_TARGETS.has(name) || NEVER_ABSORB.test(name)) continue;
+    const whole = squeezed.get(name)!;
+    let head: string | null = null;
+    let headLen = 1; // 한 글자짜리(성·삶·몸)는 품는 쪽으로 쓰지 않는다
+    for (let at = 0; at < whole.length; at++) {
+      for (let end = at + 2; end <= whole.length; end++) {
+        const len = end - at;
+        if (len >= whole.length || len < headLen) continue;
+        const candidate = byKey.get(whole.slice(at, end));
+        if (!candidate || candidate === name) continue;
+        if (!absorbedAt(whole, at, len)) continue;
+        // 길이가 같으면 편수가 많은 쪽을 대표로 삼는다
+        if (len > headLen || (head !== null && (weight.get(candidate) ?? 0) > (weight.get(head) ?? 0))) {
+          head = candidate;
+          headLen = len;
+        }
+      }
+    }
+    if (head) parent.set(name, head);
+  }
+
+  const root = new Map<string, string>();
+  for (const name of names) {
+    let current = name;
+    while (parent.has(current)) current = parent.get(current)!;
+    root.set(name, current);
+  }
+  return root;
+}
+
 // 주제어 하나하나에 대표어를 달아 준다. 대표어를 고르는 순서는,
 //   1. 번역 괄호를 걷어낸 형태
 //   2. 별칭 표를 사슬 끝까지 따라간 이름
 //   3. 공백을 지운 형태가 같은 것들끼리 묶고, 그중 편수가 가장 많은 표기
 //      (생애사 연구 131편 ← 생애사연구 25편). 편수가 같으면 먼저 나온 것.
+//   4. 그러고도 남은 이름을, 그 안에 든 더 짧은 대표어 아래로 접은 것
 export function buildCanonicalMap(papers: PaperData[]): Map<string, string> {
   const counts = new Map<string, number>();
   const order: string[] = [];
@@ -1128,6 +1202,12 @@ export function buildCanonicalMap(papers: PaperData[]): Map<string, string> {
   const canonical = new Map<string, string>();
   for (const keyword of order) {
     canonical.set(keyword, best.get(spacingKey(aliased.get(keyword)!))!);
+  }
+
+  // 마지막으로, 남은 이름끼리 서로를 품는 것들을 접는다.
+  const root = absorbInto([...new Set(canonical.values())], weight);
+  for (const [keyword, target] of canonical) {
+    canonical.set(keyword, root.get(target) ?? target);
   }
   return canonical;
 }

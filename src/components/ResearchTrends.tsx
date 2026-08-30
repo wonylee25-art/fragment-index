@@ -254,6 +254,9 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   // 고른 주제어(activeKeyword)만은 여기서 빼고 센다. 그것까지 걸어 두면 클라우드가 고른
   // 낱말과 그 연관어로 오그라들어, 다른 주제어로 갈아타는 길이 사라진다.
   const narrowed = importantOnly || hiddenOnly || typeFilter !== null || terms.length > 0;
+  // 유형만 고른 것은 「좁혔다」로 치지 않는다(문턱을 내리는 쪽에서만). 학술논문은 그 자체로
+  // 600편이라, 문턱을 1로 내리면 한 편짜리 주제어 570개가 한꺼번에 서서 구름이 벽이 된다.
+  const pickedFew = importantOnly || hiddenOnly || terms.length > 0;
   const keywordPool = useMemo(() => {
     if (!narrowed) return visiblePool;
     const pool = hiddenOnly ? hiddenPapers : [...visiblePool, ...liveChapters];
@@ -279,13 +282,15 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
   const cooccurrence = useMemo(() => buildCooccurrence(keywordPool, canonical), [keywordPool, canonical]);
 
   const cloudKeywords = useMemo(() => {
-    // 2회 문턱은 700편을 통째로 볼 때 잡스러운 낱말을 걷어 내려던 것이다. 좁혀 놓은 뒤에는
-    // 한 편에만 붙은 주제어도 그 한 편으로 가는 길이므로 그대로 세운다.
-    const floor = narrowed ? 1 : MIN_MENTIONS;
+    // 2회 문턱은 700편을 통째로 볼 때 잡스러운 낱말을 걷어 내려던 것이다. 손으로 골라
+    // 좁힌 뒤에는(★중요만·쳐냄·검색) 몇십 편만 남으므로, 한 편에만 붙은 주제어도 그 한 편으로
+    // 가는 길이라 그대로 세운다. 유형 필터는 여기서 빠진다 — 그것만으로는 재고가 통째로
+    // 남아, 문턱을 내리면 한 편짜리가 다 서서 도리어 아무것도 못 읽는다.
+    const floor = pickedFew ? 1 : MIN_MENTIONS;
     return Array.from(frequency.entries())
       .filter(([, count]) => count >= floor)
       .sort((a, b) => b[1] - a[1]);
-  }, [frequency, narrowed]);
+  }, [frequency, pickedFew]);
 
   const maxCount = cloudKeywords[0]?.[1] ?? 1;
   const relatedCounts = activeKeyword ? cooccurrence.get(activeKeyword) : undefined;
