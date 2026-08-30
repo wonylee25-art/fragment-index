@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import { EventOption } from "./EventPicker";
+import { EventOption } from "@/lib/event-candidates";
 import { EventAttach } from "./EventAttach";
 import {
   LinkBasis,
@@ -61,7 +61,7 @@ export function PickSection<T extends PickEntry>({
   boxName,
   unlinkedLabel,
   entries,
-  events,
+  boostQuery,
   picked,
   setPicked,
   onDeactivate,
@@ -81,7 +81,7 @@ export function PickSection<T extends PickEntry>({
   // 연결을 끊으면 어느 무리로 돌아가는지. 확인 문구가 화면의 절 이름을 그대로 부른다.
   unlinkedLabel: string;
   entries: T[];
-  events: EventOption[];
+  boostQuery?: string;
   picked: Set<string>;
   setPicked: (next: Set<string>) => void;
   onDeactivate: (ids: string[]) => Promise<number>;
@@ -297,7 +297,7 @@ export function PickSection<T extends PickEntry>({
       {bulkOpen && bulkReady && (
         <div className="mt-2">
           <EventAttach
-            events={events}
+            boostQuery={boostQuery}
             startOpen
             pickLabel={`고른 ${pickedHere.length}건에 붙일 사건 고르기`}
             onPick={handleBulkLink}

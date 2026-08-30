@@ -3,8 +3,8 @@ import { getSavedIds, getSuggestedKeywords, searchLocal } from "@/lib/db";
 import { searchArchiveRecords } from "@/lib/national-archives";
 import { searchMuseumRelicsDetailed } from "@/lib/museum-relics";
 import { searchWomensOralArchive } from "@/lib/womens-oral-archive";
-import { formatEdtfToKorean, edtfYear } from "@/lib/edtf";
-import { EventOption, MaterialGroup, MaterialWorkbench } from "./MaterialWorkbench";
+import { formatEdtfToKorean } from "@/lib/edtf";
+import { MaterialGroup, MaterialWorkbench } from "./MaterialWorkbench";
 import { DbMaterialCard } from "./DbMaterialCard";
 import { AddMaterialForm } from "./AddMaterialForm";
 
@@ -44,14 +44,7 @@ function matchStrength(query: string, title: string, description?: string): numb
   return inTitle + inBody;
 }
 
-// allEvents는 DB에 있는 사건 전체다 — 직접 추가 폼과 아래 검색 결과 카드가 함께 쓴다.
-export async function MaterialSearch({
-  query,
-  allEvents,
-}: {
-  query: string;
-  allEvents: EventOption[];
-}) {
+export async function MaterialSearch({ query }: { query: string }) {
   const [local, external, saved, suggestedKeywords] = await Promise.all([
     query ? searchLocal(query) : Promise.resolve({ events: [], segments: [], materials: [] }),
     query ? externalSearch(query) : Promise.resolve(null),
@@ -61,17 +54,8 @@ export async function MaterialSearch({
     query ? Promise.resolve<string[]>([]) : getSuggestedKeywords(),
   ]);
 
-  // 검색어로 걸린 사건을 앞에, 나머지 연표 전체를 뒤에. 목록이 길어지므로 좁히기 칸을 함께 쓴다.
-  const matchedIds = new Set(local.events.map((e) => e.id));
-  const matchedOptions: EventOption[] = local.events.map((e) => ({
-    id: e.id,
-    year: edtfYear(e.dateValue),
-    eventName: e.eventName,
-  }));
-  const eventOptions: EventOption[] = [
-    ...matchedOptions,
-    ...allEvents.filter((e) => !matchedIds.has(e.id)),
-  ];
+  // 검색어로 걸린 사건을 앞에 세우는 일은 사건을 고르는 자리가 직접 한다 — 검색어만 넘긴다
+  // (boostQuery). 예전에는 여기서 사건 전체를 그 순서로 늘어놓아 카드마다 실어 보냈다.
 
   // Set은 서버→클라이언트 경계를 넘지 못하므로, 저장 여부는 여기서 판정해 boolean으로 넘긴다.
   const groups: MaterialGroup[] = external
@@ -156,7 +140,7 @@ export async function MaterialSearch({
           DB · 국가기록원 · 국립중앙박물관 · 여성사전시관
         </span>
         {/* 이 목록에 없는 자료 — 직접 찍은 사진, 종이 스크랩 — 는 여기서 손으로 넣는다 */}
-        <AddMaterialForm events={allEvents} />
+        <AddMaterialForm boostQuery={query} />
       </div>
 
       <form action="/admin/review" method="GET" className="flex gap-2">
@@ -200,7 +184,7 @@ export async function MaterialSearch({
 
       {query && external && (
         <div className="mt-8 flex flex-col gap-10">
-          <MaterialWorkbench events={eventOptions} groups={groups} />
+          <MaterialWorkbench boostQuery={query} groups={groups} />
 
           {/* 이미 DB에 있는 사료 중 걸린 것. 밖에서 더 찾기 전에 "이미 갖고 있는지"를 먼저
               보여준다 — 같은 자료를 두 번 저장하는 일을 막고, 신문기사처럼 본문을 통째로
@@ -218,7 +202,7 @@ export async function MaterialSearch({
                     <DbMaterialCard
                       material={m}
                       strength={matchStrength(query, m.title, m.fullText || m.description)}
-                      events={eventOptions}
+                      boostQuery={query}
                     />
                   </li>
                 ))}

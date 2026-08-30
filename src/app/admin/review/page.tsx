@@ -3,9 +3,7 @@ import Link from "next/link";
 import { UnlinkedBoard, UnlinkedEntry } from "@/components/UnlinkedBoard";
 import { boxOf, MaterialBox } from "@/lib/material-box";
 import { InactiveBoxes } from "@/components/InactiveBoxes";
-import { EventOption } from "@/components/EventPicker";
 import {
-  getEventOptions,
   getInactiveMaterials,
   getUnlinkedMaterials,
   materialMatchesQuery,
@@ -33,24 +31,18 @@ export default async function ReviewPage({
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
-  const [{ q, tab }, unlinked, events, inactiveMaterials] = await Promise.all([
+  const [{ q, tab }, unlinked, inactiveMaterials] = await Promise.all([
     searchParams,
     getUnlinkedMaterials(),
-    getEventOptions(),
     getInactiveMaterials(),
   ]);
 
-  // 후보는 사건 전체다 — 연표에 올린 것뿐 아니라 국편 오늘의역사에서 들여와 창고에 둔 것까지.
-  // 검색어가 있으면 그 말이 든 사건을 목록 맨 위로 끌어올린다. 사건이 수천 건이라 순서만으로는
-  // 못 찾지만(좁히기 칸을 쓰게 된다), 검색해서 들어온 사람이 첫 쪽에서 바로 만나는 것이
-  // 검색어와 얽힌 사건이어야 한다.
+  // 붙일 사건 명단은 이 화면이 나르지 않는다. 사건 6,431건을 카드마다 실어 보내던 자리라,
+  // 「사료」를 누를 때마다 그 무게를 그대로 기다려야 했다 — 고르는 칸이 열릴 때 서버에
+  // 물어 간다(/api/event-options).
+  // 검색어와 얽힌 사건을 첫 쪽에 세우는 일은 그대로다. 명단 대신 검색어를 내려보내고,
+  // 자리를 올리는 일은 후보를 고르는 쪽이 한다(event-candidates.ts의 boostQuery).
   const query = q?.trim() ?? "";
-  const eventOptions: EventOption[] = query
-    ? [
-        ...events.filter((e) => e.eventName.includes(query)),
-        ...events.filter((e) => !e.eventName.includes(query)),
-      ]
-    : events;
 
   // 보류함도 검색어로 좁힌다. 위의 "DB 사료"와 같은 규칙(materialMatchesQuery)을 쓴다 —
   // 한 화면에서 같은 말을 쳤는데 위에서는 걸리고 아래에서는 안 걸리면, 보류함에 그 자료가
@@ -120,10 +112,9 @@ export default async function ReviewPage({
 
       {active === "search" ? (
         /* eventOptions는 검색 결과와 "직접 사료 추가"가 함께 쓴다 — 둘 다 사건 전체가 후보다 */
-        <MaterialSearch query={query} allEvents={eventOptions} />
+        <MaterialSearch query={query} />
       ) : (
         <UnlinkedBoard
-          events={eventOptions}
           materials={materials}
           query={query}
           totalCount={unlinked.materials.length}

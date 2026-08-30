@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MaterialDraft, saveMaterial } from "@/app/actions";
-import { EventOption } from "./EventPicker";
+import { EventOption } from "@/lib/event-candidates";
 import { EventAttach } from "./EventAttach";
 import { CardShell, FieldLabel, footButtonClass, HeadRow } from "./RecordCard";
 import { RECORD_CELL_CLASSNAME as CELL_CLASSNAME, RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
@@ -40,7 +40,7 @@ export interface MaterialGroup {
 // 화면과 같은 자리에 "옮겨 적어 둔 본문 없음"이라고 적히므로, 빈 것 자체가 정보가 된다.
 const CARD_HEIGHT_CLASSNAME = "h-[17rem]";
 
-function MaterialCard({ result, events }: { result: MaterialResult; events: EventOption[] }) {
+function MaterialCard({ result, boostQuery }: { result: MaterialResult; boostQuery?: string }) {
   const { draft, metaLine, dateText, strength, badges, saved } = result;
   // 고른 사건은 폼 제출에 실어 보내려고 hidden으로 함께 넘긴다. 고르는 즉시 제출하므로
   // 화면에 남는 상태는 아니지만, 서버 액션이 FormData로만 값을 받기 때문에 한 번은 거쳐야 한다.
@@ -126,7 +126,7 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
                     </span>
                   ) : (
                     <EventAttach
-                      events={events}
+                      boostQuery={boostQuery}
                       startOpen={mode === "link"}
                       // 사건 목록 안 맨 위 — 세 함·DB 사료 카드와 같은 자리다. 여기서는
                       // 아직 담기 전이라 담는 일까지 이 한 번에 함께 일어난다.
@@ -217,10 +217,10 @@ function MaterialCard({ result, events }: { result: MaterialResult; events: Even
 }
 
 export function MaterialWorkbench({
-  events,
+  boostQuery,
   groups,
 }: {
-  events: EventOption[];
+  boostQuery?: string;
   groups: MaterialGroup[];
 }) {
   const total = groups.reduce((sum, g) => sum + g.results.length, 0);
@@ -244,7 +244,7 @@ export function MaterialWorkbench({
                 // 보류함과 같은 격자다 — 담기 전과 담은 뒤가 같은 모양으로 서야 한 화면으로 읽힌다.
                 <ul className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] items-start gap-4">
                   {group.results.map((result, i) => (
-                    <MaterialCard key={`${result.draft.id}-${i}`} result={result} events={events} />
+                    <MaterialCard key={`${result.draft.id}-${i}`} result={result} boostQuery={boostQuery} />
                   ))}
                 </ul>
               )}

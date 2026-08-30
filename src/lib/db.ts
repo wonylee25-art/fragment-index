@@ -359,17 +359,30 @@ export interface EventOptionRow {
 const PAGE = 1000;
 
 export async function getEventOptions(): Promise<EventOptionRow[]> {
-  const rows: { id: string; event_name: string; date_value: string | null; hidden_at: string | null }[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from("timeline_events")
-      .select("id, event_name, date_value, hidden_at")
-      .order("id")
-      .range(from, from + PAGE - 1);
+  type Row = { id: string; event_name: string; date_value: string | null; hidden_at: string | null };
+
+  // 일곱 쪽을 한 줄로 세워 받던 자리다. 한 쪽이 70ms면 일곱 쪽은 그대로 500ms가 되는데,
+  // 쪽끼리는 서로 기다릴 이유가 없다 — 몇 쪽인지 먼저 세고 한꺼번에 부른다.
+  const { count, error: countError } = await supabase
+    .from("timeline_events")
+    .select("id", { count: "exact", head: true });
+  if (countError) throw countError;
+
+  const pageCount = Math.max(1, Math.ceil((count ?? 0) / PAGE));
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, (_, i) =>
+      supabase
+        .from("timeline_events")
+        .select("id, event_name, date_value, hidden_at")
+        .order("id")
+        .range(i * PAGE, (i + 1) * PAGE - 1),
+    ),
+  );
+
+  const rows: Row[] = [];
+  for (const { data, error } of pages) {
     if (error) throw error;
-    const page = (data as typeof rows) ?? [];
-    rows.push(...page);
-    if (page.length < PAGE) break;
+    rows.push(...((data as Row[]) ?? []));
   }
 
   return rows

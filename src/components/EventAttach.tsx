@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { EventOption } from "./EventPicker";
+import { useState } from "react";
+import { EventOption } from "@/lib/event-candidates";
+import { useEventCandidates } from "./useEventCandidates";
 import { Pager } from "./Pager";
 import { edtfDayGap, formatDayGap, formatEdtfToKorean } from "@/lib/edtf";
 import { LinkedEventRef } from "@/lib/types";
@@ -16,6 +17,9 @@ import { RECORD_LINE_CLASSNAME } from "@/lib/design-tokens";
 //
 // 사건 목록은 한 번에 열 개씩만 보여주고 이전·다음으로 넘긴다. 200건이 든 목록을 스크롤로
 // 훑는 것은 고르는 일이 아니라 뒤지는 일이 된다 — 좁히기 칸으로 줄이고, 남은 것을 쪽으로 센다.
+//
+// 후보는 열 때 서버에 물어 앞쪽 얼마만 받아 온다(useEventCandidates). 예전에는 사건 6천 건을
+// 화면마다 통째로 안고 있었는데, 그것이 「사료」와 「구술 목록」이 느렸던 까닭이었다.
 const PAGE_SIZE = 10;
 
 function gapLabel(event: EventOption, nearDate: string): string | null {
@@ -87,7 +91,7 @@ function EventPage({
 }
 
 export function EventAttach({
-  events,
+  boostQuery,
   linked = [],
   onPick,
   onUnlink,
@@ -99,7 +103,8 @@ export function EventAttach({
   nearDate,
   listTop,
 }: {
-  events: EventOption[];
+  // 화면이 물고 들어온 검색어. 그 말과 얽힌 사건이 앞에 서게 한다(좁히기 칸이 비었을 때만).
+  boostQuery?: string;
   linked?: LinkedEventRef[];
   onPick: (event: EventOption) => Promise<void>;
   onUnlink?: (eventId: string) => Promise<void>;
@@ -122,25 +127,21 @@ export function EventAttach({
   const [justLinked, setJustLinked] = useState<EventOption[]>([]);
   const [justUnlinked, setJustUnlinked] = useState<string[]>([]);
 
-  // 사료에 날짜가 있으면 그 언저리 사건을 앞세운다. 예전에는 늘 최근 사건부터였는데,
-  // 1961년 기사에 붙일 사건을 고르려면 2020년대부터 예순 쪽을 넘겨야 했다 — 좁히기 칸에
-  // 넣을 말이 미리 떠오르지 않으면 손쓸 방법이 없었다.
-  // 날짜를 모르는 사건은 견줄 수가 없으니 뒤로 보낸다. 걸러내지는 않는다 — 사건 6천 건 중
-  // 날짜가 성긴 것도 있고, 붙일 수 있는 후보에서 조용히 빼면 찾다가 없다고 여기게 된다.
-  // 좁히기 칸에 말을 넣으면 그 순간부터는 사람이 고른 실마리가 앞선다(원래 순서로 돌아간다).
-  const candidates = useMemo(() => {
-    const q = filter.trim();
-    if (q) return events.filter((e) => e.eventName.includes(q) || e.year.includes(q));
-    if (!nearDate) return events;
-
-    return [...events].sort((a, b) => {
-      const ga = a.dateValue ? edtfDayGap(a.dateValue, nearDate) : null;
-      const gb = b.dateValue ? edtfDayGap(b.dateValue, nearDate) : null;
-      if (ga === null) return gb === null ? 0 : 1;
-      if (gb === null) return -1;
-      return ga - gb;
-    });
-  }, [events, filter, nearDate]);
+  // 사료에 날짜가 있으면 그 언저리 사건을 앞세우고, 좁히기 칸에 말이 들어오면 그때부터는
+  // 사람이 고른 실마리가 앞선다. 그 차례를 정하는 규칙은 서버에 있다(event-candidates.ts) —
+  // 목록을 여기 안 두기로 한 이상, 고르는 규칙도 목록이 있는 쪽에 있어야 한 벌로 남는다.
+  const {
+    options: candidates,
+    matched,
+    total,
+    ready,
+    error: loadError,
+  } = useEventCandidates({
+    query: filter,
+    nearDate,
+    boostQuery,
+    enabled: mode === "link",
+  });
 
   const linkedNow = linked.filter((l) => !justUnlinked.includes(l.id));
   const linkedIds = new Set(linkedNow.map((l) => l.id));
@@ -153,7 +154,7 @@ export function EventAttach({
   }
 
   async function handlePick(id: string) {
-    const event = events.find((e) => e.id === id);
+    const event = candidates.find((e) => e.id === id);
     if (!event) return;
     setPending(true);
     setError(null);
@@ -275,16 +276,28 @@ export function EventAttach({
             </p>
           )}
 
-          {mode === "link" && events.length === 0 ? (
+          {mode === "link" && loadError ? (
+            <p className="px-2 py-4 text-center font-mono text-[11px] text-orange-fill">{loadError}</p>
+          ) : mode === "link" && !ready ? (
+            <p className="px-2 py-4 text-center text-[12px] text-grey">사건을 불러오는 중…</p>
+          ) : mode === "link" && total === 0 ? (
             <div className="px-2 py-4 text-center text-[12px] text-grey">{emptyHint}</div>
           ) : mode === "link" ? (
-            <EventPage
-              events={candidates}
-              nearDate={filter.trim() ? undefined : nearDate}
-              onChoose={handlePick}
-              disabled={pending}
-              emptyText="좁히기에 걸린 사건이 없습니다."
-            />
+            <>
+              <EventPage
+                events={candidates}
+                nearDate={filter.trim() ? undefined : nearDate}
+                onChoose={handlePick}
+                disabled={pending}
+                emptyText="좁히기에 걸린 사건이 없습니다."
+              />
+              {/* 쪽 끝이 곧 후보의 끝인 줄 알면, 있는 사건을 없다고 여기고 새로 만들게 된다. */}
+              {matched > candidates.length && (
+                <p className="mt-1 px-0.5 font-mono text-[10px] text-grey">
+                  {matched}건 중 {candidates.length}건 — 좁히기 칸으로 줄이세요
+                </p>
+              )}
+            </>
           ) : (
             <EventPage
               events={linkedNow.map((l) => ({

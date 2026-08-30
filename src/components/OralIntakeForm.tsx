@@ -6,7 +6,8 @@ import { createPerson } from "@/lib/person-actions";
 import { serializeUtterances } from "@/lib/segment-text";
 import { PersonBrief, PersonKind, SegmentCardData, Utterance } from "@/lib/types";
 import { SourceOption } from "@/lib/db";
-import { EventOption } from "./EventPicker";
+import { EventOption } from "@/lib/event-candidates";
+import { useEventCandidates } from "./useEventCandidates";
 import {
   describeSpeaker,
   ROLE_ONLY,
@@ -111,13 +112,11 @@ function toUtteranceDrafts(utterances: Utterance[], roster: SpeakerOption[]): Ut
 export function OralIntakeForm({
   persons,
   sources,
-  events,
   editing,
   onClose,
 }: {
   persons: PersonBrief[];
   sources: SourceOption[];
-  events: EventOption[];
   // 주면 그 발췌를 되채운 "고치기"가 된다. 없으면 빈 "구술 추가".
   editing?: SegmentCardData;
   onClose: () => void;
@@ -152,13 +151,15 @@ export function OralIntakeForm({
   const [notes, setNotes] = useState<string[]>(editing?.noteList ?? []);
   const [dateValue, setDateValue] = useState(editing?.dateValue ?? "");
   const [keywords, setKeywords] = useState((editing?.keywordTags ?? []).join(", "));
-  const [eventId, setEventId] = useState<string | null>(null);
+  // 고른 사건은 통째로 들고 있는다 — 후보 목록은 친 말에 따라 갈리므로, id만 남기면
+  // 저장 알림에 적을 이름을 되찾을 자리가 없다.
+  const [selectedEvent, setSelectedEvent] = useState<EventOption | null>(null);
+  const eventId = selectedEvent?.id ?? null;
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
 
-  const selectedEvent = events.find((e) => e.id === eventId) ?? null;
   const roster = useMemo(() => [...narrators, ...interviewers], [narrators, interviewers]);
 
   // 이름 없이 "구술자"로 적어 두었던 줄들을, 그 역할의 첫 인물이 정해지는 순간 그 사람 말로
@@ -310,7 +311,7 @@ export function OralIntakeForm({
           구술 고치기 — 사건 연결은 여기서 바꾸지 않습니다. 편집 → 「구술」에서 붙이고 뗍니다.
         </p>
       ) : (
-        <EventField events={events} selectedId={eventId} onSelect={setEventId} />
+        <EventField selected={selectedEvent} onSelect={setSelectedEvent} />
       )}
 
       {/* ② 어디서 왔나 */}
@@ -507,23 +508,21 @@ export function OralIntakeForm({
 // 사건 고르기. 90건이 넘는 목록을 통째로 펼쳐 두면 자리만 먹고 눈으로 훑기도 어려워,
 // 이름으로 좁혀 고르고 고른 뒤에는 한 줄로 접힌다.
 function EventField({
-  events,
-  selectedId,
+  selected,
   onSelect,
 }: {
-  events: EventOption[];
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selected: EventOption | null;
+  onSelect: (event: EventOption | null) => void;
 }) {
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
 
-  const selected = events.find((e) => e.id === selectedId) ?? null;
-  const matches = useMemo(() => {
-    const q = filter.trim();
-    if (!q) return events.slice(0, 8);
-    return events.filter((e) => e.eventName.includes(q) || e.year.includes(q)).slice(0, 8);
-  }, [events, filter]);
+  // 여덟 줄만 띄운다 — 칸 아래 펼쳐지는 목록이라 더 길어지면 폼을 덮는다.
+  const { options: matches, ready } = useEventCandidates({
+    query: filter,
+    limit: 8,
+    enabled: open && !selected,
+  });
 
   if (selected) {
     return (
@@ -567,7 +566,9 @@ function EventField({
 
       {open && (
         <ul className="mt-1 max-w-lg border border-line bg-background">
-          {matches.length === 0 ? (
+          {!ready ? (
+            <li className="px-2.5 py-2 font-mono text-[11px] text-grey">불러오는 중…</li>
+          ) : matches.length === 0 ? (
             <li className="px-2.5 py-2 font-mono text-[11px] text-grey">걸리는 사건이 없습니다.</li>
           ) : (
             matches.map((event) => (
@@ -575,7 +576,7 @@ function EventField({
                 <button
                   type="button"
                   onClick={() => {
-                    onSelect(event.id);
+                    onSelect(event);
                     setOpen(false);
                   }}
                   className="flex w-full items-baseline gap-2 px-2.5 py-1.5 text-left hover:bg-surface"

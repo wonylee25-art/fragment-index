@@ -27,7 +27,7 @@ const INPUT_CLASSNAME =
 
 const LABEL_CLASSNAME = "mb-1 block font-mono text-[10px] font-semibold uppercase tracking-wider text-grey";
 
-export function AddMaterialForm({ events }: { events: EventOption[] }) {
+export function AddMaterialForm({ boostQuery }: { boostQuery?: string }) {
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -42,17 +42,17 @@ export function AddMaterialForm({ events }: { events: EventOption[] }) {
     );
   }
 
-  return <MaterialFields events={events} onClose={() => setOpen(false)} />;
+  return <MaterialFields boostQuery={boostQuery} onClose={() => setOpen(false)} />;
 }
 
-function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: () => void }) {
+function MaterialFields({ boostQuery, onClose }: { boostQuery?: string; onClose: () => void }) {
   const [form, setForm] = useState(EMPTY_FORM);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 고른 사건은 통째로 들고 있는다 — 저장 뒤 알림에 이름을 적어야 하는데, 목록은 좁히기에
+  // 따라 바뀌므로 id만으로는 되찾을 자리가 없다.
+  const [selected, setSelected] = useState<EventOption | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedNote, setSavedNote] = useState<string | null>(null);
-
-  const selected = events.find((e) => e.id === selectedId) ?? null;
 
   function update<K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -68,7 +68,7 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
     setPending(true);
     setError(null);
     try {
-      await createMaterial(form, intent === "link" ? selectedId : null);
+      await createMaterial(form, intent === "link" ? (selected?.id ?? null) : null);
       setSavedNote(
         intent === "link" && selected
           ? `“${form.title.trim()}” — ${selected.eventName}에 연결됨`
@@ -86,9 +86,10 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
     <div className="mt-6 w-full border border-line bg-surface p-4">
       <div className="grid gap-6 md:grid-cols-[210px_minmax(0,1fr)]">
         <EventPicker
-          events={events}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
+          selectedId={selected?.id ?? null}
+          selected={selected}
+          onSelect={setSelected}
+          boostQuery={boostQuery}
           filterable
           emptyHint={
             <>
@@ -106,7 +107,7 @@ function MaterialFields({ events, onClose }: { events: EventOption[]; onClose: (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void save(selectedId ? "link" : "hold");
+            void save(selected ? "link" : "hold");
           }}
           className="min-w-0"
         >

@@ -2,7 +2,6 @@
 
 import { ReactNode, useState } from "react";
 import Link from "next/link";
-import { EventOption } from "./EventPicker";
 import { EventAttach } from "./EventAttach";
 import { LinkTargetType, linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { ArchiveItemType, LinkedEventRef } from "@/lib/types";
@@ -78,12 +77,12 @@ function MaterialBody({ entry }: { entry: UnlinkedEntry }) {
 
 function MaterialCard({
   entry,
-  events,
+  boostQuery,
   checkbox,
   ordinal,
 }: {
   entry: UnlinkedEntry;
-  events: EventOption[];
+  boostQuery?: string;
   checkbox: ReactNode;
   // 이 무리에서 몇 번째 / 모두 몇 건인지. 카드가 목록의 어디쯤인지 세지 않고도 알린다.
   ordinal: string;
@@ -200,7 +199,7 @@ function MaterialCard({
                   )
                 }
 
-                events={events}
+                boostQuery={boostQuery}
                 linked={entry.links}
                 // 붙이러 열었으면 고르는 창이 이미 펼쳐진 채 선다 — 한 번 더 누르게 하지 않는다.
                 startOpen={mode === "link"}
@@ -272,13 +271,11 @@ function MaterialCard({
 }
 
 export function UnlinkedBoard({
-  events,
   materials,
   query,
   totalCount,
   box,
 }: {
-  events: EventOption[];
   materials: UnlinkedEntry[];
   // 위 "사료 검색"에 친 말. 들어오면 함도 그 말로 걸린 것만 세운다(page.tsx에서 거른다).
   query: string;
@@ -325,7 +322,7 @@ export function UnlinkedBoard({
           noun="사료"
           boxName="비활성 사료함"
           unlinkedLabel={BOX_TEXT.hold.label}
-          events={events}
+          boostQuery={query}
           picked={picked}
           setPicked={setPicked}
           onDeactivate={deactivateMaterials}
@@ -335,7 +332,7 @@ export function UnlinkedBoard({
           basis="keyword"
           layout="grid"
           renderCard={(entry: UnlinkedEntry, form: { checkbox: ReactNode; ordinal: string }) => (
-            <MaterialCard entry={entry} events={events} {...form} />
+            <MaterialCard entry={entry} boostQuery={query} {...form} />
           )}
           label={text.label}
           hint={text.hint}

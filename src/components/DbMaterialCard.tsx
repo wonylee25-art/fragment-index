@@ -9,7 +9,6 @@ import { adoptMaterialsToTimeline, dropMaterialsFromTimeline } from "@/lib/timel
 import { linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { CardShell, FieldLabel, footButtonClass, HeadRow } from "./RecordCard";
 import { EventAttach } from "./EventAttach";
-import { EventOption } from "./EventPicker";
 
 // 이미 DB에 있는 사료가 서는 카드. 사료 검색 화면에서 "이걸 이미 갖고 있다"를 보여주는
 // 자리인데, 손잡이는 세 함의 카드와 똑같다 — 여기서 이미 가진 자료를 보고 있는데 붙이려면
@@ -20,11 +19,11 @@ import { EventOption } from "./EventPicker";
 export function DbMaterialCard({
   material,
   strength,
-  events,
+  boostQuery,
 }: {
   material: RelatedItem;
   strength: number;
-  events: EventOption[];
+  boostQuery?: string;
 }) {
   const [pending, setPending] = useState(false);
   const body = material.fullText || material.description;
@@ -96,7 +95,7 @@ export function DbMaterialCard({
             <FieldLabel en="link" ko="사건 연결" />
             <div className="mt-1.5">
               <EventAttach
-                events={events}
+                boostQuery={boostQuery}
                 startOpen={mode === "link"}
                 // 사건 목록 안 맨 위에 서는 손잡이 — 세 함의 카드와 같은 자리다.
                 listTop={

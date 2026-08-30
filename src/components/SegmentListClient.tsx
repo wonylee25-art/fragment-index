@@ -4,7 +4,6 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SegmentRow } from "./SegmentRow";
 import { OralIntakeForm } from "./OralIntakeForm";
-import { EventOption } from "./EventPicker";
 import { SourceOption } from "@/lib/db";
 import { PersonBrief, SegmentCardData } from "@/lib/types";
 import { edtfSortKey } from "@/lib/edtf";
@@ -41,12 +40,10 @@ export function SegmentListClient({
   segments,
   persons,
   sources,
-  events,
 }: {
   segments: SegmentCardData[];
   persons: PersonBrief[];
   sources: SourceOption[];
-  events: EventOption[];
 }) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -176,7 +173,6 @@ export function SegmentListClient({
         <OralIntakeForm
           persons={persons}
           sources={sources}
-          events={events}
           onClose={() => setAdding(false)}
         />
       )}
@@ -193,7 +189,6 @@ export function SegmentListClient({
                 key={segment.id}
                 persons={persons}
                 sources={sources}
-                events={events}
                 editing={segment}
                 onClose={() => setEditingId(null)}
               />

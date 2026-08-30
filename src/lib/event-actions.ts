@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { bustEventOptions } from "./event-options-cache";
 import { supabaseAdmin } from "./supabase-admin";
 import { isCited } from "./citation";
 
@@ -68,6 +69,7 @@ export async function createEvent(input: EventInput): Promise<string> {
   });
   if (error) throw error;
 
+  bustEventOptions();
   revalidatePath("/");
   revalidatePath("/admin/timeline");
   return id;
@@ -95,6 +97,7 @@ export async function updateEvent(id: string, input: EventInput) {
     .eq("id", id);
   if (error) throw error;
 
+  bustEventOptions();
   revalidatePath("/");
   revalidatePath("/admin/timeline");
 }
@@ -115,6 +118,7 @@ export async function hideEvents(ids: string[]): Promise<number> {
     .in("id", ids);
   if (error) throw error;
 
+  bustEventOptions();
   revalidatePath("/");
   revalidatePath("/admin/timeline");
   revalidatePath("/admin/review");
@@ -125,6 +129,7 @@ export async function unhideEvent(id: string) {
   const { error } = await supabaseAdmin.from("timeline_events").update({ hidden_at: null }).eq("id", id);
   if (error) throw error;
 
+  bustEventOptions();
   revalidatePath("/");
   revalidatePath("/admin/timeline");
   revalidatePath("/admin/review");
@@ -223,6 +228,7 @@ export async function adoptEventById(id: string) {
     .eq("id", id);
   if (error) throw error;
 
+  bustEventOptions();
   revalidatePath("/");
   revalidatePath("/admin/timeline");
   revalidatePath("/admin/review");

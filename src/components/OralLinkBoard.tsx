@@ -6,7 +6,6 @@ import { linkTargetToEvent, unlinkTargetFromEvent } from "@/lib/link-actions";
 import { SegmentLinkRow, SourceOption } from "@/lib/db";
 import { formatEdtfToKorean } from "@/lib/edtf";
 import { deactivateSegments } from "@/lib/segment-actions";
-import { EventOption } from "./EventPicker";
 import { EventAttach } from "./EventAttach";
 import { OralIntakeForm } from "./OralIntakeForm";
 import { PersonBrief } from "@/lib/types";
@@ -30,7 +29,7 @@ import { PickSection, isUnlinkedEntry } from "./LinkPickSection";
 // 않고 체크박스를 소리로 읽을 때만 쓰이므로, 그 줄을 알아볼 수 있는 말로 짓는다.
 type SegmentEntry = SegmentLinkRow & { title: string; links: SegmentLinkRow["linkedEvents"] };
 
-function SegmentCard({ entry, events }: { entry: SegmentEntry; events: EventOption[] }) {
+function SegmentCard({ entry }: { entry: SegmentEntry }) {
   return (
     <>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -50,7 +49,6 @@ function SegmentCard({ entry, events }: { entry: SegmentEntry; events: EventOpti
           붙이고 끊는 일도 그 자리에서 한다 */}
       <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
         <EventAttach
-          events={events}
           linked={entry.linkedEvents}
           onPick={(event) => linkTargetToEvent(event.id, "segment", entry.id, null)}
           onUnlink={(eventId) => unlinkTargetFromEvent(eventId, "segment", entry.id)}
@@ -74,12 +72,10 @@ const UNLINKED_LABEL = "사건과 연결되지 않은 구술";
 
 export function OralLinkBoard({
   rows,
-  events,
   persons,
   sources,
 }: {
   rows: SegmentLinkRow[];
-  events: EventOption[];
   // 구술 추가 폼이 쓰는 재료 — 화자 명단과 이미 등록된 출처(구술 목록과 같은 것을 받는다).
   persons: PersonBrief[];
   sources: SourceOption[];
@@ -99,13 +95,12 @@ export function OralLinkBoard({
     noun: "구술",
     boxName: "비활성 구술함",
     unlinkedLabel: UNLINKED_LABEL,
-    events,
     picked,
     setPicked,
     onDeactivate: deactivateSegments,
     targetType: "segment" as const,
     basis: null,
-    renderCard: (entry: SegmentEntry) => <SegmentCard entry={entry} events={events} />,
+    renderCard: (entry: SegmentEntry) => <SegmentCard entry={entry} />,
   };
 
   return (
@@ -130,7 +125,6 @@ export function OralLinkBoard({
         <OralIntakeForm
           persons={persons}
           sources={sources}
-          events={events}
           onClose={() => setAdding(false)}
         />
       )}
