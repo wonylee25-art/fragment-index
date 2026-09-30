@@ -29,6 +29,16 @@ export interface GrainThread {
   grains: Grain[]; // 오래된 것부터
 }
 
+// 시킬 때마다 Claude가 지난 정리 이후에 쌓인 조각을 읽고 써 넣는 정리. 되풀이된 것·이어질 것을 짧게 적은 글이다.
+// 기간이 지난 정리의 끝에서 이어지므로 빠지거나 겹치는 조각이 없다.
+export interface Summary {
+  id: string;
+  periodStart: string; // 이 정리가 다룬 기간의 시작(ISO 시각)
+  periodEnd: string; // 끝(ISO 시각). 다음 정리는 여기서부터 이어진다
+  body: string;
+  fragmentCount: number;
+}
+
 interface FragmentRow {
   id: string;
   created_at: string;
@@ -129,4 +139,22 @@ export async function getGrainThreads(): Promise<{ threads: GrainThread[]; error
     });
 
   return { threads, error: null };
+}
+
+// 정리는 조각 목록의 덤이라, 못 읽어도 화면 전체를 막지 않고 그냥 비워 둔다.
+export async function getSummaries(limit = 12): Promise<Summary[]> {
+  const { data, error } = await supabaseAdmin
+    .schema("grains")
+    .from("summaries")
+    .select("id, period_start, period_end, body, fragment_count")
+    .order("period_end", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map((r) => ({
+    id: r.id as string,
+    periodStart: r.period_start as string,
+    periodEnd: r.period_end as string,
+    body: r.body as string,
+    fragmentCount: r.fragment_count as number,
+  }));
 }

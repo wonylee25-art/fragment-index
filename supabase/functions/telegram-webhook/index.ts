@@ -1,4 +1,5 @@
 import postgres from "npm:postgres@3.4.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const TOKEN = (Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "").trim();
 const OWNER_ID = (Deno.env.get("TELEGRAM_OWNER_ID") ?? "").trim();
@@ -16,6 +17,10 @@ const GAP_MINUTES = 30;
 const UNCONVERTED = "(사진, 아직 글로 바꾸지 않음)";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { max: 1, prepare: false });
+
+// 저장소(Storage)는 REST를 직접 부르지 않고 클라이언트로 쓴다. 서비스 키가 JWT 꼴이 아닌 새 형식일 때
+// Authorization 헤더에 그대로 실어 보내면 "Invalid Compact JWS"로 거절되는데, 클라이언트는 키 형식에 맞게 보낸다.
+const storage = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }).storage;
 
 function toBase64(bytes: Uint8Array): string {
   let bin = "";
@@ -93,17 +98,11 @@ async function storePhoto(
 ): Promise<string | null> {
   try {
     const path = `photos/${chatId}-${messageId}.jpg`;
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}/${path}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SERVICE_KEY}`,
-        "Content-Type": "image/jpeg",
-        "x-upsert": "true",
-      },
-      body: bytes,
-    });
-    if (!res.ok) {
-      console.error("storage", res.status, await res.text());
+    const { error } = await storage
+      .from(PHOTO_BUCKET)
+      .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+    if (error) {
+      console.error("storage", error.message);
       return null;
     }
     return path;

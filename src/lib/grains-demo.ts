@@ -1,4 +1,4 @@
-import type { Grain, GrainThread } from "./grains";
+import type { Grain, GrainThread, Summary } from "./grains";
 
 // /grains?demo=1 에서만 쓰는 예시 데이터. DB를 읽지도 쓰지도 않는다.
 // 실제 봇이 쌓는 모양(30분 넘게 비면 새 덩어리, 사진은 글로 옮긴 본문, 전달은 출처 표시,
@@ -106,5 +106,20 @@ export const DEMO_THREADS: GrainThread[] = [
         keywords: ["버스", "회색"],
       }),
     ],
+  },
+];
+
+// 시킬 때 올라오는 정리가 어떻게 보이는지 보여 주는 예시.
+export const DEMO_SUMMARIES: Summary[] = [
+  {
+    id: "demo-summary-1",
+    periodStart: "2026-09-27T00:00:00+09:00",
+    periodEnd: "2026-09-30T21:30:00+09:00",
+    fragmentCount: 6,
+    body:
+      "이번 기간 조각 6건. 「회색」이 세 번 나왔고, 9월 27일 저녁과 30일 퇴근길이 같은 장면을 다른 말로 적고 있어요.\n\n" +
+      "- 자주 나온 것: 회색, 버스, 기억, 구술\n" +
+      "- 이어질 것 같은 조각: 9월 29일 아침의 “날짜가 어긋난 것 같다”는 메모와 그날 읽은 문장 “매번 다시 지어지는 집”\n" +
+      "- 예전 조각과의 연결: 아직 비교할 만큼 쌓이지 않았어요",
   },
 ];

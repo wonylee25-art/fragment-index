@@ -2,8 +2,9 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { SiteHeader } from "@/components/SiteHeader";
 import { GrainsBoard } from "@/components/GrainsBoard";
-import { getGrainThreads } from "@/lib/grains";
-import { DEMO_THREADS } from "@/lib/grains-demo";
+import { Summaries } from "@/components/Summaries";
+import { getGrainThreads, getSummaries } from "@/lib/grains";
+import { DEMO_SUMMARIES, DEMO_THREADS } from "@/lib/grains-demo";
 
 // 텔레그램 봇으로 계속 쌓이는 데이터라 만들어 둔 HTML을 주면 안 된다 — 열 때마다 읽는다.
 // ?demo=1 이면 DB를 건드리지 않고 예시 조각을 보여 준다(화면 확인용).
@@ -14,9 +15,9 @@ export default async function GrainsPage({
 }) {
   await connection();
   const demo = (await searchParams).demo === "1";
-  const { threads, error } = demo
-    ? { threads: DEMO_THREADS, error: null }
-    : await getGrainThreads();
+  const [{ threads, error }, summaries] = demo
+    ? [{ threads: DEMO_THREADS, error: null }, DEMO_SUMMARIES]
+    : await Promise.all([getGrainThreads(), getSummaries()]);
 
   return (
     <div className="min-h-full">
@@ -43,7 +44,10 @@ export default async function GrainsPage({
             )}
           </div>
         ) : (
-          <GrainsBoard threads={threads} />
+          <>
+            <Summaries summaries={summaries} />
+            <GrainsBoard threads={threads} />
+          </>
         )}
       </main>
     </div>
