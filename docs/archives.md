@@ -208,9 +208,33 @@
 
 ---
 
+### 대한민국 신문 아카이브 (nl.go.kr/newspaper)
+
+- **확인일**: 2026-07-19(❌ 판정), **2026-08-29 뒤집음**
+- **판정**: ✅ — 예전 ❌는 틀림. 검색 폼을 자동 제출하려 했던 게 문제였고, **그 뒤에서 도는 JSON 엔드포인트를 직접 부르면 됨**. 로그인·API키·쿠키 전부 불필요
+- `robots.txt`는 `User-agent: * / Allow: /` — 신문 아카이브 경로에 금지 없음(금지는 Googlebot 대상의 다른 경로뿐). 크롤 지연 명시도 없음
+- **검색**: `POST https://nl.go.kr/newspaper/search_newspaper.do`, `Content-Type: application/json`
+
+  ```json
+  {"search_keyword":"동대문","page_no":0,"page_size":100,"facetedType":[],"facetedData":[]}
+  ```
+
+  - `page_no`는 건수가 아니라 **페이지 번호**(`page_size` 단위). "동대문" 8,063건을 `page_no` 0~80으로 끝까지 넘겨받음 — 깊은 페이지 제한 없음
+  - 응답 키: `hits`(자료 배열) · `total_count` · `by_issuedYear` · `by_newspaperKorName` · `by_newsTopic` · `by_newsGenre`(연도·신문·주제·유형 패싯 집계가 공짜로 딸려 옴)
+  - `hits` 한 건의 주요 필드: `uri`(제어번호 `CNTS-…`) · `label`(제목) · `issued_date`(`19261208`) · `newspaperKorName`/`newspaperForeignName` · `publisher` · `newsposition`(`3면 1단`) · `newsTopic` · `newsGenre` · `keyword` · `highlight_label`(검색어 하이라이트 HTML) · `trans_label`(한자 제목의 한글 변환)
+- **CSV 일괄 내려받기**: `POST /newspaper/list_download.do` — form 인코딩(`search_keyword`, `page_size=100`, `page_no=0`), 응답은 `newspaperList.csv`. 17칸 — 제목·부제목·신문 한글/한문 명칭·발행처·발행일·주기사항·주제어(인물/단체/장소/사건)·기사 주제·기사 유형·기사 위치·키워드·본문 텍스트·제어번호
+- **영구링크**: `https://nl.go.kr/newspaper/detail.do?content_id=<제어번호>` — 재호스팅 없이 이걸로 연결(지면 이미지는 안 가져옴)
+- **LOD**: `POST /newspaper/list_LOD_download.do`(`LOD_list=<제어번호>`) → N-Triples(`lodData.nt`). 주어가 `http://lod.nl.go.kr/resource/<제어번호>`라 다른 기관 자료와 엮을 여지가 있음
+- **한계 — 본문 텍스트는 대부분 빈칸**. "동대문" 100건 중 본문이 있는 건 2건뿐이었고, 그마저 1897년 독립신문 같은 초기 한글 신문(원문+번역문 함께). 나머지는 기사 내용을 지면 이미지로만 봄
+  - 그러니 이 API가 채워 주는 건 **서지·발행일·지면 위치·주제어·원본 링크**이고, 본문 발췌는 여전히 사람이 읽고 옮겨 적어야 함 — [`import-newspaper-articles.mjs`](../scripts/import-newspaper-articles.mjs)에 적어 둔 전제 그대로
+  - 대신 "어느 신문 몇 년 몇 월 며칠 몇 면 몇 단"을 손으로 찾아 적는 일은 없어짐
+- **아직 미연동** — 수집 스크립트는 안 만듦. 만들 때는 `archive_items`에 `nl-<제어번호>`를 id로 쓰고, 병합 정책은 `import-newspaper-articles.mjs`와 같이(빈 칸은 안 덮어씀)
+
+---
+
 ## 포기함 (progress.md 3-2에 이미 정리됨, 요약만)
 
-- **대한민국 신문 아카이브(nl.go.kr)** — API 없음, 검색 폼 자동 제출 여러 방법으로 시도했으나 실패
+- **대한민국 신문 아카이브(nl.go.kr)** — 2026-08-29 판정 뒤집힘, 위 「자동화 가능」으로 옮김
 - **네이버 뉴스라이브러리** — 도메인 자체가 브라우저 도구에서 차단됨
 - **조선 뉴스 라이브러리(chosun.com)** — 상업 언론사 사이트, 읽기 권한 자체가 막혀 있음
 
