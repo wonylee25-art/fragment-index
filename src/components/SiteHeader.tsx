@@ -10,6 +10,8 @@ const NAV_ITEMS = [
   { href: "/segments", label: "구술 목록" },
   { href: "/research", label: "연구 동향" },
   { href: "/oral-history-projects", label: "구술 사업" },
+  // 텔레그램으로 적어 둔 일상 메모. 사료 작업과는 따로 쌓이는 개인 기록이라 맨 끝에 둔다.
+  { href: "/grains", label: "일상 조각" },
 ] as const;
 
 // 조각(fragment)이 색인(index)의 행으로 정렬되는 모습을 단순한 도형으로만 그린다.
@@ -34,7 +36,7 @@ export function SiteHeader({
   active,
   title,
 }: {
-  active: "/" | "/segments" | "/research" | "/oral-history-projects" | "/admin/timeline";
+  active: "/" | "/segments" | "/research" | "/oral-history-projects" | "/admin/timeline" | "/grains";
   title: string;
 }) {
   return (
