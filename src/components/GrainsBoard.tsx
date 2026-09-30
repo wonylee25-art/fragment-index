@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Grain, GrainKind, GrainThread } from "@/lib/grains";
+import type { Grain, GrainKind, GrainNote, GrainThread } from "@/lib/grains";
+import {
+  addNote,
+  deleteGrain,
+  deleteNote,
+  updateGrain,
+  updateNote,
+} from "@/lib/grain-actions";
+import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { KeywordGrid } from "./KeywordGrid";
 import { Switch } from "./Switch";
 
@@ -36,6 +44,11 @@ const DAY = new Intl.DateTimeFormat("ko-KR", {
   month: "long",
   day: "numeric",
   weekday: "short",
+});
+const NOTE_DAY = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
 });
 const TIME = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -72,6 +85,7 @@ function GrainBody({
   lens: boolean;
   active: string | null;
 }) {
+  const noteCount = grain.notes.length;
   const text = grain.body;
   const { any, selected } = keywordFlags(text, grain.keywords, active);
   const marked = new Array<boolean>(text.length).fill(false);
@@ -112,16 +126,256 @@ function GrainBody({
           </span>
         );
       })}
+      {/* 각주가 달린 조각은 글 끝에 그 번호를 위첨자로 붙여, 아래 각주 목록과 이어 읽게 한다. */}
+      {noteCount > 0 && (
+        <sup className="ml-0.5 font-mono text-[10px] text-grey">
+          {Array.from({ length: noteCount }, (_, i) => i + 1).join(",")}
+        </sup>
+      )}
     </p>
   );
 }
 
-export function GrainsBoard({ threads }: { threads: GrainThread[] }) {
+// 봇이 사진을 받고 글로 옮기지 못했을 때 본문 자리에 넣는 안내(supabase/functions/telegram-webhook의
+// UNCONVERTED와 같은 글). 수정 칸을 열 때 이 안내를 지우고 빈 칸에서 시작하려고 알아본다.
+const UNCONVERTED_BODY = "(사진, 아직 글로 바꾸지 않음)";
+
+// 조각 하나의 본문을 고치는 칸. 사진 조각이면 사진이 칸 위에 그대로 있어서 보면서 적는다.
+// ⌘/Ctrl + Enter로 저장하고 Esc로 닫는다. 저장이 끝나야 닫히므로, 실패하면 적은 글이 그대로 남는다.
+function GrainEditor({ grain, onDone }: { grain: Grain; onDone: () => void }) {
+  const hasPhoto = grain.kind === "photo" || !!grain.photoUrl;
+  const [draft, setDraft] = useState(grain.body === UNCONVERTED_BODY ? "" : grain.body);
+  const [caption, setCaption] = useState(grain.caption ?? "");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      const result = await updateGrain(grain.id, draft, hasPhoto ? caption : null);
+      if (result.ok) onDone();
+      else setError(result.error);
+    } catch {
+      setError("저장하지 못했습니다. 잠시 뒤 다시 해 주세요.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="rounded-sm border border-line bg-surface p-2">
+      {hasPhoto && (
+        <input
+          type="text"
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          placeholder="사진 설명(썸네일 밑에 붙어요)"
+          maxLength={300}
+          disabled={pending}
+          className="mb-2 w-full border-b border-line bg-transparent pb-1 text-[12px] text-ink placeholder:text-grey focus:outline-none"
+        />
+      )}
+      <textarea
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onDone();
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void save();
+        }}
+        placeholder={
+          grain.kind === "photo" ? "사진에 적힌 내용이나 메모를 적어 주세요" : "메모를 입력하세요"
+        }
+        rows={Math.min(12, Math.max(4, draft.split("\n").length + 1))}
+        disabled={pending}
+        className="w-full resize-y bg-transparent text-[13px] leading-relaxed text-ink placeholder:text-grey focus:outline-none"
+      />
+      <div className="mt-1 flex items-center justify-end gap-2 font-mono text-[11px]">
+        {error && <span className="mr-auto text-red-text">{error}</span>}
+        <button
+          type="button"
+          onClick={onDone}
+          disabled={pending}
+          className="rounded-sm px-2 py-1 text-grey hover:text-ink"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={pending || !draft.trim()}
+          className="rounded-sm bg-ink px-2 py-1 font-bold text-background disabled:opacity-40"
+        >
+          {pending ? "저장 중" : "저장"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 각주 하나를 쓰거나 고치는 작은 칸. ⌘/Ctrl + Enter로 저장, Esc로 닫는다.
+// 저장이 끝나야 닫히므로 실패하면 적은 글이 그대로 남는다.
+function NoteForm({
+  initial = "",
+  onSubmit,
+  onCancel,
+}: {
+  initial?: string;
+  onSubmit: (body: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(initial);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    if (pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      const result = await onSubmit(draft);
+      if (result.ok) onCancel();
+      else setError(result.error);
+    } catch {
+      setError("저장하지 못했습니다. 잠시 뒤 다시 해 주세요.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="rounded-sm border border-line bg-surface p-1.5">
+      <textarea
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onCancel();
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void save();
+        }}
+        placeholder="각주를 적어 주세요"
+        rows={2}
+        disabled={pending}
+        className="w-full resize-y bg-transparent text-[12px] leading-relaxed text-ink placeholder:text-grey focus:outline-none"
+      />
+      <div className="flex items-center justify-end gap-2 font-mono text-[11px]">
+        {error && <span className="mr-auto text-red-text">{error}</span>}
+        <button type="button" onClick={onCancel} disabled={pending} className="px-1.5 py-0.5 text-grey hover:text-ink">
+          취소
+        </button>
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={pending || !draft.trim()}
+          className="rounded-sm bg-ink px-1.5 py-0.5 font-bold text-background disabled:opacity-40"
+        >
+          {pending ? "저장 중" : "저장"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function NoteLine({
+  note,
+  index,
+  editable,
+}: {
+  note: GrainNote;
+  index: number;
+  editable: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <li>
+        <NoteForm
+          initial={note.body}
+          onSubmit={(body) => updateNote(note.id, body)}
+          onCancel={() => setEditing(false)}
+        />
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex gap-1.5 text-[12px] leading-relaxed text-grey">
+      <span className="w-3 shrink-0 pt-px text-right font-mono text-[10px]">{index}</span>
+      <span className="min-w-0 flex-1 whitespace-pre-wrap break-words">
+        {note.body}
+        <span className="ml-1.5 font-mono text-[10px]">
+          {NOTE_DAY.format(new Date(note.createdAt))}
+          {note.editedAt ? " · 수정됨" : ""}
+        </span>
+        {editable && (
+          <span className="ml-2 inline-flex items-center gap-2 font-mono text-[10px]">
+            <button type="button" onClick={() => setEditing(true)} className="underline underline-offset-2 hover:text-ink">
+              수정
+            </button>
+            <ConfirmDeleteButton
+              label="삭제"
+              confirmMessage="이 각주를 지울까요?"
+              className="underline underline-offset-2 hover:text-ink"
+              onDelete={async () => {
+                const result = await deleteNote(note.id);
+                if (!result.ok) window.alert(result.error);
+              }}
+            />
+          </span>
+        )}
+      </span>
+    </li>
+  );
+}
+
+// 조각 아래에 붙는 각주 목록. 조각의 어느 글자가 아니라 조각 전체에 붙는다 — 글을 고치면 글자 위치가
+// 밀리므로 위치에 붙이지 않았다. 번호는 단 순서대로이고, 글 끝의 위첨자와 같은 번호다.
+function GrainNotes({ grain, editable }: { grain: Grain; editable: boolean }) {
+  const [adding, setAdding] = useState(false);
+
+  if (grain.notes.length === 0 && !editable) return null;
+
+  return (
+    <div className="mt-2 space-y-1 border-t border-line pt-1.5">
+      {grain.notes.length > 0 && (
+        <ol className="space-y-1">
+          {grain.notes.map((n, i) => (
+            <NoteLine key={n.id} note={n} index={i + 1} editable={editable} />
+          ))}
+        </ol>
+      )}
+      {editable &&
+        (adding ? (
+          <NoteForm onSubmit={(body) => addNote(grain.id, body)} onCancel={() => setAdding(false)} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="font-mono text-[11px] text-grey underline underline-offset-2 hover:text-ink"
+          >
+            각주 달기
+          </button>
+        ))}
+    </div>
+  );
+}
+
+export function GrainsBoard({
+  threads,
+  editable = false,
+}: {
+  threads: GrainThread[];
+  editable?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [lens, setLens] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [grid, setGrid] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -286,34 +540,74 @@ export function GrainsBoard({ threads }: { threads: GrainThread[] }) {
                         {g.photoUrl && (
                           // 서명 주소는 요청마다 달라지고 도메인도 바뀌어 next/image의 최적화 대상이 아니다.
                           // 작게 보여 주고, 누르면 새 창에서 저장된 사본 그대로 크게 연다.
-                          <a
-                            href={g.photoUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mb-2 block w-fit"
-                            aria-label="사진 크게 보기"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={g.photoUrl}
-                              alt="텔레그램으로 보낸 사진"
-                              loading="lazy"
-                              className="h-24 w-auto rounded-sm border border-line"
-                            />
-                          </a>
+                          <figure className="mb-2 w-fit max-w-full">
+                            <a
+                              href={g.photoUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="block w-fit"
+                              aria-label="사진 크게 보기"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={g.photoUrl}
+                                alt={g.caption ?? "텔레그램으로 보낸 사진"}
+                                loading="lazy"
+                                className="h-24 w-auto rounded-sm border border-line"
+                              />
+                            </a>
+                            {g.caption && (
+                              <figcaption className="mt-1 max-w-[18rem] text-[11px] leading-snug text-grey">
+                                {g.caption}
+                              </figcaption>
+                            )}
+                          </figure>
                         )}
-                        <GrainBody grain={g} lens={lens} active={active} />
-                        {(g.kind !== "text" || g.source || g.editedAt) && (
-                          <p className="mt-1 font-mono text-[11px] text-grey">
-                            {[
-                              g.kind !== "text" ? KIND_LABEL[g.kind] : null,
-                              g.source ? `출처 ${g.source}` : null,
-                              g.editedAt ? "수정됨" : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
+                        {editingId === g.id ? (
+                          <GrainEditor grain={g} onDone={() => setEditingId(null)} />
+                        ) : (
+                          <>
+                            <GrainBody grain={g} lens={lens} active={active} />
+                            {(g.kind !== "text" || g.source || g.editedAt || editable) && (
+                              <p className="mt-1 flex flex-wrap items-center gap-x-2 font-mono text-[11px] text-grey">
+                                <span>
+                                  {[
+                                    g.kind !== "text" ? KIND_LABEL[g.kind] : null,
+                                    g.source ? `출처 ${g.source}` : null,
+                                    g.editedAt ? "수정됨" : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </span>
+                                {editable && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingId(g.id)}
+                                    className="underline underline-offset-2 hover:text-ink"
+                                  >
+                                    수정
+                                  </button>
+                                )}
+                                {editable && (
+                                  <ConfirmDeleteButton
+                                    label="삭제"
+                                    confirmMessage={
+                                      g.kind === "photo"
+                                        ? "이 조각을 지울까요? 글과 사진, 달아 둔 각주가 모두 사라지고 되돌릴 수 없어요."
+                                        : "이 조각을 지울까요? 글과 달아 둔 각주가 모두 사라지고 되돌릴 수 없어요."
+                                    }
+                                    className="underline underline-offset-2 hover:text-ink"
+                                    onDelete={async () => {
+                                      const result = await deleteGrain(g.id);
+                                      if (!result.ok) window.alert(result.error);
+                                    }}
+                                  />
+                                )}
+                              </p>
+                            )}
+                          </>
                         )}
+                        <GrainNotes grain={g} editable={editable} />
                       </div>
                     </li>
                   ))}

@@ -23,6 +23,8 @@ function grain(g: Partial<Grain> & Pick<Grain, "id" | "createdAt" | "body">): Gr
     source: null,
     editedAt: null,
     photoUrl: null,
+    caption: null,
+    notes: [],
     keywords: [],
     highlights: [],
     ...g,
@@ -66,6 +68,7 @@ export const DEMO_THREADS: GrainThread[] = [
         body: "오후에 할 일\n- 구술 목록 정리\n- 답장 두 통\n- 빨래 걷기 [?]",
         kind: "photo",
         photoUrl: PHOTO_PLACEHOLDER,
+        caption: "점심 뒤 책상 위 메모지",
         keywords: ["구술"],
       }),
       grain({
@@ -90,6 +93,20 @@ export const DEMO_THREADS: GrainThread[] = [
         createdAt: at("2026-09-29T08:40:00"),
         body: "아침에 커피를 내리다가 문득, 어제 들은 구술에서 날짜가 하나 어긋난 것 같다. 기억이 틀렸을 수도, 내가 틀렸을 수도. 확인해 볼 것.",
         keywords: ["구술", "기억"],
+        notes: [
+          {
+            id: "demo-note-1",
+            body: "확인해 보니 날짜는 맞았고, 어긋난 건 내 기억이었다.",
+            createdAt: at("2026-09-29T21:10:00"),
+            editedAt: null,
+          },
+          {
+            id: "demo-note-2",
+            body: "다음 구술 때 이 부분을 한 번 더 여쭤볼 것.",
+            createdAt: at("2026-09-30T09:00:00"),
+            editedAt: null,
+          },
+        ],
       }),
     ],
   },

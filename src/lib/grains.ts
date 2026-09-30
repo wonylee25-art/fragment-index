@@ -6,6 +6,14 @@ import { supabaseAdmin } from "./supabase-admin";
 
 export type GrainKind = "text" | "photo" | "forward";
 
+// 조각에 딸린 각주. 조각의 어느 글자가 아니라 조각 전체에 붙는다.
+export interface GrainNote {
+  id: string;
+  body: string;
+  createdAt: string;
+  editedAt: string | null;
+}
+
 export interface Grain {
   id: string;
   createdAt: string;
@@ -13,6 +21,8 @@ export interface Grain {
   kind: GrainKind;
   source: string | null;
   editedAt: string | null;
+  caption: string | null; // 사진 조각의 썸네일 밑에 붙는 설명. 내가 적는다
+  notes: GrainNote[]; // 각주. 달린 순서대로(오래된 것이 1번)
   photoUrl: string | null; // 비공개 버킷의 사진을 잠깐 볼 수 있게 서명한 주소. 사진이 없거나 못 만들면 null
   // 본문 속 키워드. 화면의 「키워드만 진하게」가 이 낱말이 본문에 나오는 자리를 진하게 남긴다.
   // 아직 DB에 칸이 없어 실제 조각은 늘 비어 있고, 데모만 채운다.
@@ -48,6 +58,15 @@ interface FragmentRow {
   edited_at: string | null;
   thread_id: string | null;
   image_path: string | null;
+  photo_caption: string | null;
+}
+
+interface NoteRow {
+  id: string;
+  fragment_id: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
 }
 
 interface ThreadRow {
@@ -68,12 +87,30 @@ export async function getGrainThreads(): Promise<{ threads: GrainThread[]; error
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await db
       .from("fragments")
-      .select("id, created_at, body, kind, source, edited_at, thread_id, image_path")
+      .select("id, created_at, body, kind, source, edited_at, thread_id, image_path, photo_caption")
       .order("created_at", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) return { threads: [], error: error.message };
     fragments.push(...(data as FragmentRow[]));
     if (data.length < PAGE) break;
+  }
+
+  const notes: NoteRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from("notes")
+      .select("id, fragment_id, body, created_at, edited_at")
+      .order("created_at", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return { threads: [], error: error.message };
+    notes.push(...(data as NoteRow[]));
+    if (data.length < PAGE) break;
+  }
+  const notesByFragment = new Map<string, GrainNote[]>();
+  for (const n of notes) {
+    const list = notesByFragment.get(n.fragment_id) ?? [];
+    list.push({ id: n.id, body: n.body, createdAt: n.created_at, editedAt: n.edited_at });
+    notesByFragment.set(n.fragment_id, list);
   }
 
   const { data: threadRows, error: threadError } = await db
@@ -123,6 +160,8 @@ export async function getGrainThreads(): Promise<{ threads: GrainThread[]; error
       kind: f.kind,
       source: f.source,
       editedAt: f.edited_at,
+      caption: f.photo_caption,
+      notes: notesByFragment.get(f.id) ?? [],
       photoUrl: (f.image_path && photoUrls.get(f.image_path)) || null,
       keywords: [],
       highlights: [],
