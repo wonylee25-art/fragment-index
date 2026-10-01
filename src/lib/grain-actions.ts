@@ -100,6 +100,116 @@ export async function deleteGrain(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+// 덩어리를 이 조각 앞에서 둘로 나눈다. 이 조각과 그 뒤에 이어진 조각이 새 덩어리가 된다.
+// 제목·요약은 앞쪽(원래) 덩어리에 남는다. 덩어리의 첫 조각에서는 나눌 것이 없다.
+// 나눈 덩어리는 합치기로 되돌릴 수 있고, 새 덩어리가 가장 마지막이면 봇이 이어서 쌓는다.
+export async function splitThread(fragmentId: string): Promise<ActionResult> {
+  if (badId(fragmentId)) return fail("잘못된 조각입니다.");
+
+  const { data: frag, error: readError } = await grains()
+    .from("fragments")
+    .select("id, thread_id, created_at")
+    .eq("id", fragmentId)
+    .maybeSingle();
+  if (readError) {
+    console.error("splitThread read", readError.message);
+    return fail("나누지 못했습니다.");
+  }
+  if (!frag || !frag.thread_id) return fail("조각을 찾지 못했습니다.");
+
+  // 이 조각보다 앞선 조각이 같은 덩어리에 있어야 나눌 수 있다.
+  const { count: before, error: countError } = await grains()
+    .from("fragments")
+    .select("id", { count: "exact", head: true })
+    .eq("thread_id", frag.thread_id)
+    .lt("created_at", frag.created_at);
+  if (countError) {
+    console.error("splitThread count", countError.message);
+    return fail("나누지 못했습니다.");
+  }
+  if (!before) return fail("덩어리의 첫 조각이라 나눌 수 없습니다.");
+
+  const { data: created, error: insertError } = await grains()
+    .from("threads")
+    .insert({ created_at: frag.created_at })
+    .select("id")
+    .single();
+  if (insertError || !created) {
+    console.error("splitThread insert", insertError?.message);
+    return fail("나누지 못했습니다.");
+  }
+
+  const { error: moveError } = await grains()
+    .from("fragments")
+    .update({ thread_id: created.id })
+    .eq("thread_id", frag.thread_id)
+    .gte("created_at", frag.created_at);
+  if (moveError) {
+    console.error("splitThread move", moveError.message);
+    await grains().from("threads").delete().eq("id", created.id);
+    return fail("나누지 못했습니다.");
+  }
+
+  revalidatePath("/grains");
+  return { ok: true };
+}
+
+// 두 덩어리를 하나로 합친다. 시간상 앞선 덩어리(첫 조각이 더 이른 쪽)가 남고, 다른 쪽의 조각이 모두 그리로 옮겨 간 뒤
+// 그 덩어리는 사라진다. 남는 덩어리에 제목·요약이 없으면 사라지는 덩어리의 것을 이어받는다.
+export async function mergeThreads(aId: string, bId: string): Promise<ActionResult> {
+  if (badId(aId) || badId(bId) || aId === bId) return fail("잘못된 덩어리입니다.");
+
+  const firstAt = async (id: string) => {
+    const { data, error } = await grains()
+      .from("fragments")
+      .select("created_at")
+      .eq("thread_id", id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? (data.created_at as string) : null;
+  };
+
+  let aAt: string | null;
+  let bAt: string | null;
+  try {
+    [aAt, bAt] = await Promise.all([firstAt(aId), firstAt(bId)]);
+  } catch (e) {
+    console.error("mergeThreads first", e);
+    return fail("합치지 못했습니다.");
+  }
+  if (!aAt || !bAt) return fail("덩어리를 찾지 못했습니다.");
+  const [keepId, dropId] = aAt <= bAt ? [aId, bId] : [bId, aId];
+
+  const { data: pair } = await grains()
+    .from("threads")
+    .select("id, title, summary")
+    .in("id", [keepId, dropId]);
+  const keep = pair?.find((t) => t.id === keepId);
+  const drop = pair?.find((t) => t.id === dropId);
+
+  const { error: moveError } = await grains()
+    .from("fragments")
+    .update({ thread_id: keepId })
+    .eq("thread_id", dropId);
+  if (moveError) {
+    console.error("mergeThreads move", moveError.message);
+    return fail("합치지 못했습니다.");
+  }
+
+  const carry: { title?: string; summary?: string } = {};
+  if (!keep?.title && drop?.title) carry.title = drop.title;
+  if (!keep?.summary && drop?.summary) carry.summary = drop.summary;
+  if (Object.keys(carry).length > 0) await grains().from("threads").update(carry).eq("id", keepId);
+
+  const { error: dropError } = await grains().from("threads").delete().eq("id", dropId);
+  if (dropError) console.error("mergeThreads drop", dropError.message);
+
+  revalidatePath("/grains");
+  return { ok: true };
+}
+
 // 각주 달기 — 조각 하나에 딸린 짧은 메모. 조각의 어느 글자에 붙는 것이 아니라 조각 전체에 붙는다.
 export async function addNote(fragmentId: string, body: string): Promise<ActionResult> {
   if (badId(fragmentId)) return fail("잘못된 조각입니다.");

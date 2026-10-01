@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { Grain, GrainKind, GrainNote, GrainThread } from "@/lib/grains";
 import {
   addNote,
   deleteGrain,
   deleteNote,
+  mergeThreads,
+  splitThread,
   updateGrain,
   updateNote,
 } from "@/lib/grain-actions";
@@ -136,15 +138,11 @@ function GrainBody({
   );
 }
 
-// 봇이 사진을 받고 글로 옮기지 못했을 때 본문 자리에 넣는 안내(supabase/functions/telegram-webhook의
-// UNCONVERTED와 같은 글). 수정 칸을 열 때 이 안내를 지우고 빈 칸에서 시작하려고 알아본다.
-const UNCONVERTED_BODY = "(사진, 아직 글로 바꾸지 않음)";
-
 // 조각 하나의 본문을 고치는 칸. 사진 조각이면 사진이 칸 위에 그대로 있어서 보면서 적는다.
 // ⌘/Ctrl + Enter로 저장하고 Esc로 닫는다. 저장이 끝나야 닫히므로, 실패하면 적은 글이 그대로 남는다.
 function GrainEditor({ grain, onDone }: { grain: Grain; onDone: () => void }) {
   const hasPhoto = grain.kind === "photo" || !!grain.photoUrl;
-  const [draft, setDraft] = useState(grain.body === UNCONVERTED_BODY ? "" : grain.body);
+  const [draft, setDraft] = useState(grain.body);
   const [caption, setCaption] = useState(grain.caption ?? "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -363,13 +361,49 @@ function GrainNotes({ grain, editable }: { grain: Grain; editable: boolean }) {
   );
 }
 
+// 덩어리를 나누거나 잇는 동그란 버튼. 둘 다 서로 되돌릴 수 있어 확인 창은 두지 않는다.
+function CircleButton({
+  glyph,
+  title,
+  action,
+}: {
+  glyph: string;
+  title: string;
+  action: () => Promise<{ ok: true } | { ok: false; error: string }>;
+}) {
+  const [pending, start] = useTransition();
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          const result = await action();
+          if (!result.ok) window.alert(result.error);
+        })
+      }
+      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line bg-background font-mono text-[11px] leading-none text-grey hover:border-ink hover:text-ink disabled:opacity-40"
+    >
+      {glyph}
+    </button>
+  );
+}
+
 export function GrainsBoard({
   threads,
   editable = false,
+  demo = false,
 }: {
   threads: GrainThread[];
   editable?: boolean;
+  // 예시 화면: 덩어리 나누기·합치기 버튼의 자리만 보여 주고, 누르면 안내만 띄운다.
+  demo?: boolean;
 }) {
+  const showThreadButtons = editable || demo;
+  const DEMO_REFUSE = async () =>
+    ({ ok: false, error: "예시 화면에서는 동작하지 않습니다." }) as const;
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [lens, setLens] = useState(false);
@@ -390,6 +424,18 @@ export function GrainsBoard({
       }))
       .filter((t) => t.grains.length > 0);
   }, [threads, query, kind]);
+
+  // 덩어리를 나누고 잇는 자리는 검색·종류 필터와 상관없이 전체 데이터로 정한다.
+  // 덩어리의 첫 조각 위에서는 나눌 수 없고, 맨 위·맨 아래 덩어리는 한쪽으로 이을 이웃이 없다.
+  const { neighbors, firstGrainIds } = useMemo(() => {
+    const firsts = new Set<string>();
+    const near = new Map<string, { up: string | null; down: string | null }>();
+    threads.forEach((t, i) => {
+      if (t.grains.length > 0) firsts.add(t.grains[0].id);
+      near.set(t.id, { up: threads[i - 1]?.id ?? null, down: threads[i + 1]?.id ?? null });
+    });
+    return { neighbors: near, firstGrainIds: firsts };
+  }, [threads]);
 
   const total = visible.reduce((n, t) => n + t.grains.length, 0);
 
@@ -521,14 +567,35 @@ export function GrainsBoard({
         <ol className="space-y-4">
           {visible.map((t) => {
             const first = t.grains[0];
+            const near = neighbors.get(t.id);
             return (
               <li key={t.id} className="rounded-sm border border-line">
-                <div className="border-b border-line bg-surface px-3 py-2">
-                  <div className="font-mono text-xs font-bold text-ink">
-                    {DAY.format(new Date(first.createdAt))} {TIME.format(new Date(first.createdAt))}
-                    {t.title ? ` · ${t.title}` : ""}
+                <div className="flex items-start justify-between gap-3 border-b border-line bg-surface px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="font-mono text-xs font-bold text-ink">
+                      {DAY.format(new Date(first.createdAt))} {TIME.format(new Date(first.createdAt))}
+                      {t.title ? ` · ${t.title}` : ""}
+                    </div>
+                    {t.summary && <p className="mt-1 text-[13px] text-grey">{t.summary}</p>}
                   </div>
-                  {t.summary && <p className="mt-1 text-[13px] text-grey">{t.summary}</p>}
+                  {showThreadButtons && !t.id.startsWith("solo-") && (
+                    <div className="flex shrink-0 gap-1">
+                      {near?.up && (
+                        <CircleButton
+                          glyph="↑"
+                          title="위 덩어리와 연결하기"
+                          action={demo ? DEMO_REFUSE : () => mergeThreads(near.up!, t.id)}
+                        />
+                      )}
+                      {near?.down && (
+                        <CircleButton
+                          glyph="↓"
+                          title="아래 덩어리와 연결하기"
+                          action={demo ? DEMO_REFUSE : () => mergeThreads(t.id, near.down!)}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
                 <ul className="divide-y divide-line">
                   {t.grains.map((g) => (
@@ -609,6 +676,13 @@ export function GrainsBoard({
                         )}
                         <GrainNotes grain={g} editable={editable} />
                       </div>
+                      {showThreadButtons && !firstGrainIds.has(g.id) && !t.id.startsWith("solo-") && (
+                        <CircleButton
+                          glyph="✂"
+                          title="이 조각 위에서 덩어리 나누기"
+                          action={demo ? DEMO_REFUSE : () => splitThread(g.id)}
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>

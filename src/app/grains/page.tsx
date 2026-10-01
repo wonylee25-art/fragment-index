@@ -47,7 +47,7 @@ export default async function GrainsPage({
           <>
             <Summaries summaries={summaries} />
             {/* 예시 화면의 조각은 DB에 없으므로 고칠 수 없다. */}
-            <GrainsBoard threads={threads} editable={!demo} />
+            <GrainsBoard threads={threads} editable={!demo} demo={demo} />
           </>
         )}
       </main>
