@@ -21,10 +21,12 @@ export interface AddPaperInput {
   researchPeriod: string;
   researchTeam: string;
   researchSummary: string;
+  pages: string;
   keywords: string[];
   rissUrl: string;
 }
 
+// 신문잡지는 학술지명·권(호) 칸을 매체명·발행일로, 쪽수 칸을 지면으로 빌려 쓴다.
 // AddPaperForm은 유형(단행본/학술논문/학위논문)별로 입력칸을 다르게 보여줄 뿐 폼 상태 자체는 안 지워서,
 // 예를 들어 학술지명을 적어놨다가 유형을 학위논문으로 바꿔 제출하면 그 값이 그대로 journal_name에 남는다.
 // ResearchTrends 목록은 `paper.journalName ?? paper.institution`로 기관명을 표시하는데, 이 남은 값이
@@ -39,7 +41,8 @@ function extractYearFromPeriod(period: string): number | null {
 }
 
 function toPaperRow(input: AddPaperInput) {
-  const isJournal = input.paperType === "학술논문";
+  const isNews = input.paperType === "신문잡지";
+  const isJournal = input.paperType === "학술논문" || isNews; // 신문·잡지는 매체명·발행일을 학술지 칸에 담는다
   const isThesis = input.paperType === "학위논문";
   const isBook = input.paperType === "단행본";
   const isReport = input.paperType === "보고서";
@@ -58,6 +61,7 @@ function toPaperRow(input: AddPaperInput) {
     research_period: isReport ? input.researchPeriod.trim() || null : null,
     research_team: isReport ? input.researchTeam.trim() || null : null,
     research_summary: isReport ? input.researchSummary.trim() || null : null,
+    pages: isNews ? input.pages.trim() || null : null,
     keywords: input.keywords,
     riss_url: input.rissUrl.trim() || null,
   };

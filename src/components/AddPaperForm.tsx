@@ -5,7 +5,13 @@ import { PaperData, PaperType } from "@/lib/types";
 import { addPaper, updatePaper } from "@/lib/paper-actions";
 
 // "수록글"은 여기 없다 — 단행본 행의 「+ 수록글 추가」로만 생긴다(PaperChapters).
-const PAPER_TYPES: PaperType[] = ["학술논문", "학위논문", "단행본", "보고서"];
+const PAPER_TYPES: PaperType[] = [
+  "학술논문",
+  "학위논문",
+  "단행본",
+  "보고서",
+  "신문잡지",
+];
 
 const EMPTY_FORM = {
   paperType: "학술논문" as PaperType,
@@ -23,6 +29,7 @@ const EMPTY_FORM = {
   researchPeriod: "",
   researchTeam: "",
   researchSummary: "",
+  pages: "",
   keywords: "",
   rissUrl: "",
 };
@@ -44,6 +51,7 @@ function formFromPaper(paper: PaperData): typeof EMPTY_FORM {
     researchPeriod: paper.researchPeriod ?? "",
     researchTeam: paper.researchTeam ?? "",
     researchSummary: paper.researchSummary ?? "",
+    pages: paper.pages ?? "",
     keywords: paper.keywords.join(", "),
     rissUrl: paper.rissUrl,
   };
@@ -56,13 +64,23 @@ const INPUT_CLASSNAME =
 // paper가 주어지면 수정 모드(기존 값으로 채워서 updatePaper 호출), 없으면 신규 등록 모드(addPaper).
 // 목록 화면 자체가 client component라 여기 결과는 addPaper/updatePaper 안의 revalidatePath("/research")로 반영된다.
 // 열림/닫힘은 부모(ResearchTrends)가 갖는다 — 헤더의 토글 버튼과 이 폼(전체 너비 블록)의 레이아웃이 서로 달라서다.
-export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: () => void }) {
+export function AddPaperForm({
+  paper,
+  onClose,
+}: {
+  paper?: PaperData;
+  onClose: () => void;
+}) {
   const isEdit = paper !== undefined;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(paper ? formFromPaper(paper) : EMPTY_FORM);
+  const isNews = form.paperType === "신문잡지";
 
-  function update<K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) {
+  function update<K extends keyof typeof EMPTY_FORM>(
+    key: K,
+    value: (typeof EMPTY_FORM)[K],
+  ) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
@@ -91,6 +109,7 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
         researchPeriod: form.researchPeriod,
         researchTeam: form.researchTeam,
         researchSummary: form.researchSummary,
+        pages: form.pages,
         keywords: form.keywords
           .split(",")
           .map((k) => k.trim())
@@ -140,7 +159,9 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
           <input
             type="text"
             value={form.year}
-            onChange={(e) => update("year", e.target.value.replace(/[^0-9]/g, ""))}
+            onChange={(e) =>
+              update("year", e.target.value.replace(/[^0-9]/g, ""))
+            }
             placeholder="연도 (예: 2023)"
             inputMode="numeric"
             className={INPUT_CLASSNAME}
@@ -152,32 +173,48 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
         type="text"
         value={form.title}
         onChange={(e) => update("title", e.target.value)}
-        placeholder={form.paperType === "보고서" ? "연구 과제명 *" : "제목 *"}
+        placeholder={
+          form.paperType === "보고서"
+            ? "연구 과제명 *"
+            : isNews
+              ? "제목 *"
+              : "제목 *"
+        }
         autoFocus
         className={INPUT_CLASSNAME}
       />
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div
+        className={`grid grid-cols-1 gap-2 ${isNews ? "" : "sm:grid-cols-2"}`}
+      >
         <input
           type="text"
           value={form.author}
           onChange={(e) => update("author", e.target.value)}
-          placeholder={form.paperType === "보고서" ? "연구책임자" : "저자"}
-          className={INPUT_CLASSNAME}
-        />
-        <input
-          type="text"
-          value={form.institution}
-          onChange={(e) => update("institution", e.target.value)}
           placeholder={
-            form.paperType === "단행본"
-              ? "출판사"
-              : form.paperType === "보고서"
-                ? "수행기관 / 발주처"
-                : "학위수여기관 / 발행 학회"
+            form.paperType === "보고서"
+              ? "연구책임자"
+              : isNews
+                ? "필자"
+                : "저자"
           }
           className={INPUT_CLASSNAME}
         />
+        {!isNews && (
+          <input
+            type="text"
+            value={form.institution}
+            onChange={(e) => update("institution", e.target.value)}
+            placeholder={
+              form.paperType === "단행본"
+                ? "출판사"
+                : form.paperType === "보고서"
+                  ? "수행기관 / 발주처"
+                  : "학위수여기관 / 발행 학회"
+            }
+            className={INPUT_CLASSNAME}
+          />
+        )}
       </div>
 
       {form.paperType === "학술논문" && (
@@ -194,6 +231,33 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
             value={form.volumeIssue}
             onChange={(e) => update("volumeIssue", e.target.value)}
             placeholder="권(호) 예: 25(1)"
+            className={INPUT_CLASSNAME}
+          />
+        </div>
+      )}
+
+      {isNews && (
+        // 신문·잡지 — 매체명·발행일·지면. 연도는 위 칸, URL은 아래 칸에서 따로 받는다.
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <input
+            type="text"
+            value={form.journalName}
+            onChange={(e) => update("journalName", e.target.value)}
+            placeholder="매체명 (예: 동아일보)"
+            className={INPUT_CLASSNAME}
+          />
+          <input
+            type="text"
+            value={form.volumeIssue}
+            onChange={(e) => update("volumeIssue", e.target.value)}
+            placeholder="발행일 (예: 9월 20일)"
+            className={INPUT_CLASSNAME}
+          />
+          <input
+            type="text"
+            value={form.pages}
+            onChange={(e) => update("pages", e.target.value)}
+            placeholder="지면 (예: 3면)"
             className={INPUT_CLASSNAME}
           />
         </div>
@@ -278,7 +342,7 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
         type="url"
         value={form.rissUrl}
         onChange={(e) => update("rissUrl", e.target.value)}
-        placeholder="원문 링크 (RISS 등)"
+        placeholder={isNews ? "URL" : "원문 링크 (RISS 등)"}
         className={INPUT_CLASSNAME}
       />
 
@@ -301,7 +365,13 @@ export function AddPaperForm({ paper, onClose }: { paper?: PaperData; onClose: (
           disabled={pending}
           className="rounded-sm bg-ink px-2.5 py-1 font-mono text-xs text-white hover:opacity-80 disabled:opacity-50"
         >
-          {pending ? (isEdit ? "저장 중…" : "추가 중…") : isEdit ? "저장" : "추가"}
+          {pending
+            ? isEdit
+              ? "저장 중…"
+              : "추가 중…"
+            : isEdit
+              ? "저장"
+              : "추가"}
         </button>
       </div>
     </form>

@@ -30,6 +30,7 @@ export function formatEventSource(event: TimelineEventData): string {
 // 학술논문: 저자, 연도, "제목," 『학술지명』권(호).
 // 단행본:   저자(역자), 연도, 『제목』, 출판지: 출판사.
 // 보고서:   연구책임자, 연도, "연구 과제명," 수행기관 연구보고서.
+// 신문잡지: 필자, 연도, "제목," 『매체명』 발행일, 지면.
 // 수록글:   저자, 연도, "글 제목," 엮은이 편, 『책 제목』, 45-72쪽, 출판지: 출판사.
 //
 // 수록글은 서지의 절반이 제 행에 없다 — 연도·출판사·출판지는 매달린 책의 것이라 부모를
@@ -52,6 +53,14 @@ export function formatCitation(p: PaperData, parent?: PaperData): string {
       return `${author}, ${year}, "${p.title}," 『${p.journalName ?? p.institution}』${p.volumeIssue ?? ""}.`;
     case "보고서":
       return `${author}, ${year}, "${p.title}," ${p.institution} 연구보고서.`;
+    case "신문잡지": {
+      // 필자·매체·발행일은 모르면 건너뛴다 — 비어 있는 자리에 쉼표만 남기지 않는다.
+      const head = [p.author, String(year)].filter(Boolean).join(", ");
+      const media = p.journalName ? `『${p.journalName}』` : "";
+      const pages = p.pages?.trim() ? (/^\d+$/.test(p.pages.trim()) ? `${p.pages.trim()}면` : p.pages.trim()) : "";
+      const where = [[media, p.volumeIssue].filter(Boolean).join(" "), pages].filter(Boolean).join(", ");
+      return `${head}, "${p.title}," ${where}.`.replace(/,\s*\.$/, ".");
+    }
   }
 }
 

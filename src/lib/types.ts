@@ -109,7 +109,9 @@ export interface PlaceRef {
 // "수록글"은 다른 넷과 갈래가 다르다 — 앞의 넷은 스스로 한 편이지만 수록글은 언제나
 // 단행본 하나에 매달려 있다(PaperData.parentId). 그래서 논문 추가 폼의 유형 선택지에는
 // 나오지 않고, 책 행의 「+ 수록글 추가」로만 생긴다.
-export type PaperType = "학위논문" | "학술논문" | "단행본" | "보고서" | "수록글";
+// "신문잡지"는 신문·잡지에 실린 글 — 기자의 기사도, 외부 필자의 기고도 한 유형이다.
+// 매체명은 journalName, 발행일·면은 volumeIssue 칸을 빌려 쓴다(학술지의 학술지명·권호 자리).
+export type PaperType = "학위논문" | "학술논문" | "단행본" | "보고서" | "신문잡지" | "수록글";
 
 // 논문에서 발췌한 인용구 — 남의 말을 옮긴 것이라 페이지 번호를 함께 달고 다닌다.
 // 내가 쓴 말(UserMemo)과는 화면에서 색으로 갈린다(노랑/회색).
@@ -129,8 +131,8 @@ export interface PaperData {
   author: string; // 보고서일 때는 연구책임자
   year: number | null; // 보고서일 때는 폼에서 직접 받지 않고 researchPeriod에서 파생(paper-actions.ts 참고)
   institution: string; // 학위수여기관·발행 학회, 출판사(단행본), 또는 수행기관(보고서)
-  journalName?: string; // 학술논문일 때만
-  volumeIssue?: string; // 학술논문일 때만 — 권(호), 예: "25(1)"
+  journalName?: string; // 학술논문일 때는 학술지명, 신문잡지일 때는 매체명
+  volumeIssue?: string; // 학술논문일 때 권(호) 예: "25(1)", 신문잡지일 때 발행일 예: "9월 20일"
   degreeLevel?: string; // 학위논문일 때만 (국내석사/국내박사)
   // 단행본일 때만 — 한국문화인류학회 인용 형식(저자, 발행연도, 제목, 출판지: 출판사) 참고.
   // https://koanth.org/?page_id=1048
@@ -146,7 +148,7 @@ export interface PaperData {
   // 이 논문이 매달린 단행본의 id — 수록글일 때만 채워진다(20260823_add_chapters_to_papers.sql).
   // 목록에서는 부모 아래로 접혀 들어가고, 세는 자리와 주제어 클라우드에서는 빠진다.
   parentId: string | null;
-  pages?: string; // 수록글일 때만 — 수록 쪽수, 예: "45-72"
+  pages?: string; // 수록글일 때 수록 쪽수 예: "45-72", 신문잡지일 때 지면 예: "3면"
   keywords: string[];
   rissUrl: string;
   memos: UserMemo[]; // 이용자가 이 논문에 대해 직접 적는 개인 메모 — 여러 개 쌓인다

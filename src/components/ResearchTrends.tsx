@@ -56,7 +56,7 @@ const SORT_LABELS: Record<SortMode, string> = {
 // 유형으로 좁히는 자리. 정렬(SortMode)과 달리 걸러 내는 것이라 한 번에 하나만 걸고,
 // 다시 누르면 풀린다(null = 전체). 수록글은 여기 세우지 않는다 — 제 책 아래에 접혀 있는
 // 조각이고, 편수를 따로 세지 않기로 한 것(논문 목록 머리글 참고)과 같은 이유다.
-const TYPE_FILTERS: readonly PaperType[] = ["학술논문", "학위논문", "단행본", "보고서"];
+const TYPE_FILTERS: readonly PaperType[] = ["학술논문", "학위논문", "단행본", "보고서", "신문잡지"];
 
 function sortPapers(papers: PaperData[], mode: SortMode): PaperData[] {
   const sorted = [...papers];
@@ -646,6 +646,7 @@ export function ResearchTrends({ papers, syncedAt }: { papers: PaperData[]; sync
                         : paper.paperType === "보고서"
                           ? [paper.institution, paper.researchPeriod].filter(Boolean).join(" · ")
                           : [paper.journalName ?? paper.institution, paper.volumeIssue].filter(Boolean).join(" ")}
+                      {paper.paperType === "신문잡지" && paper.pages ? `, ${paper.pages}` : ""}
                       {paper.degreeLevel ? ` · ${paper.degreeLevel}` : ""}
                       {paper.paperType === "보고서" && paper.orderingAgency ? ` · 발주: ${paper.orderingAgency}` : ""}
                       {paper.paperType === "보고서" && paper.researchTeam ? ` · 연구진: ${paper.researchTeam}` : ""}
